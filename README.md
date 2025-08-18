@@ -4,59 +4,28 @@ A scalable full-stack template with FastAPI backend and React frontend, designed
 
 ---
 
-## Stack
+## 🛠️ Stack
 
 - **Backend:** FastAPI, SQLAlchemy (async), Alembic migrations  
-- **Authentication:** JWT (access + refresh), Google OAuth2  
+- **Authentication:** Email + Password (with JWT access & refresh tokens), Google OAuth2 
 - **Frontend:** React + Vite, Tailwind CSS, Material UI  
 - **State Management:** Redux (main app state) and optional React Query (server-state caching)  
 - **Database:** PostgreSQL (async)  
-- **Caching & Tasks:** Redis + Celery  
-- **Testing:** Pytest, coverage  
-- **Deployment:** Docker Compose, Traefik for automatic HTTPS  
+- **Caching & Tasks:** Redis + Celery    
+- **Deployment:** Docker
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
-Create a `.env` file in the `backend/` folder with the following content:
+All environment variables are defined in `.env.example`.  
+Copy it to `.env` and update the values with your own credentials:
 
-```env
-# ---------------------------- App Config ----------------------------
-APP_NAME=YourAppName
-DEBUG=True
-
-# ---------------------------- Database Config ----------------------------
-# Format: postgresql+asyncpg://user:password@host:port/dbname
-DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/your_db_name
-
-# ---------------------------- JWT Config ----------------------------
-SECRET_KEY=your_super_secret_key
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_MINUTES=1440
-
-# ---------------------------- OAuth2 / Gmail Config ----------------------------
-GMAIL_CLIENT_ID=your_google_client_id
-GMAIL_CLIENT_SECRET=your_google_client_secret
-GMAIL_REDIRECT_URI=http://localhost:8000/auth/google/callback
-
-# ---------------------------- Redis Config ----------------------------
-REDIS_URL=redis://localhost:6379/0
-
-# ---------------------------- Celery Config ----------------------------
-CELERY_BROKER_URL=redis://localhost:6379/1
-CELERY_RESULT_BACKEND=redis://localhost:6379/2
+```bash
+cp .env.example .env
 ```
 
-> **Note:** Replace all placeholders with your own credentials.  
-> For `SECRET_KEY`, generate a strong random key using:  
-> ```bash
-> python -c "import secrets; print(secrets.token_urlsafe(32))"
-> ```
-
----
-
-## Installation
+## 📥 Installation
 
 1. **Clone the repository**
 ```bash
@@ -80,7 +49,7 @@ npm install
 
 ---
 
-## Run the App
+## 🚀 Run the App
 
 1. **Start the FastAPI backend**
 ```bash
@@ -95,7 +64,7 @@ npm run dev
 
 ---
 
-## Notes
+## 📝 Notes
 
 - All credentials and secrets are loaded from `.env`  
 - Use **Alembic** for database migrations  
@@ -106,17 +75,7 @@ npm run dev
 
 ---
 
-## Testing
+## 📦 Deployment
 
-Run backend tests with:
-```bash
-pytest --cov=app tests/
-```
-
----
-
-## Deployment
-
-- Recommended via Docker Compose
-- Traefik can handle automatic HTTPS certificates
+- Recommended via Docker Compose (can orchestrate backend, frontend, PostgreSQL, and Redis together)
 - Ensure `.env` secrets are set in production

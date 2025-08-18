@@ -1,33 +1,33 @@
 # ---------------------------- FastAPI & ASGI ----------------------------
-fastapi                     # FastAPI framework
-uvicorn[standard]           # ASGI server for running FastAPI
+fastapi                     # FastAPI framework for building APIs
+uvicorn[standard]           # ASGI server for running FastAPI apps
 
 # ---------------------------- Database / ORM ----------------------------
-SQLAlchemy                  # Core ORM
+SQLAlchemy                  # Core ORM for SQL databases
 asyncpg                     # Async PostgreSQL driver
-alembic                     # Database migrations
+alembic                     # Database migrations tool
 
 # ---------------------------- Data Validation & Settings ----------------------------
 pydantic                    # Data validation and settings management
-python-dotenv               # Load environment variables from .env
+python-dotenv               # Load environment variables from .env files
 
 # ---------------------------- Authentication & Security ----------------------------
 passlib[bcrypt]             # Password hashing
-pyjwt                       # JWT encoding/decoding
+pyjwt                       # JWT encoding/decoding for authentication
 oauthlib                     # OAuth2 support
 requests-oauthlib           # OAuth2 client integration
 
 # ---------------------------- Google OAuth2 ----------------------------
 google-auth                  # Core Google authentication library
-google-auth-oauthlib         # OAuth2 helper for Google
-google-auth-httplib2         # HTTP transport support for Google Auth
+google-auth-oauthlib         # OAuth2 helper for Google services
+google-auth-httplib2         # HTTP transport support for Google APIs
 
 # ---------------------------- Redis & Celery ----------------------------
-aioredis                     # Async Redis client
+aioredis                     # Async Redis client for caching/queues
 celery                        # Task queue for background jobs
 
 # ---------------------------- Email ----------------------------
-aiosmtplib                   # Async SMTP for sending emails
+aiosmtplib                   # Async SMTP client for sending emails
 
 # ---------------------------- Development & Testing ----------------------------
 pytest                       # Testing framework
@@ -36,3 +36,6 @@ pytest-asyncio               # Async support for pytest
 
 # ---------------------------- Optional / Utilities ----------------------------
 python-multipart             # Handling multipart/form-data (file uploads)
+
+# ---------------------------- Logging ----------------------------
+python-json-logger           # JSON logging for structured logs

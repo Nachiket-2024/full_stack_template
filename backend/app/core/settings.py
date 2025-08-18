@@ -6,7 +6,6 @@ from pydantic import BaseSettings
 # Load configuration from .env file and provide structured access
 class Settings(BaseSettings):
     # ---------------------------- App Config ----------------------------
-    APP_NAME: str                                   # Name of the application
     DEBUG: bool                                     # Enable debug mode
 
     # ---------------------------- Database Config ----------------------------
@@ -16,23 +15,31 @@ class Settings(BaseSettings):
     SECRET_KEY: str                                 # Secret key for JWT encoding
     ACCESS_TOKEN_EXPIRE_MINUTES: int                # Access token expiration time in minutes
     REFRESH_TOKEN_EXPIRE_MINUTES: int               # Refresh token expiration time in minutes
+    JWT_ALGORITHM: str                              # Algorithm for JWT encoding
 
     # ---------------------------- OAuth2 / Gmail Config ----------------------------
-    GMAIL_CLIENT_ID: str
-    GMAIL_CLIENT_SECRET: str
-    GMAIL_REDIRECT_URI: str
+    GMAIL_CLIENT_ID: str                            # OAuth2 Client ID for Gmail
+    GMAIL_CLIENT_SECRET: str                        # OAuth2 Client Secret for Gmail
+    GMAIL_REDIRECT_URI: str                         # OAuth2 redirect URI for Gmail login
 
     # ---------------------------- Redis Config ----------------------------
     REDIS_URL: str                                  # Redis connection URL
 
     # ---------------------------- Celery Config ----------------------------
-    CELERY_BROKER_URL: str
-    CELERY_RESULT_BACKEND: str
+    CELERY_BROKER_URL: str                          # Celery broker URL for task queue
+    CELERY_RESULT_BACKEND: str                      # Celery backend to store results
+
+    # ---------------------------- Rate Limiter Config ----------------------------
+    LOGIN_LOCKOUT_TIME: int                         # Time in seconds to lockout after failed login attempts
+    MAX_FAILED_LOGIN_ATTEMPTS: int                  # Max failed login attempts before lockout
+    MAX_REQUESTS_PER_WINDOW: int                    # Max requests allowed per rate limit window
+    REQUEST_WINDOW_SECONDS: int                     # Time window for rate limiting in seconds
 
     # ---------------------------- Pydantic Config ----------------------------
     class Config:
         # Load environment variables from a .env file
         env_file = ".env"
+        # Encoding for the .env file
         env_file_encoding = "utf-8"
 
 # ---------------------------- Settings Instance ----------------------------

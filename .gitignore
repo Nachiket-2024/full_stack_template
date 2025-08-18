@@ -3,8 +3,9 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.env
-*.env.*
+.env
+.env.*
+!.env.example
 *.venv/
 venv/
 .envrc
@@ -37,7 +38,6 @@ docker-compose.override.yml
 *.pid
 *.sock
 *.cache
-*.env
 
 # ---------------------------- Backend ----------------------------
 backend/__pycache__/
