@@ -1,0 +1,81 @@
+# ---------------------------- Python ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.env.*
+*.venv/
+venv/
+.envrc
+.Python
+*.sqlite3
+
+# ---------------------------- Conda ----------------------------
+# Ignore Conda environment directories
+env/
+envs/
+.conda/
+.condarc
+*.conda
+
+# ---------------------------- IDEs / Editors ----------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ---------------------------- macOS / Linux ----------------------------
+.DS_Store
+Thumbs.db
+*.swp
+
+# ---------------------------- Docker ----------------------------
+*.log
+docker-compose.override.yml
+*.pid
+*.sock
+*.cache
+*.env
+
+# ---------------------------- Backend ----------------------------
+backend/__pycache__/
+backend/*.pyc
+backend/migrations/
+backend/alembic/versions/
+backend/*.db
+
+# ---------------------------- Frontend ----------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.DS_Store
+frontend/.cache/
+
+# ---------------------------- Testing / Coverage ----------------------------
+.coverage
+htmlcov/
+pytest_cache/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.cache/
+.pytest_cache/
+__pypackages__/
+
+# ---------------------------- Celery ----------------------------
+celerybeat-schedule
+celerybeat.pid
+
+# ---------------------------- Redis ----------------------------
+redis-data/
+dump.rdb
+*.rdb
+
+# ---------------------------- Logs ----------------------------
+logs/
+*.log

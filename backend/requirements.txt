@@ -1,0 +1,38 @@
+# ---------------------------- FastAPI & ASGI ----------------------------
+fastapi                     # FastAPI framework
+uvicorn[standard]           # ASGI server for running FastAPI
+
+# ---------------------------- Database / ORM ----------------------------
+SQLAlchemy                  # Core ORM
+asyncpg                     # Async PostgreSQL driver
+alembic                     # Database migrations
+
+# ---------------------------- Data Validation & Settings ----------------------------
+pydantic                    # Data validation and settings management
+python-dotenv               # Load environment variables from .env
+
+# ---------------------------- Authentication & Security ----------------------------
+passlib[bcrypt]             # Password hashing
+pyjwt                       # JWT encoding/decoding
+oauthlib                     # OAuth2 support
+requests-oauthlib           # OAuth2 client integration
+
+# ---------------------------- Google OAuth2 ----------------------------
+google-auth                  # Core Google authentication library
+google-auth-oauthlib         # OAuth2 helper for Google
+google-auth-httplib2         # HTTP transport support for Google Auth
+
+# ---------------------------- Redis & Celery ----------------------------
+aioredis                     # Async Redis client
+celery                        # Task queue for background jobs
+
+# ---------------------------- Email ----------------------------
+aiosmtplib                   # Async SMTP for sending emails
+
+# ---------------------------- Development & Testing ----------------------------
+pytest                       # Testing framework
+httpx                         # Async HTTP client for testing
+pytest-asyncio               # Async support for pytest
+
+# ---------------------------- Optional / Utilities ----------------------------
+python-multipart             # Handling multipart/form-data (file uploads)
