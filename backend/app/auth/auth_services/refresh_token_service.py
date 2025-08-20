@@ -1,94 +1,112 @@
 # ---------------------------- External Imports ----------------------------
-# For datetime calculations
-from datetime import datetime, timedelta
-
 # For async logging and traceback
 import logging
 import traceback
 
-# JWT encoding/decoding
-import jwt
-
 # ---------------------------- Internal Imports ----------------------------
-# Load settings like SECRET_KEY and token expiration times
-from ...core.settings import settings
+# Reuse JWT creation, verification, and revocation
+from ..auth_services.jwt_service import jwt_service
 
-# Async Redis client for token revocation
-from ...redis.client import redis_client
+# Role → DB table mapping to update refresh token
+from ...core.role_tables import ROLE_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
+# Create logger for this module
 logger = logging.getLogger(__name__)
+# Configure logging level globally
 logging.basicConfig(level=logging.INFO)
+
 
 # ---------------------------- Refresh Token Service ----------------------------
 class RefreshTokenService:
     """
-    Service to handle issuing new access tokens using refresh tokens
-    and checking revocation.
+    Service to handle refresh token rotation:
+      - Verify old refresh token
+      - Revoke old token in Redis
+      - Issue new access + refresh tokens
+      - Update DB with new refresh token (only one active per user)
     """
 
-    # ---------------------------- Refresh Access Token ----------------------------
-    # Input: refresh token string
-    # Output: new access token string or None if invalid/revoked
+    # ---------------------------- Refresh Tokens ----------------------------
     @staticmethod
-    async def refresh_access_token(refresh_token: str) -> str | None:
+    async def refresh_tokens(refresh_token: str) -> dict[str, str] | None:
         """
-        Verify refresh token and issue new access token.
+        Refresh flow:
+          1. Verify old refresh token
+          2. Check revocation list
+          3. Revoke old token
+          4. Issue new access + refresh tokens
+          5. Persist new refresh token in DB
+        Returns dict with {"access_token": str, "refresh_token": str}
+        or None if invalid/revoked.
         """
         try:
-            # Check if token is revoked
-            revoked = await redis_client.get(f"revoked:{refresh_token}")
-            if revoked:
+            # Step 1: Check if token already revoked in Redis
+            if await jwt_service.is_token_revoked(refresh_token):
                 logger.warning("Attempt to use revoked refresh token")
                 return None
 
-            # Decode refresh token
-            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=["HS256"])
-            email = payload.get("sub")
-            role = payload.get("table")
+            # Step 2: Verify the refresh token payload
+            payload = await jwt_service.verify_token(refresh_token)
+            if not payload:
+                logger.warning("Invalid or expired refresh token")
+                return None
 
-            # Issue new access token
-            expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-            new_payload: dict[str, str | float] = {
-                "sub": email,
-                "table": role,
-                "exp": expire.timestamp()
+            # Extract subject (email) and role
+            email, role = payload.get("sub"), payload.get("role")
+            if not email or not role:
+                logger.warning("Malformed refresh token payload")
+                return None
+
+            # Step 3: Revoke the old refresh token
+            await jwt_service.revoke_refresh_token(refresh_token)
+
+            # Step 4: Issue new tokens
+            new_access_token = await jwt_service.create_access_token(email, role)
+            new_refresh_token = await jwt_service.create_refresh_token(email, role)
+
+            # Step 5: Persist the new refresh token in DB
+            table = ROLE_TABLES.get(role)
+            if not table:
+                logger.error(f"No table mapping found for role: {role}")
+                return None
+            await table.update_refresh_token(email=email, refresh_token=new_refresh_token)
+
+            # Return both new tokens
+            return {
+                "access_token": new_access_token,
+                "refresh_token": new_refresh_token,
             }
-            access_token = jwt.encode(new_payload, settings.SECRET_KEY, algorithm="HS256")
-            return access_token
 
-        except jwt.ExpiredSignatureError:
-            logger.warning("Expired refresh token used")
-            return None
-        except jwt.InvalidTokenError:
-            logger.warning("Invalid refresh token used")
-            return None
+        # Handle unexpected errors gracefully
         except Exception:
-            logger.error("Error in refreshing access token:\n%s", traceback.format_exc())
+            logger.error(
+                "Unexpected error in refreshing tokens:\n%s",
+                traceback.format_exc(),
+            )
             return None
-        
+
     # ---------------------------- Revoke Refresh Token ----------------------------
     @staticmethod
     async def revoke_refresh_token(refresh_token: str) -> bool:
         """
-        Revoke a refresh token by adding it to Redis.
-        Returns True if revoked successfully, False if invalid.
+        Explicitly revoke a refresh token:
+          - Decodes expiry
+          - Stores revocation marker in Redis until expiry
+        Returns True if revoked, False if invalid/expired.
         """
         try:
-            # Optionally decode to validate token before revoking
-            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=["HS256"])
-            # Store in Redis with expiration matching the token's expiry
-            exp = payload.get("exp")
-            ttl = int(exp - datetime.utcnow().timestamp())
-            await redis_client.set(f"revoked:{refresh_token}", "1", ex=ttl)
-            return True
-        except jwt.InvalidTokenError:
-            return False
+            # Use JWTService revoke method directly
+            return await jwt_service.revoke_refresh_token(refresh_token)
+
         except Exception:
-            logger.error("Error in revoking refresh token:\n%s", traceback.format_exc())
+            logger.error(
+                "Unexpected error in revoking refresh token:\n%s",
+                traceback.format_exc(),
+            )
             return False
 
 
 # ---------------------------- Service Instance ----------------------------
-# Single instance for global use
+# Singleton instance to be imported in other modules
 refresh_token_service = RefreshTokenService()

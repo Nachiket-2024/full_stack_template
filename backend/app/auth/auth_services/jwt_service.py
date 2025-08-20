@@ -16,100 +16,99 @@ from ...redis.client import redis_client
 class JWTService:
     """
     Service to handle JWT access and refresh tokens, including revocation via Redis.
+    Tokens now include the user's role instead of table_name.
+    With DB enforcing only one valid access+refresh per user, 
+    Redis revocation acts as a "kill switch" for forced logout / stolen token invalidation.
     """
 
     # ---------------------------- Create Access Token ----------------------------
-    # Input: user identifier (email), table name
-    # Output: JWT access token string
     @staticmethod
-    async def create_access_token(email: str, table_name: str) -> str:
+    async def create_access_token(email: str, role: str) -> str:
         """
-        Generate a short-lived access token.
+        Generate a short-lived access token including user role.
         """
-        # Create a timezone-aware UTC expiration datetime
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        # Payload includes subject, table, and expiration timestamp
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
         payload: dict[str, str | float] = {
-            "sub": email,          # Subject: user's email
-            "table": table_name,   # Table name for role-specific user
-            "exp": expire.timestamp()  # Expiration timestamp
+            "sub": email,         # User email
+            "role": role,         # User role
+            "exp": expire.timestamp(),  # Expiration timestamp
         }
-        # Encode the JWT with the secret key and algorithm
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-        return token
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
     # ---------------------------- Create Refresh Token ----------------------------
-    # Input: user identifier (email), table name
-    # Output: JWT refresh token string
     @staticmethod
-    async def create_refresh_token(email: str, table_name: str) -> str:
+    async def create_refresh_token(email: str, role: str) -> str:
         """
-        Generate a long-lived refresh token.
+        Generate a long-lived refresh token including user role.
         """
-        # Create a timezone-aware UTC expiration datetime
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
-        # Payload includes subject, table, and expiration timestamp
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES
+        )
         payload: dict[str, str | float] = {
             "sub": email,
-            "table": table_name,
-            "exp": expire.timestamp()
+            "role": role,
+            "exp": expire.timestamp(),
         }
-        # Encode the JWT using algorithm
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-        return token
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
     # ---------------------------- Verify Token ----------------------------
-    # Input: JWT token string
-    # Output: payload dict if valid, None if invalid/expired
     @staticmethod
     async def verify_token(token: str) -> dict | None:
         """
-        Verify access or refresh token.
+        Verify access or refresh token and return payload if valid.
         """
         try:
-            # Decode the JWT with the secret key and allowed algorithms
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+            )
             return payload
         except jwt.ExpiredSignatureError:
-            # Token has expired
             return None
         except jwt.InvalidTokenError:
-            # Token is invalid
             return None
 
     # ---------------------------- Revoke Refresh Token ----------------------------
-    # Input: JWT token string
-    # Output: True if revoked successfully
     @staticmethod
     async def revoke_refresh_token(token: str) -> bool:
         """
         Revoke a refresh token by storing it in Redis blacklist.
+        Redis entry expires when the token itself expires.
         """
         try:
-            # Decode the JWT to get expiration
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            # Decode without enforcing expiration check
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+                options={"verify_exp": False},
+            )
             exp_timestamp = payload.get("exp")
-            # Compute TTL in seconds until token expiration
+            if not exp_timestamp:
+                return False
+
             ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
-            # Only store in Redis if token is not expired
-            if ttl > 0:
-                await redis_client.set(f"revoked:{token}", "true", ex=ttl)
+            if ttl <= 0:
+                return False
+
+            await redis_client.set(f"revoked:{token}", "1", ex=ttl)
             return True
+        except jwt.InvalidTokenError:
+            return False
         except Exception:
-            # On any error, revocation fails
             return False
 
     # ---------------------------- Check Token Revocation ----------------------------
-    # Input: JWT token string
-    # Output: True if revoked, False otherwise
     @staticmethod
     async def is_token_revoked(token: str) -> bool:
         """
         Check if a refresh token is revoked in Redis.
         """
-        revoked = await redis_client.get(f"revoked:{token}")
-        return revoked is not None
+        return await redis_client.get(f"revoked:{token}") is not None
+
 
 # ---------------------------- Service Instance ----------------------------
-# Single instance for global use
 jwt_service = JWTService()

@@ -64,6 +64,25 @@ class BaseCRUD:
         await db.refresh(db_obj)
         return db_obj
 
+    # ---------------------------- Update by Email ----------------------------
+    async def update_by_email(self, db: AsyncSession, email: str, update_data: dict):
+        """
+        Fetch a record by email and update it with provided fields.
+        Returns updated object or None if not found.
+        """
+        db_obj = await self.get_by_email(db, email)
+        if not db_obj:
+            return None
+        return await self.update(db, db_obj, update_data)
+    
+    # ---------------------------- Update Refresh Token ----------------------------
+    async def update_refresh_token(self, db: AsyncSession, email: str, refresh_token: str):
+        """
+        Fetch a record by email and update the refresh_token field.
+        Returns updated object or None if not found.
+        """
+        return await self.update_by_email(db, email, {"refresh_token": refresh_token})
+
     # ---------------------------- Delete a record ----------------------------
     async def delete(self, db: AsyncSession, db_obj):
         """

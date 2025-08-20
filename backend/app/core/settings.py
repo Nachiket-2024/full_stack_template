@@ -7,6 +7,8 @@ from pydantic import BaseSettings
 class Settings(BaseSettings):
     # ---------------------------- App Config ----------------------------
     DEBUG: bool                                     # Enable debug mode
+    BACKEND_BASE_URL: str                           # Backend URL for Auth redirection from frontend
+    FRONTEND_BASE_URL: str                          # Frontend URL for redirection
 
     # ---------------------------- Database Config ----------------------------
     DATABASE_URL: str                               # Async PostgreSQL connection URL
@@ -16,18 +18,24 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int                # Access token expiration time in minutes
     REFRESH_TOKEN_EXPIRE_MINUTES: int               # Refresh token expiration time in minutes
     JWT_ALGORITHM: str                              # Algorithm for JWT encoding
+    RESET_TOKEN_EXPIRE_MINUTES: int                 # Password reset token expiration time in minutes
 
     # ---------------------------- OAuth2 / Gmail Config ----------------------------
-    GMAIL_CLIENT_ID: str                            # OAuth2 Client ID for Gmail
-    GMAIL_CLIENT_SECRET: str                        # OAuth2 Client Secret for Gmail
-    GMAIL_REDIRECT_URI: str                         # OAuth2 redirect URI for Gmail login
+    GOOGLE_CLIENT_ID: str                            # OAuth2 Client ID for Gmail
+    GOOGLE_CLIENT_SECRET: str                        # OAuth2 Client Secret for Gmail
+    GOOGLE_REDIRECT_URI: str                         # OAuth2 redirect URI for Gmail login
 
     # ---------------------------- Redis Config ----------------------------
     REDIS_URL: str                                  # Redis connection URL
+    CACHE_DEFAULT_TTL: int                          # Default TTL for Redis cache keys in seconds
 
     # ---------------------------- Celery Config ----------------------------
     CELERY_BROKER_URL: str                          # Celery broker URL for task queue
     CELERY_RESULT_BACKEND: str                      # Celery backend to store results
+
+    # ---------------------------- Email / SMTP Config ----------------------------
+    FROM_EMAIL: str                                 # Email address used to send password reset emails
+    GOOGLE_EMAIL_REFRESH_TOKEN: str                 # OAuth2 refresh token for sending emails
 
     # ---------------------------- Rate Limiter Config ----------------------------
     LOGIN_LOCKOUT_TIME: int                         # Time in seconds to lockout after failed login attempts

@@ -16,6 +16,7 @@ class Role1Create(Role1Base):
     Fields required when creating a new Role1 user.
     """
     password: str  # Plain password, will be hashed before saving
+    is_verified: bool = False  # Default to False until email verification
 
 # ---------------------------- Schema for Update ----------------------------
 class Role1Update(BaseModel):
@@ -25,6 +26,7 @@ class Role1Update(BaseModel):
     """
     name: str = None
     password: str = None  # Will be hashed if provided
+    is_verified: bool = None  # Can update verification status
 
 # ---------------------------- Schema for Reading ----------------------------
 class Role1Read(Role1Base):
@@ -34,6 +36,7 @@ class Role1Read(Role1Base):
     id: int
     created_at: datetime
     updated_at: datetime
+    is_verified: bool  # Include verification status
 
     class Config(ConfigDict):
         from_attributes = True  # Enable ORM objects (SQLAlchemy models) to be converted to Pydantic

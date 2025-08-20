@@ -68,9 +68,10 @@ npm run dev
 
 - All credentials and secrets are loaded from `.env`  
 - Use **Alembic** for database migrations  
-- **Redis + Celery** are optional but recommended for async tasks and caching  
+- **Redis + Celery** are used for async tasks and caching  
+- For security ,rate limiting with IP and brute force attack prevention files are integrated in Auth and OAuth flow
 - OAuth2 setup requires Google credentials  
-- JWT access and refresh tokens are handled in `core/security.py`  
+- JWT access and refresh tokens are handled in auth folder with modular files for clarity 
 - Redux manages global app state; React Query can be used for server-side async data caching  
 
 ---

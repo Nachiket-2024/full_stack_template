@@ -1,56 +1,68 @@
 # ---------------------------- External Imports ----------------------------
-# For async operations and logging
+# Async email sending and OAuth2 credentials
+import aiosmtplib
+from email.message import EmailMessage
 import logging
 import traceback
-
-# For sending emails asynchronously
-from email.message import EmailMessage
-import aiosmtplib
+import asyncio
+from google.oauth2.credentials import Credentials
 
 # For Celery task queue
 from celery import shared_task
 
 # ---------------------------- Internal Imports ----------------------------
-# Load SMTP credentials from settings
 from ..core.settings import settings
 
 # ---------------------------- Logger Setup ----------------------------
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# ---------------------------- Email Sending Task ----------------------------
-@shared_task
-def send_email_task(to_email: str, subject: str, body: str) -> bool:
+# ---------------------------- Async Email Sending Task ----------------------------
+@shared_task(bind=True, name="send_email_task")
+def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
     """
-    Celery task to send an email asynchronously.
-    Uses aiosmtplib to connect to SMTP server.
+    Celery task to send an email asynchronously using Gmail OAuth2.
+    Uses a refresh token to obtain an access token dynamically.
     """
-    try:
-        # Compose email
-        message = EmailMessage()
-        message["From"] = settings.FROM_EMAIL  # e.g., admin email
-        message["To"] = to_email
-        message["Subject"] = subject
-        message.set_content(body)
 
-        # Connect and send using Gmail SMTP asynchronously
-        import asyncio
+    async def send_email_async():
+        try:
+            # ---------------------------- Compose Email ----------------------------
+            message = EmailMessage()
+            message["From"] = settings.FROM_EMAIL
+            message["To"] = to_email
+            message["Subject"] = subject
+            message.set_content(body)
 
-        async def send_async():
+            # ---------------------------- Prepare OAuth2 Credentials ----------------------------
+            creds = Credentials(
+                token=None,
+                refresh_token=settings.GOOGLE_EMAIL_REFRESH_TOKEN,
+                client_id=settings.GOOGLE_CLIENT_ID,
+                client_secret=settings.GOOGLE_CLIENT_SECRET,
+                token_uri="https://oauth2.googleapis.com/token",
+            )
+
+            # Refresh token to get access token
+            await asyncio.get_event_loop().run_in_executor(None, creds.refresh, None)
+            access_token = creds.token
+
+            # ---------------------------- Send Email ----------------------------
             await aiosmtplib.send(
                 message,
                 hostname="smtp.gmail.com",
                 port=587,
                 start_tls=True,
                 username=settings.FROM_EMAIL,
-                password=settings.FROM_EMAIL_PASSWORD
+                password=access_token,  # OAuth2 access token
             )
 
-        asyncio.run(send_async())
+            logger.info("Email sent to %s", to_email)
+            return True
 
-        logger.info("Email sent to %s", to_email)
-        return True
+        except Exception:
+            logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())
+            return False
 
-    except Exception:
-        logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())
-        return False
+    # Run the async email sending in the event loop
+    return asyncio.run(send_email_async())

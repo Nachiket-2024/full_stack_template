@@ -1,9 +1,9 @@
 # ---------------------------- External Imports ----------------------------
-# Password hashing library
+# Password hashing library with Argon2 support
 from passlib.context import CryptContext
 
 # For datetime calculations
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # JWT encoding/decoding
 import jwt
@@ -12,39 +12,40 @@ import jwt
 # Load settings like SECRET_KEY from core
 from ...core.settings import settings
 
+# Centralized role table and default role
+from ...core.role_tables import ROLE_TABLES, DEFAULT_ROLE
+
 # ---------------------------- Password Context ----------------------------
-# Context for hashing passwords using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use Argon2id for hashing: highly secure and future-proof
+pwd_context = CryptContext(
+    schemes=["argon2"],
+    deprecated="auto"
+)
 
 # ---------------------------- Password Service ----------------------------
 class PasswordService:
     """
     Service to handle password hashing, verification, and reset tokens.
+    Uses Argon2id for secure hashing.
     """
 
     # ---------------------------- Hash Password ----------------------------
-    # Input: plain text password
-    # Output: hashed password string
     @staticmethod
     async def hash_password(password: str) -> str:
         """
-        Hash plain password asynchronously.
+        Hash plain password asynchronously using Argon2id.
         """
         return pwd_context.hash(password)
 
     # ---------------------------- Verify Password ----------------------------
-    # Input: plain password, hashed password
-    # Output: True if match, False otherwise
     @staticmethod
     async def verify_password(plain_password: str, hashed_password: str) -> bool:
         """
-        Verify a plain password against the stored hash.
+        Verify a plain password against the stored Argon2 hash.
         """
         return pwd_context.verify(plain_password, hashed_password)
 
     # ---------------------------- Validate Password Strength ----------------------------
-    # Input: plain password
-    # Output: True if strong, False otherwise
     @staticmethod
     async def validate_password_strength(password: str) -> bool:
         """
@@ -60,44 +61,47 @@ class PasswordService:
         return True
 
     # ---------------------------- Create Reset Token ----------------------------
-    # Input: user email, table name, expiration in minutes
-    # Output: JWT token string
     @staticmethod
-    async def create_reset_token(email: str, table_name: str, expires_minutes: int = 15) -> str:
+    async def create_reset_token(email: str, role: str | None = None, expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES) -> str:
         """
         Generate a short-lived JWT for password reset.
+        Uses default role if none is provided.
         """
+        if role is None:
+            role = DEFAULT_ROLE
+
+        # Ensure role exists
+        if role not in ROLE_TABLES:
+            raise ValueError(f"Invalid role for reset token: {role}")
+
         # Calculate expiration timestamp
-        expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
 
         # Prepare payload with minimal info
         payload: dict[str, str | float] = {
-            "sub": email,          # Subject: user's email
-            "table": table_name,   # Table name for role-specific user
-            "exp": expire.timestamp()  # Expiration timestamp
+            "sub": email,
+            "role": role,
+            "exp": expire.timestamp()
         }
 
         # Encode JWT
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
         return token
 
     # ---------------------------- Verify Reset Token ----------------------------
-    # Input: JWT token string
-    # Output: payload dict if valid, None if invalid/expired
     @staticmethod
     async def verify_reset_token(token: str) -> dict | None:
         """
         Verify reset token. Returns payload if valid, None otherwise.
         """
         try:
-            # Decode JWT
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            if payload.get("role") not in ROLE_TABLES:
+                return None
             return payload
         except jwt.ExpiredSignatureError:
-            # Token expired
             return None
         except jwt.InvalidTokenError:
-            # Invalid token
             return None
 
 # ---------------------------- Service Instance ----------------------------

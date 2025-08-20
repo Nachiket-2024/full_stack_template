@@ -21,7 +21,7 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
 )
 
-# Optional: Load task modules automatically (e.g., email_tasks)
+# Auto-discover task modules
 celery_app.autodiscover_tasks(["app.celery.email_tasks"])
 
 # ---------------------------- Celery Configuration ----------------------------
@@ -31,6 +31,8 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    # Async pool for non-blocking tasks
+    worker_pool="solo",  # For development, use "asyncio" in production with Celery 5+
 )
 
 logger.info("Celery app initialized with broker: %s", settings.CELERY_BROKER_URL)

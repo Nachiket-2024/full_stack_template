@@ -2,6 +2,7 @@
 # For logging and handling exceptions
 import logging
 import traceback
+import asyncio  # For concurrent execution of async tasks
 
 # ---------------------------- Internal Imports ----------------------------
 # Auth service that handles login (password verification, JWT issuance)
@@ -32,14 +33,20 @@ async def handle_login(email: str, password: str, ip_address: str):
       - On exception, returns error and 500.
     """
     try:
+        # ---------------------------- Input Validation ----------------------------
+        if not email or not password:
+            return {"error": "Email and password are required"}, 400
+
         # ---------------------------- Rate Limiting ----------------------------
         # Create unique keys per email and per IP for login attempts
         email_rate_key = f"login:email:{email}"
         ip_rate_key = f"login:ip:{ip_address}"
 
-        # Record requests and check if rate limit exceeded
-        email_allowed = await rate_limiter_service.record_request(email_rate_key)
-        ip_allowed = await rate_limiter_service.record_request(ip_rate_key)
+        # Run both rate-limit checks concurrently to save time
+        email_allowed, ip_allowed = await asyncio.gather(
+            rate_limiter_service.record_request(email_rate_key),
+            rate_limiter_service.record_request(ip_rate_key)
+        )
         if not email_allowed or not ip_allowed:
             return {"error": "Too many login attempts. Try later."}, 429
 
@@ -51,10 +58,10 @@ async def handle_login(email: str, password: str, ip_address: str):
             # Login failed (invalid credentials or locked account)
             return {"error": "Invalid credentials or account locked"}, 401
 
-        # Login successful
+        # ---------------------------- Login Successful ----------------------------
         return tokens, 200
 
     except Exception:
-        # Catch unexpected errors and log
+        # Catch unexpected errors and log full traceback
         logger.error("Error during login logic:\n%s", traceback.format_exc())
         return {"error": "Internal Server Error"}, 500
