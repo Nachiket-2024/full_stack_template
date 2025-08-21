@@ -54,11 +54,14 @@ from ...auth.security.rate_limiter_service import rate_limiter_service
 # Login protection service for failed login attempt tracking
 from ...auth.security.login_protection_service import login_protection_service
 
+# JWT service for token handling
+from ...auth.token_logic.jwt_service import jwt_service
+
 # Application settings like URLs and client IDs
 from ...core.settings import settings
 
 # Database connection abstraction for getting async sessions
-from ...database.connection import Database
+from ...database.connection import database
 
 # ---------------------------- Router ----------------------------
 # Create a FastAPI router with /auth prefix and authentication-related tag
@@ -68,7 +71,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # POST /signup endpoint with rate limiting
 @router.post("/signup")
 @rate_limiter_service.rate_limited("signup")
-async def signup(payload: SignupSchema, db: AsyncSession = Depends(Database.get_session)):
+async def signup(payload: SignupSchema, db: AsyncSession = Depends(database.get_session)):
 
     # Handle user signup and get response and HTTP status
     response, status = await signup_handler.handle_signup(payload.name, payload.email, payload.password, db=db)
@@ -80,7 +83,7 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(Database.get_
 # POST /login endpoint with rate limiting
 @router.post("/login")
 @rate_limiter_service.rate_limited("login")
-async def login(payload: LoginSchema, db: AsyncSession = Depends(Database.get_session)):
+async def login(payload: LoginSchema, db: AsyncSession = Depends(database.get_session)):
 
     # Key to track login attempts per email
     email_lock_key = f"login_lock:email:{payload.email}"
@@ -148,7 +151,7 @@ async def oauth2_callback_google(code: str):
 # POST /logout endpoint with rate limiting
 @router.post("/logout")
 @rate_limiter_service.rate_limited("logout")
-async def logout(payload: RefreshTokenSchema, db: AsyncSession = Depends(Database.get_session)):
+async def logout(payload: RefreshTokenSchema, db: AsyncSession = Depends(database.get_session)):
 
     # Handle logout and invalidate refresh token
     response, status = await logout_handler.handle_logout(payload.refresh_token, db=db)
@@ -160,7 +163,7 @@ async def logout(payload: RefreshTokenSchema, db: AsyncSession = Depends(Databas
 # POST /logout/all endpoint with rate limiting
 @router.post("/logout/all")
 @rate_limiter_service.rate_limited("logout_all")
-async def logout_all(payload: RefreshTokenSchema, db: AsyncSession = Depends(Database.get_session)):
+async def logout_all(payload: RefreshTokenSchema, db: AsyncSession = Depends(database.get_session)):
 
     # Logs the user out from all devices by revoking all refresh tokens associated with their email.
     response, status = await logout_all_handler.handle_logout_all(payload.refresh_token , db=db)
@@ -173,7 +176,7 @@ async def logout_all(payload: RefreshTokenSchema, db: AsyncSession = Depends(Dat
 # POST /password-reset/request endpoint with rate limiting
 @router.post("/password-reset/request")
 @rate_limiter_service.rate_limited("password_reset_request")
-async def password_reset_request(payload: PasswordResetRequestSchema, db: AsyncSession = Depends(Database.get_session)):
+async def password_reset_request(payload: PasswordResetRequestSchema, db: AsyncSession = Depends(database.get_session)):
 
     # Handle password reset request and send email
     response, status = await password_reset_request_handler.handle_password_reset_request(payload.email, db=db)
@@ -185,10 +188,21 @@ async def password_reset_request(payload: PasswordResetRequestSchema, db: AsyncS
 # POST /password-reset/confirm endpoint with rate limiting
 @router.post("/password-reset/confirm")
 @rate_limiter_service.rate_limited("password_reset_confirm")
-async def password_reset_confirm(payload: PasswordResetConfirmSchema, db: AsyncSession = Depends(Database.get_session)):
+async def password_reset_confirm(payload: PasswordResetConfirmSchema, db: AsyncSession = Depends(database.get_session)):
 
-    # Key to track password reset attempts per email
-    email_lock_key = f"login_lock:email:{payload.email}"
+    # Verify the token and extract payload
+    token_payload = await jwt_service.verify_token(payload.token)
+
+    # Return error if token is invalid or expired
+    if not token_payload or "email" not in token_payload:
+        return JSONResponse(content={"error": "Invalid or expired token"}, status_code=400)
+
+    # Get user's email from token payload
+    email = token_payload["email"]
+
+    # Prepare a Redis key to track password reset attempts for this email
+    email_lock_key = f"login_lock:email:{email}"
+
     # Handle password reset confirmation
     response, status = await password_reset_confirm_handler.handle_password_reset_confirm(payload.token, payload.new_password, db=db)
 
@@ -206,7 +220,7 @@ async def password_reset_confirm(payload: PasswordResetConfirmSchema, db: AsyncS
 # GET /verify-account endpoint with rate limiting
 @router.get("/verify-account")
 @rate_limiter_service.rate_limited("verify_account")
-async def verify_account(token: str, email: str, db: AsyncSession = Depends(Database.get_session)):
+async def verify_account(token: str, email: str, db: AsyncSession = Depends(database.get_session)):
 
     # Key to track account verification attempts per email
     email_lock_key = f"login_lock:email:{email}"
