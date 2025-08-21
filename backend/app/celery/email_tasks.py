@@ -15,54 +15,49 @@ from ..core.settings import settings
 
 # ---------------------------- Logger Setup ----------------------------
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # ---------------------------- Async Email Sending Task ----------------------------
 @shared_task(bind=True, name="send_email_task")
-def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
+async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
     """
-    Celery task to send an email asynchronously using Gmail OAuth2.
-    Uses a refresh token to obtain an access token dynamically.
+    Fully async Celery task to send an email using Gmail OAuth2.
+    Refresh token is used to obtain a valid access token dynamically.
     """
 
-    async def send_email_async():
-        try:
-            # ---------------------------- Compose Email ----------------------------
-            message = EmailMessage()
-            message["From"] = settings.FROM_EMAIL
-            message["To"] = to_email
-            message["Subject"] = subject
-            message.set_content(body)
+    try:
+        # ---------------------------- Compose Email ----------------------------
+        message = EmailMessage()
+        message["From"] = settings.FROM_EMAIL
+        message["To"] = to_email
+        message["Subject"] = subject
+        message.set_content(body)
 
-            # ---------------------------- Prepare OAuth2 Credentials ----------------------------
-            creds = Credentials(
-                token=None,
-                refresh_token=settings.GOOGLE_EMAIL_REFRESH_TOKEN,
-                client_id=settings.GOOGLE_CLIENT_ID,
-                client_secret=settings.GOOGLE_CLIENT_SECRET,
-                token_uri="https://oauth2.googleapis.com/token",
-            )
+        # ---------------------------- Prepare OAuth2 Credentials ----------------------------
+        creds = Credentials(
+            token=None,
+            refresh_token=settings.GOOGLE_EMAIL_REFRESH_TOKEN,
+            client_id=settings.GOOGLE_CLIENT_ID,
+            client_secret=settings.GOOGLE_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
 
-            # Refresh token to get access token
-            await asyncio.get_event_loop().run_in_executor(None, creds.refresh, None)
-            access_token = creds.token
+        # Refresh token to get access token (run blocking refresh in a thread)
+        await asyncio.to_thread(creds.refresh, None)
+        access_token = creds.token
 
-            # ---------------------------- Send Email ----------------------------
-            await aiosmtplib.send(
-                message,
-                hostname="smtp.gmail.com",
-                port=587,
-                start_tls=True,
-                username=settings.FROM_EMAIL,
-                password=access_token,  # OAuth2 access token
-            )
+        # ---------------------------- Send Email ----------------------------
+        await aiosmtplib.send(
+            message,
+            hostname="smtp.gmail.com",
+            port=587,
+            start_tls=True,
+            username=settings.FROM_EMAIL,
+            password=access_token,  # OAuth2 access token
+        )
 
-            logger.info("Email sent to %s", to_email)
-            return True
+        logger.info("Email sent to %s", to_email)
+        return True
 
-        except Exception:
-            logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())
-            return False
-
-    # Run the async email sending in the event loop
-    return asyncio.run(send_email_async())
+    except Exception:
+        logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())
+        return False

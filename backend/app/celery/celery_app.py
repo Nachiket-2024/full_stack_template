@@ -11,7 +11,6 @@ from ..core.settings import settings
 
 # ---------------------------- Logger Setup ----------------------------
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # ---------------------------- Celery App Initialization ----------------------------
 # Create Celery instance with broker and backend
@@ -32,7 +31,7 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     # Async pool for non-blocking tasks
-    worker_pool="solo",  # For development, use "asyncio" in production with Celery 5+
+    worker_pool="asyncio",
 )
 
 logger.info("Celery app initialized with broker: %s", settings.CELERY_BROKER_URL)
