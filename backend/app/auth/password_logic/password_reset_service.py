@@ -92,7 +92,7 @@ class PasswordResetService:
                 return False
 
             # Extract email and role from token payload
-            email = payload.get("sub")
+            email = payload.get("email")
             role = payload.get("role", DEFAULT_ROLE)
 
             # Ensure role exists in ROLE_TABLES

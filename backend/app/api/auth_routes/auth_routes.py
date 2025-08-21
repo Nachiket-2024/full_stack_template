@@ -42,6 +42,9 @@ from ...auth.password_reset_confirm.password_reset_confirm_handler import passwo
 # Logout handler
 from ...auth.logout.logout_handler import logout_handler
 
+# Logout all devices handler
+from ...auth.logout.logout_all_handler import logout_all_handler
+
 # Account verification handler
 from ...auth.verify_account.account_verification_handler import account_verification_handler
 
@@ -150,6 +153,19 @@ async def logout(payload: RefreshTokenSchema, db: AsyncSession = Depends(Databas
     # Handle logout and invalidate refresh token
     response, status = await logout_handler.handle_logout(payload.refresh_token, db=db)
     # Return JSON response with the result
+    return JSONResponse(content=response, status_code=status)
+
+
+# ---------------------------- Logout All Devices Endpoint ----------------------------
+# POST /logout/all endpoint with rate limiting
+@router.post("/logout/all")
+@rate_limiter_service.rate_limited("logout_all")
+async def logout_all(payload: RefreshTokenSchema, db: AsyncSession = Depends(Database.get_session)):
+
+    # Logs the user out from all devices by revoking all refresh tokens associated with their email.
+    response, status = await logout_all_handler.handle_logout_all(payload.refresh_token , db=db)
+    
+    # Return the response as JSON with the status code
     return JSONResponse(content=response, status_code=status)
 
 

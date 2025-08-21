@@ -29,7 +29,7 @@ class JWTService:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         # JWT payload includes email, table, and expiration
         payload: dict[str, str | float] = {
-            "sub": email,
+            "email": email,
             "table": table,
             "exp": expire.timestamp(),
         }
@@ -44,7 +44,7 @@ class JWTService:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
         # JWT payload includes email, table, and expiration
         payload: dict[str, str | float] = {
-            "sub": email,
+            "email": email,
             "table": table,
             "exp": expire.timestamp(),
         }
@@ -72,7 +72,12 @@ class JWTService:
     async def revoke_refresh_token(token: str) -> bool:
         try:
             # Decode token without verifying expiration
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": False})
+            payload = jwt.decode(token, 
+                                 settings.SECRET_KEY, 
+                                 algorithms=[settings.JWT_ALGORITHM], 
+                                 options={"verify_exp": False}
+                                 )
+            
             exp_timestamp = payload.get("exp")
             if not exp_timestamp:
                 return False
@@ -87,6 +92,46 @@ class JWTService:
             return False
         except Exception:
             return False
+        
+    # ---------------------------- Revoke All Refresh Tokens for User ----------------------------
+    # Revoke all refresh tokens for a specific email in a given table
+    @staticmethod
+    async def revoke_all_refresh_tokens_for_user(email: str, table: str, all_tokens: list[str]) -> int:
+        """
+        Revoke all provided refresh tokens for a user by storing each in Redis.
+
+        Parameters:
+        - email: user's email
+        - table: user's role/table
+        - all_tokens: list of refresh tokens to revoke
+
+        Returns:
+        - Number of tokens successfully revoked
+        """
+        revoked_count = 0
+
+        for token in all_tokens:
+            try:
+                # Decode token without verifying expiration
+                payload = jwt.decode(token, 
+                                     settings.SECRET_KEY, 
+                                     algorithms=[settings.JWT_ALGORITHM], 
+                                     options={"verify_exp": False}
+                                     )
+                
+                # Only revoke if token belongs to the same email & table
+                if payload.get("email") == email and payload.get("table") == table:
+                    exp_timestamp = payload.get("exp")
+                    if exp_timestamp:
+                        ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
+                        if ttl > 0:
+                            await redis_client.set(f"revoked:{token}", "1", ex=ttl)
+                            revoked_count += 1
+            except Exception:
+                # Skip invalid tokens silently
+                continue
+
+        return revoked_count
 
     # ---------------------------- Check Token Revocation ----------------------------
     # Check if a refresh token is revoked in Redis

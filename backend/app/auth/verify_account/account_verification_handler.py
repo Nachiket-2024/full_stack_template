@@ -51,7 +51,7 @@ class AccountVerificationHandler:
                 return {"error": "Invalid, expired, or already used verification token"}, 400
 
             # Extract email from token payload
-            email = payload.get("sub")
+            email = payload.get("email")
             if not email:
                 return {"error": "Malformed token payload"}, 400
 

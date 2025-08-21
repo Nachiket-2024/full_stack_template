@@ -32,7 +32,7 @@ class AccountVerificationService:
     # ---------------------------- Send Verification Email ----------------------------
     @staticmethod
     async def send_verification_email(email: str, 
-                                      table_name: str, 
+                                      table: str, 
                                       expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
                                       ) -> bool:
         """
@@ -41,7 +41,7 @@ class AccountVerificationService:
         try:
             # Create short-lived verification token
             verification_token = await AccountVerificationService.create_verification_token(
-                email, table_name, expires_minutes
+                email, table, expires_minutes
             )
 
             # Store token in Redis with expiry
@@ -69,7 +69,7 @@ class AccountVerificationService:
     # ---------------------------- Create Verification Token ----------------------------
     @staticmethod
     async def create_verification_token(email: str, 
-                                        table_name: str, 
+                                        table: str, 
                                         expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
                                         ) -> str:
         """
@@ -77,8 +77,8 @@ class AccountVerificationService:
         """
         expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
         payload: dict[str, str | float] = {
-            "sub": email,
-            "table": table_name,
+            "email": email,
+            "table": table,
             "exp": expire.timestamp()
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)

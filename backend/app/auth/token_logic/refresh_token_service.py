@@ -49,9 +49,9 @@ class RefreshTokenService:
                 logger.warning("Invalid or expired refresh token")
                 return None
 
-            # Extract subject (email) and role
-            email, role = payload.get("sub"), payload.get("role")
-            if not email or not role:
+            # Extract email and table
+            email, table = payload.get("email"), payload.get("table")
+            if not email or not table:
                 logger.warning("Malformed refresh token payload")
                 return None
 
@@ -59,13 +59,13 @@ class RefreshTokenService:
             await jwt_service.revoke_refresh_token(refresh_token)
 
             # Step 4: Issue new tokens
-            new_access_token = await jwt_service.create_access_token(email, role)
-            new_refresh_token = await jwt_service.create_refresh_token(email, role)
+            new_access_token = await jwt_service.create_access_token(email, table)
+            new_refresh_token = await jwt_service.create_refresh_token(email, table)
 
             # Step 5: Persist the new refresh token in DB
-            table = ROLE_TABLES.get(role)
+            table = ROLE_TABLES.get(table)
             if not table:
-                logger.error(f"No table mapping found for role: {role}")
+                logger.error(f"No table mapping found for table: {table}")
                 return None
             await table.update_refresh_token(email=email, refresh_token=new_refresh_token)
 
@@ -102,6 +102,45 @@ class RefreshTokenService:
                 traceback.format_exc(),
             )
             return False
+        
+    # ---------------------------- Revoke All Tokens for Email ----------------------------
+    @staticmethod
+    async def revoke_all_tokens_for_email(refresh_token: str, db) -> int:
+        """
+        Revoke all refresh tokens for the user identified by the provided refresh token.
+        Uses the table from the token payload instead of looping through all tables.
+
+        Parameters:
+        - refresh_token: The refresh token provided by the client
+        - db: AsyncSession for database operations
+
+        Returns:
+        - Number of tokens revoked (0 if invalid/malformed token)
+        """
+        try:
+            # Verify the refresh token payload
+            payload = await jwt_service.verify_token(refresh_token)
+            if not payload:
+                return 0
+
+            # Extract email and table from payload
+            email, table = payload.get("email"), payload.get("table")
+            if not email or not table:
+                return 0
+
+            # Get the correct table object
+            table_obj = ROLE_TABLES.get(table)
+            if not table_obj:
+                logger.error(f"No table mapping found for table: {table}")
+                return 0
+
+            # Revoke all refresh tokens for this user in the table
+            revoked_count = await table_obj.revoke_all_refresh_tokens(email, db=db)
+            return revoked_count
+
+        except Exception:
+            logger.error("Error revoking all tokens for email from token %s:\n%s", refresh_token, traceback.format_exc())
+            return 0
 
 
 # ---------------------------- Service Instance ----------------------------

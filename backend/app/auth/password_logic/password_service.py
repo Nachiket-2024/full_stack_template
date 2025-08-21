@@ -82,7 +82,7 @@ class PasswordService:
 
         # Prepare payload with minimal info
         payload: dict[str, str | float] = {
-            "sub": email,
+            "email": email,
             "role": role,
             "exp": expire.timestamp()
         }
