@@ -1,6 +1,6 @@
 # ---------------------------- External Imports ----------------------------
 # Pydantic's BaseSettings allows loading environment variables from .env
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 # ---------------------------- Settings Class ----------------------------
 # Load configuration from .env file and provide structured access

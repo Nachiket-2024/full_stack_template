@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 # ---------------------------- Settings Import ----------------------------
 # Import application settings (contains DATABASE_URL, etc.)
-from app.core.settings import settings
+from ..core.settings import settings
 
 # ---------------------------- Async Engine ----------------------------
 # Database class to encapsulate async engine and session creation

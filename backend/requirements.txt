@@ -10,32 +10,34 @@ alembic                     # Database migrations tool
 # ---------------------------- Data Validation & Settings ----------------------------
 pydantic                    # Data validation and settings management
 python-dotenv               # Load environment variables from .env files
+pydantic-settings           # Settings management with Pydantic
+pydantic[email]             # Email validation with Pydantic
 
 # ---------------------------- Authentication & Security ----------------------------
 passlib[bcrypt]             # Password hashing
 pyjwt                       # JWT encoding/decoding for authentication
-oauthlib                     # OAuth2 support
+oauthlib                    # OAuth2 support
 requests-oauthlib           # OAuth2 client integration
 
 # ---------------------------- Google OAuth2 ----------------------------
-google-auth                  # Core Google authentication library
-google-auth-oauthlib         # OAuth2 helper for Google services
-google-auth-httplib2         # HTTP transport support for Google APIs
+google-auth                 # Core Google authentication library
+google-auth-oauthlib        # OAuth2 helper for Google services
+google-auth-httplib2        # HTTP transport support for Google APIs
 
 # ---------------------------- Redis & Celery ----------------------------
-aioredis                     # Async Redis client for caching/queues
-celery                        # Task queue for background jobs
+redis                       # Async Redis client for caching/queues
+celery                      # Task queue for background jobs
 
 # ---------------------------- Email ----------------------------
-aiosmtplib                   # Async SMTP client for sending emails
+aiosmtplib                  # Async SMTP client for sending emails
 
 # ---------------------------- Development & Testing ----------------------------
-pytest                       # Testing framework
-httpx                         # Async HTTP client for testing
-pytest-asyncio               # Async support for pytest
+pytest                      # Testing framework
+httpx                       # Async HTTP client for testing
+pytest-asyncio              # Async support for pytest
 
 # ---------------------------- Optional / Utilities ----------------------------
-python-multipart             # Handling multipart/form-data (file uploads)
+python-multipart            # Handling multipart/form-data (file uploads)
 
 # ---------------------------- Logging ----------------------------
-python-json-logger           # JSON logging for structured logs
+python-json-logger          # JSON logging for structured logs
