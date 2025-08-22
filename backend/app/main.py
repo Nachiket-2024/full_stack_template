@@ -38,14 +38,8 @@ from .api.auth_routes.auth_routes import router as auth_router
 # Import refresh token router for JWT/session management
 from .api.auth_routes.refresh_token_routes import router as refresh_token_router
 
-# Import admin-specific role router
-from .api.role_routes.admin_routes import router as admin_router
-
-# Import role1-specific router
-from .api.role_routes.role1_routes import router as role1_router
-
-# Import role2-specific router
-from .api.role_routes.role2_routes import router as role2_router
+# Import generic role router
+from .api.role_routes.role_routes import router as role_router
 
 # ---------------------------- App Initialization ----------------------------
 # Create a FastAPI application instance
@@ -84,14 +78,8 @@ app.include_router(auth_router)
 # Register refresh token router
 app.include_router(refresh_token_router)
 
-# Register admin role router
-app.include_router(admin_router)
-
-# Register role1 router
-app.include_router(role1_router)
-
-# Register role2 router
-app.include_router(role2_router)
+# Register generic role router
+app.include_router(role_router)
 
 # ---------------------------- Root Route ----------------------------
 # Define a simple root endpoint to confirm the API is running

@@ -14,7 +14,7 @@ from .password_service import password_service
 from ...celery.email_tasks import send_email_task as _send_email_task
 
 # Role tables and default role for user management
-from ...core.role_tables import ROLE_TABLES, DEFAULT_ROLE
+from ...access_control.role_tables import ROLE_TABLES, DEFAULT_ROLE
 
 # Settings for frontend URLs
 from ...core.settings import settings

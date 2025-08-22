@@ -19,7 +19,7 @@ from ...core.settings import settings
 from ..token_logic.jwt_service import jwt_service
 
 # Central role-based CRUD tables and the default role for new users
-from ...core.role_tables import ROLE_TABLES, DEFAULT_ROLE
+from ...access_control.role_tables import ROLE_TABLES, DEFAULT_ROLE
 
 # ---------------------------- Logger Setup ----------------------------
 # Module-level logger

@@ -8,7 +8,7 @@ import traceback
 from ..password_logic.password_reset_service import password_reset_service
 
 # Role tables to find users
-from ...core.role_tables import ROLE_TABLES
+from ...access_control.role_tables import ROLE_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
 # Logger for this module

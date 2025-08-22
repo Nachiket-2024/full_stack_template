@@ -1,27 +1,22 @@
 # ---------------------------- External Imports ----------------------------
-
 # Import SQLAlchemy column types and helper functions
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 
 # Import SQL function helpers (e.g., func.now() for timestamps)
 from sqlalchemy.sql import func
 
-
 # ---------------------------- Internal Imports ----------------------------
-
 # Import async declarative base for model inheritance
 from ...database.base import Base
 
-
 # ---------------------------- Admin Model ----------------------------
-
 # Define Role2 table for Role2 users
 class Role2(Base):
     """
     Role2 table for storing user credentials and metadata.
     Tokens are not stored here — see Role2Token table for multi-login support.
     """
-    __tablename__ = "Role2"
+    __tablename__ = "role2"
 
     # ---------------------------- Columns ----------------------------
 

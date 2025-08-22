@@ -16,7 +16,7 @@ from .signup_service import signup_service
 from ..verify_account.account_verification_service import account_verification_service
 
 # Default role to assign to new users if role not specified
-from ...core.role_tables import DEFAULT_ROLE
+from ...access_control.role_tables import DEFAULT_ROLE
 
 # ---------------------------- Logger Setup ----------------------------
 # Configure module-specific logger (centralized config recommended in production)

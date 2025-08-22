@@ -8,7 +8,7 @@ import traceback
 from .jwt_service import jwt_service
 
 # Role → DB table mapping to update refresh token
-from ...core.role_tables import ROLE_TABLES
+from ...access_control.role_tables import ROLE_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
 # Create logger for this module

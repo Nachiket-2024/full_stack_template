@@ -5,7 +5,7 @@ import traceback
 
 # ---------------------------- Internal Imports ----------------------------
 # Role tables for looking up users and updating verification status
-from ...core.role_tables import ROLE_TABLES
+from ...access_control.role_tables import ROLE_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module

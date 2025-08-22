@@ -11,7 +11,7 @@ import asyncio
 
 # ---------------------------- Internal Imports ----------------------------
 # Role tables for user CRUD operations
-from ...core.role_tables import ROLE_TABLES, TOKEN_TABLES
+from ...access_control.role_tables import ROLE_TABLES, TOKEN_TABLES
 
 # Password service for verifying password hashes
 from ..password_logic.password_service import password_service

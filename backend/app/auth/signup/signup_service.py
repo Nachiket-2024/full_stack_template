@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------- Internal Imports ----------------------------
 # Role-based CRUD tables and default role for assigning new users
-from ...core.role_tables import ROLE_TABLES, DEFAULT_ROLE
+from ...access_control.role_tables import ROLE_TABLES, DEFAULT_ROLE
 
 # Password service for hashing passwords and validating strength
 from ..password_logic.password_service import password_service

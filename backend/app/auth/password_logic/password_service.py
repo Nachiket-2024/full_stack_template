@@ -13,7 +13,7 @@ import jwt
 from ...core.settings import settings
 
 # Centralized role table and default role
-from ...core.role_tables import ROLE_TABLES, DEFAULT_ROLE
+from ...access_control.role_tables import ROLE_TABLES, DEFAULT_ROLE
 
 # ---------------------------- Password Context ----------------------------
 # Use Argon2id for hashing: highly secure and future-proof

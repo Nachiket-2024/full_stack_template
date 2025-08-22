@@ -1,17 +1,13 @@
 # ---------------------------- External Imports ----------------------------
-
 # Import SQLAlchemy column types and helper functions
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 
 # Import SQL function helpers (e.g., func.now() for timestamps)
 from sqlalchemy.sql import func
 
-
 # ---------------------------- Internal Imports ----------------------------
-
 # Import async declarative base for model inheritance
 from ...database.base import Base
-
 
 # ---------------------------- Admin Model ----------------------------
 
@@ -24,7 +20,6 @@ class Admin(Base):
     __tablename__ = "admin"
 
     # ---------------------------- Columns ----------------------------
-
     # Unique internal ID (primary key)
     id = Column(Integer, primary_key=True, index=True)
 

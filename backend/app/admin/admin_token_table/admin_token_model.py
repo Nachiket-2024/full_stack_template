@@ -1,20 +1,15 @@
 # ---------------------------- External Imports ----------------------------
-
 # Import SQLAlchemy column types and ForeignKey support
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 
 # Import SQL function helpers (e.g., func.now() for timestamps)
 from sqlalchemy.sql import func
 
-
 # ---------------------------- Internal Imports ----------------------------
-
 # Import async declarative base for model inheritance
 from ...database.base import Base
 
-
 # ---------------------------- AdminToken Model ----------------------------
-
 # Table to store multiple login sessions for Admin users
 class AdminToken(Base):
     """
@@ -24,7 +19,6 @@ class AdminToken(Base):
     __tablename__ = "admin_token"
 
     # ---------------------------- Columns ----------------------------
-
     # Unique internal ID for this token row
     id = Column(Integer, primary_key=True, index=True)
 
