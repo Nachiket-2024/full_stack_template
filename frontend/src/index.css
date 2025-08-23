@@ -1,4 +1,8 @@
-/* Tailwind imports */
+/* Import Tailwind's base styles (resets, typography, etc.) */
 @tailwind base;
+
+/* Import Tailwind's built-in component classes */
 @tailwind components;
+
+/* Import Tailwind's utility classes (like flex, p-4, text-xl, etc.) */
 @tailwind utilities;
