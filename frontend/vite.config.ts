@@ -1,19 +1,17 @@
-// ---------------------------- External Imports ----------------------------
-// Import defineConfig to define Vite configuration
 import { defineConfig } from "vite";
-
-// Import the React plugin for Vite
 import react from "@vitejs/plugin-react";
-
-// Import Node's path module to resolve directory paths
 import path from "path";
+import { fileURLToPath } from "url";
 
-// ---------------------------- Vite Config ----------------------------
+// ESM-safe way to get __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Use "@" as an alias for the "src" directory
       "@": path.resolve(__dirname, "./src"),
     },
   },
