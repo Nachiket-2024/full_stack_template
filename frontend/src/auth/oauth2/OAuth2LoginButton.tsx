@@ -7,21 +7,13 @@ import type { TypedUseSelectorHook } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 
 // ---------------------------- Internal Imports ----------------------------
-import { oauth2Login, clearOAuth2State } from "./oauth2_slice";
+import { clearOAuth2State } from "./oauth2_slice";
 
 // ---------------------------- Typed Selector Hook ----------------------------
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- OAuth2LoginButton Component ----------------------------
-interface OAuth2LoginButtonProps {
-    provider: "google" | "facebook"; // Extendable to other providers
-    buttonText?: string;
-}
-
-const OAuth2LoginButton: React.FC<OAuth2LoginButtonProps> = ({
-    provider,
-    buttonText,
-}) => {
+const OAuth2LoginButton: React.FC = () => {
     // ---------------------------- Redux ----------------------------
     const dispatch = useDispatch<AppDispatch>();
     const { loading, error, accessToken } = useAppSelector(
@@ -30,11 +22,12 @@ const OAuth2LoginButton: React.FC<OAuth2LoginButtonProps> = ({
 
     // ---------------------------- Event Handlers ----------------------------
     const handleLogin = () => {
-        // Dispatch OAuth2 login thunk
-        dispatch(oauth2Login({ provider }));
+        // Directly redirect to Google OAuth2 login endpoint
+        window.location.href = "/auth/oauth2/login/google";
     };
 
     const handleClear = () => {
+        // Clear Redux OAuth2 state
         dispatch(clearOAuth2State());
     };
 
@@ -42,7 +35,7 @@ const OAuth2LoginButton: React.FC<OAuth2LoginButtonProps> = ({
     return (
         <div>
             <button onClick={handleLogin} disabled={loading}>
-                {loading ? "Logging in..." : buttonText || `Login with ${provider}`}
+                {loading ? "Logging in..." : "Login with Google"}
             </button>
 
             {/* Display error if OAuth2 login fails */}
@@ -51,6 +44,7 @@ const OAuth2LoginButton: React.FC<OAuth2LoginButtonProps> = ({
             {/* Display token info if login succeeded */}
             {accessToken && <p style={{ color: "green" }}>Login successful!</p>}
 
+            {/* Clear state button */}
             <button onClick={handleClear}>Clear</button>
         </div>
     );
