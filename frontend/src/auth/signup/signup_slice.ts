@@ -5,18 +5,18 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Type-only import for PayloadAction (required with verbatimModuleSyntax)
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-// Axios for API calls
-import axios from "axios";
-
 // ---------------------------- Internal Imports ----------------------------
+// Use signupApi wrapper from auth_api.ts
+import { signupApi } from "@/api/auth_api";
+
 // Import types for signup request/response
 import type { SignupRequest, SignupResponse } from "./signup_types";
 
 // ---------------------------- State Type ----------------------------
 // Redux state for signup
 interface SignupState {
-    loading: boolean;       // Is request in progress
-    error: string | null;   // Error message if signup fails
+    loading: boolean;              // Indicates request in progress
+    error: string | null;          // Error message if signup fails
     successMessage: string | null; // Message on successful signup
 }
 
@@ -28,19 +28,16 @@ const initialState: SignupState = {
 };
 
 // ---------------------------- Async Thunk ----------------------------
-// Handles calling the backend signup endpoint
+// Handles calling the backend signup endpoint via signupApi
 export const signupUser = createAsyncThunk<
-    SignupResponse,       // Success return type
-    SignupRequest,        // Input argument type
-    { rejectValue: string } // Rejected type
+    SignupResponse,        // Success return type
+    SignupRequest,         // Input argument type
+    { rejectValue: string } // Error type
 >(
     "auth/signup",
     async (payload: SignupRequest, thunkAPI) => {
         try {
-            const response = await axios.post<SignupResponse>(
-                "http://localhost:8000/auth/signup",
-                payload
-            );
+            const response = await signupApi(payload);
             return response.data;
         } catch (error: any) {
             // Extract backend error message or fallback
@@ -54,7 +51,7 @@ const signupSlice = createSlice({
     name: "signup",
     initialState,
     reducers: {
-        // Manually clear signup state
+        // Reset signup state manually
         clearSignupState: (state) => {
             state.loading = false;
             state.error = null;
@@ -68,10 +65,13 @@ const signupSlice = createSlice({
                 state.error = null;
                 state.successMessage = null;
             })
-            .addCase(signupUser.fulfilled, (state, action: PayloadAction<SignupResponse>) => {
-                state.loading = false;
-                state.successMessage = action.payload.message;
-            })
+            .addCase(
+                signupUser.fulfilled,
+                (state, action: PayloadAction<SignupResponse>) => {
+                    state.loading = false;
+                    state.successMessage = action.payload.message;
+                }
+            )
             .addCase(signupUser.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || "Signup failed";

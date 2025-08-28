@@ -5,10 +5,10 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Type-only import for PayloadAction
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-// Axios for API calls
-import axios from "axios";
-
 // ---------------------------- Internal Imports ----------------------------
+// Use the API wrapper from auth_api.ts
+import { passwordResetRequestApi } from "@/api/auth_api";
+
 // Import types for password reset request
 import type {
     PasswordResetRequestPayload,
@@ -17,9 +17,9 @@ import type {
 
 // ---------------------------- State Type ----------------------------
 interface PasswordResetRequestState {
-    loading: boolean;       // Indicates if the request is in progress
-    error: string | null;   // Error message if request fails
-    successMessage: string | null; // Message on successful request
+    loading: boolean;              // Is the request in progress
+    error: string | null;          // Error message if request fails
+    successMessage: string | null; // Success message from backend
 }
 
 // ---------------------------- Initial State ----------------------------
@@ -30,19 +30,16 @@ const initialState: PasswordResetRequestState = {
 };
 
 // ---------------------------- Async Thunk ----------------------------
-// Handles calling the backend password-reset/request endpoint
+// Calls the passwordResetRequestApi from auth_api.ts
 export const requestPasswordReset = createAsyncThunk<
-    PasswordResetRequestResponse,           // Success return type
-    PasswordResetRequestPayload,            // Input argument type
-    { rejectValue: string }                 // Rejected type
+    PasswordResetRequestResponse,   // Success return type
+    PasswordResetRequestPayload,    // Input argument type
+    { rejectValue: string }         // Error type
 >(
     "auth/passwordResetRequest",
-    async (payload: PasswordResetRequestPayload, thunkAPI) => {
+    async (payload, thunkAPI) => {
         try {
-            const response = await axios.post<PasswordResetRequestResponse>(
-                "http://localhost:8000/auth/password-reset/request",
-                payload
-            );
+            const response = await passwordResetRequestApi(payload);
             return response.data;
         } catch (error: any) {
             return thunkAPI.rejectWithValue(
@@ -57,7 +54,7 @@ const passwordResetRequestSlice = createSlice({
     name: "passwordResetRequest",
     initialState,
     reducers: {
-        // Clear the slice state manually
+        // Reset state manually
         clearPasswordResetRequestState: (state) => {
             state.loading = false;
             state.error = null;

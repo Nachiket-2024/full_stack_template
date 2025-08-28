@@ -5,10 +5,10 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Import type-only PayloadAction for Redux state typing
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-// Import axios for making API requests
-import axios from "axios";
-
 // ---------------------------- Internal Imports ----------------------------
+// Import API function instead of calling axios directly
+import { loginApi } from "@/api/auth_api";
+
 // Import type-only API request/response types for login
 import type { LoginRequest, LoginResponse } from "./login_types";
 
@@ -39,16 +39,15 @@ export const loginUser = createAsyncThunk<
     "auth/login",           // Redux action type
     async (payload: LoginRequest, thunkAPI) => {
         try {
-            // Make POST request to backend /auth/login
-            const response = await axios.post<LoginResponse>(
-                "http://localhost:8000/auth/login",
-                payload
-            );
+            // Call login API (abstracted in auth_api.ts)
+            const response = await loginApi(payload);
             // Return successful response data
             return response.data;
         } catch (error: any) {
             // If error occurs, reject with a message
-            return thunkAPI.rejectWithValue(error.response?.data?.error || "Login failed");
+            return thunkAPI.rejectWithValue(
+                error.response?.data?.error || "Login failed"
+            );
         }
     }
 );
