@@ -4,16 +4,16 @@ import React from 'react';
 // Import ReactDOM to render our app into the HTML <div id="root">
 import ReactDOM from 'react-dom/client';
 
-// Import the root App component
-import App from './App.tsx';
-
-// Import global CSS (we'll later add SCSS here)
-import './index.css';
-
 // Import Redux provider (to connect React with Redux store)
 import { Provider } from 'react-redux';
 
-// Import our Redux store (created in src/store/store.ts)
+// Import the root App component
+import App from './App.tsx';
+
+// Import tailwind CSS
+import '../tailwind.css';
+
+// Import Redux store
 import { store } from './store/store.ts';
 
 // Get the root HTML element with id="root" from index.html

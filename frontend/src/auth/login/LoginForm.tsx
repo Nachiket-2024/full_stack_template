@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { TypedUseSelectorHook } from "react-redux";
 
 // Type-only imports for store types
-import type { RootState, AppDispatch } from "@/store/store";
+import type { RootState, AppDispatch } from "../../store/store";
 
 // ---------------------------- Internal Imports ----------------------------
 // Import login thunk and slice actions

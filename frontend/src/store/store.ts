@@ -4,15 +4,15 @@ import { configureStore } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
 // Import auth slices (reducers) here
-import loginReducer from "@/auth/login/login_slice";
-import signupReducer from "@/auth/signup/signup_slice";
-import logoutReducer from "@/auth/logout/logout_slice";
-import oauth2Reducer from "@/auth/oauth2/oauth2_slice";
-import verifyAccountReducer from "@/auth/verify_account/verify_account_slice";
+import loginReducer from "../auth/login/login_slice";
+import signupReducer from "../auth/signup/signup_slice";
+import logoutReducer from "../auth/logout/logout_slice";
+import oauth2Reducer from "../auth/oauth2/oauth2_slice";
+import verifyAccountReducer from "../auth/verify_account/verify_account_slice";
 
 // Password reset slices
-import passwordResetRequestReducer from "@/auth/password_reset_request/password_reset_request_slice";
-import passwordResetConfirmReducer from "@/auth/password_reset_confirm/password_reset_confirm_slice";
+import passwordResetRequestReducer from "../auth/password_reset_request/password_reset_request_slice";
+import passwordResetConfirmReducer from "../auth/password_reset_confirm/password_reset_confirm_slice";
 
 // ---------------------------- Store Setup ----------------------------
 // Create the Redux store

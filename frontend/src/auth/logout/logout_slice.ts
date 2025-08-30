@@ -7,7 +7,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
 // Import API functions instead of calling axios directly
-import { logoutApi, logoutAllApi } from "@/api/auth_api";
+import { logoutApi, logoutAllApi } from "../../api/auth_api";
 
 // Import type-only API request/response types for logout
 import type { LogoutPayload, LogoutResponse } from "./logout_types";

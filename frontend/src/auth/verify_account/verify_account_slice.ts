@@ -7,7 +7,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
 // Use verifyAccountApi wrapper from auth_api.ts
-import { verifyAccountApi } from "@/api/auth_api";
+import { verifyAccountApi } from "../../api/auth_api";
 
 // Import types for verify account request/response
 import type { VerifyAccountPayload, VerifyAccountResponse } from "./verify_account_types";

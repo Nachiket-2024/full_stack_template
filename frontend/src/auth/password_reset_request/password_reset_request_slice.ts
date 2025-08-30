@@ -7,7 +7,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
 // Use the API wrapper from auth_api.ts
-import { passwordResetRequestApi } from "@/api/auth_api";
+import { passwordResetRequestApi } from "../../api/auth_api";
 
 // Import types for password reset request
 import type {

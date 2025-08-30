@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 // Type-only imports for Redux
 import type { TypedUseSelectorHook } from "react-redux";
-import type { RootState, AppDispatch } from "@/store/store";
+import type { RootState, AppDispatch } from "../../store/store";
 
 // ---------------------------- Internal Imports ----------------------------
 import { verifyAccount, clearVerifyAccountState } from "./verify_account_slice";

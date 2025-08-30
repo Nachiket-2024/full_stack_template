@@ -7,7 +7,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
 // Use signupApi wrapper from auth_api.ts
-import { signupApi } from "@/api/auth_api";
+import { signupApi } from "../../api/auth_api";
 
 // Import types for signup request/response
 import type { SignupRequest, SignupResponse } from "./signup_types";
