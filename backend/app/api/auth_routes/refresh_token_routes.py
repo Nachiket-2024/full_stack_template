@@ -1,6 +1,7 @@
 # ---------------------------- External Imports ----------------------------
 # Import FastAPI's router, exception handling, request body parsing, and request object
 from fastapi import APIRouter, HTTPException, Body, Request
+from fastapi.responses import JSONResponse
 
 # Import Python's built-in logging module for error/info logs
 # Import traceback to capture detailed error stack traces
@@ -44,7 +45,7 @@ async def refresh_tokens(request: Request, payload: RefreshTokenSchema = Body(..
     - Call refresh token service to rotate (revoke old, issue new)
     - Record failed attempts if invalid
     - Reset failed attempts if successful
-    - Return both access + refresh tokens if valid
+    - Return both access + refresh tokens in HTTP-only cookies if valid
     - Raise 401 if refresh token is invalid or revoked
     - Raise 429 if too many attempts
     """
@@ -87,8 +88,30 @@ async def refresh_tokens(request: Request, payload: RefreshTokenSchema = Body(..
         # Reset failed attempts since refresh succeeded
         await login_protection_service.reset_failed_attempts(lock_key)
 
-        # Return new access and refresh tokens
-        return tokens
+        # ---------------------------- Set Tokens in HTTP-only Cookies ----------------------------
+        response = JSONResponse(content={"message": "Tokens refreshed successfully"})
+
+        # Access token (1 hour expiry)
+        response.set_cookie(
+            key="access_token",
+            value=tokens["access_token"],
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+            max_age=3600
+        )
+
+        # Refresh token (30 days expiry)
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+            max_age=2592000
+        )
+
+        return response
 
     except Exception:
         # ---------------------------- Error Logging ----------------------------

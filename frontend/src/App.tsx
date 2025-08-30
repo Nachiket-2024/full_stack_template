@@ -12,25 +12,27 @@ import PasswordResetConfirmPage from "./auth/password_reset_confirm/PasswordRese
 
 // ---------------------------- NotFoundPage Component ----------------------------
 const NotFoundPage: React.FC = () => (
-  <div className="flex items-center justify-center h-screen bg-gray-200">
-    <h1 className="text-5xl text-red-600 font-bold">404 - Page Not Found</h1>
+  <div className="flex items-center justify-center h-screen bg-gray-100">
+    <h1 className="text-4xl text-red-600 font-semibold">404 - Page Not Found</h1>
   </div>
 );
 
 // ---------------------------- App Component ----------------------------
 const App: React.FC = () => {
   return (
+    // Wrap the app in Router to enable client-side routing
     <Router>
       <div className="min-h-screen bg-gray-50">
-        {/* Header with shadow and center-aligned title */}
-        <header className="bg-blue-700 text-white p-6 shadow-md">
-          <h1 className="text-4xl font-extrabold text-center">Auth System Template</h1>
+        {/* App header shown on all pages */}
+        <header className="bg-blue-600 text-white p-4 shadow-md">
+          <h1 className="text-3xl font-bold text-center">Full Stack Template - Auth Test</h1>
         </header>
 
-        {/* Main content area with padding and spacing */}
-        <main className="p-8 sm:p-12">
+        {/* Main content area */}
+        <main className="p-6">
+          {/* Define all routes */}
           <Routes>
-            {/* Default route redirect to /login */}
+            {/* Default route: redirect to /login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
 
             {/* Auth routes */}
@@ -44,14 +46,10 @@ const App: React.FC = () => {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
-
-        {/* Footer with centered text */}
-        <footer className="bg-gray-700 text-white text-center p-4 mt-8">
-          <p>&copy; 2025 Auth Template | All Rights Reserved</p>
-        </footer>
       </div>
     </Router>
   );
 };
 
+// ---------------------------- Export ----------------------------
 export default App;

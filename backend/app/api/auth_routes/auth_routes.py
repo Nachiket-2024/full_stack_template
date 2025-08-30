@@ -78,7 +78,6 @@ async def signup(payload: SignupSchema, db: AsyncSession = Depends(database.get_
     # Return JSON response with the result and status
     return JSONResponse(content=response, status_code=status)
 
-
 # ---------------------------- Login Endpoint ----------------------------
 # POST /login endpoint with rate limiting
 @router.post("/login")
@@ -96,9 +95,31 @@ async def login(payload: LoginSchema, db: AsyncSession = Depends(database.get_se
     if not allowed:
         return JSONResponse(content={"error": "Too many failed login attempts, account temporarily locked"}, status_code=429)
 
-    # Return successful login response
-    return JSONResponse(content=response, status_code=status)
+    # ---------------------------- Set Tokens in HTTP-only Cookies ----------------------------
+    # Create JSON response with the original content
+    resp = JSONResponse(content=response, status_code=status)
 
+    # Set access token cookie (1 hour expiry)
+    resp.set_cookie(
+        key="access_token",
+        value=response["access_token"],  # Make sure the login handler returns 'access_token' in response
+        httponly=True,
+        secure=True,       # Only send over HTTPS
+        samesite="Strict", # Prevent cross-site request sending
+        max_age=3600       # 1 hour
+    )
+
+    # Set refresh token cookie (30 days expiry)
+    resp.set_cookie(
+        key="refresh_token",
+        value=response["refresh_token"],  # Make sure the login handler returns 'refresh_token'
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=2592000   # 30 days
+    )
+
+    return resp
 
 # ---------------------------- OAuth2 Google Login Initiation ----------------------------
 # GET /oauth2/login/google endpoint to initiate Google OAuth2 login
@@ -125,9 +146,7 @@ async def oauth2_login_google():
     # Redirect the client to Google's authorization page
     return RedirectResponse(url=auth_url)
 
-
 # ---------------------------- OAuth2 Google Callback ----------------------------
-# GET /oauth2/callback/google endpoint to handle OAuth2 callback
 @router.get("/oauth2/callback/google")
 @rate_limiter_service.rate_limited("oauth2_callback")
 async def oauth2_callback_google(code: str):
@@ -135,42 +154,72 @@ async def oauth2_callback_google(code: str):
     # Handle OAuth2 login using the code and get JWT tokens
     jwt_tokens, status = await oauth2_login_handler.handle_oauth2_login({"code": code})
 
-    # Determine redirect URL based on success or failure
+    # If login failed, redirect to failure page
     if status != 200:
-        redirect_url = f"{settings.FRONTEND_BASE_URL}/oauth2-failure?error=login_failed"
-    else:
-        redirect_url = (
-            f"{settings.FRONTEND_BASE_URL}/oauth2-success"
-            f"?access_token={jwt_tokens['access_token']}&refresh_token={jwt_tokens['refresh_token']}"
-        )
-    # Redirect the client to frontend with login result
-    return RedirectResponse(url=redirect_url)
+        return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/oauth2-failure?error=login_failed")
 
+    # ---------------------------- Set Tokens in HTTP-only Cookies ----------------------------
+    response = RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/oauth2-success")
+    
+    # Access token (1 hour expiry)
+    response.set_cookie(
+        key="access_token",
+        value=jwt_tokens["access_token"],
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=3600
+    )
+
+    # Refresh token (30 days expiry)
+    response.set_cookie(
+        key="refresh_token",
+        value=jwt_tokens["refresh_token"],
+        httponly=True,
+        secure=True,
+        samesite="Strict",
+        max_age=2592000
+    )
+
+    return response
 
 # ---------------------------- Logout Endpoint ----------------------------
-# POST /logout endpoint with rate limiting
 @router.post("/logout")
 @rate_limiter_service.rate_limited("logout")
 async def logout(payload: RefreshTokenSchema, db: AsyncSession = Depends(database.get_session)):
-
-    # Handle logout and invalidate refresh token
+    
+    # Handle logout and invalidate refresh token in backend
     response, status = await logout_handler.handle_logout(payload.refresh_token, db=db)
-    # Return JSON response with the result
-    return JSONResponse(content=response, status_code=status)
-
+    
+    # ---------------------------- Clear HTTP-only Cookies ----------------------------
+    resp = JSONResponse(content=response, status_code=status)
+    
+    # Remove access token cookie
+    resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
+    
+    # Remove refresh token cookie
+    resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
+    
+    return resp
 
 # ---------------------------- Logout All Devices Endpoint ----------------------------
-# POST /logout/all endpoint with rate limiting
 @router.post("/logout/all")
 @rate_limiter_service.rate_limited("logout_all")
 async def logout_all(payload: RefreshTokenSchema, db: AsyncSession = Depends(database.get_session)):
-
-    # Logs the user out from all devices by revoking all refresh tokens associated with their email.
-    response, status = await logout_all_handler.handle_logout_all(payload.refresh_token , db=db)
     
-    # Return the response as JSON with the status code
-    return JSONResponse(content=response, status_code=status)
-
+    # Revoke all refresh tokens for the user
+    response, status = await logout_all_handler.handle_logout_all(payload.refresh_token, db=db)
+    
+    # ---------------------------- Clear HTTP-only Cookies ----------------------------
+    resp = JSONResponse(content=response, status_code=status)
+    
+    # Remove access token cookie
+    resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
+    
+    # Remove refresh token cookie
+    resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
+    
+    return resp
 
 # ---------------------------- Password Reset Request ----------------------------
 # POST /password-reset/request endpoint with rate limiting
@@ -182,7 +231,6 @@ async def password_reset_request(payload: PasswordResetRequestSchema, db: AsyncS
     response, status = await password_reset_request_handler.handle_password_reset_request(payload.email, db=db)
     # Return JSON response
     return JSONResponse(content=response, status_code=status)
-
 
 # ---------------------------- Password Reset Confirm ----------------------------
 # POST /password-reset/confirm endpoint with rate limiting
@@ -214,7 +262,6 @@ async def password_reset_confirm(payload: PasswordResetConfirmSchema, db: AsyncS
 
     # Return JSON response
     return JSONResponse(content=response, status_code=status)
-
 
 # ---------------------------- Account Verification Endpoint ----------------------------
 # GET /verify-account endpoint with rate limiting
