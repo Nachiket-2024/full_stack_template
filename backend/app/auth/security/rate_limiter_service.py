@@ -5,6 +5,9 @@ import logging
 # For traceback
 import traceback
 
+# For preserving function metadata in decorators
+from functools import wraps
+
 # ---------------------------- Internal Imports ----------------------------
 # Redis client for tracking requests
 from ...redis.client import redis_client
@@ -70,6 +73,7 @@ class RateLimiterService:
                 ...
         """
         def decorator(func):
+            @wraps(func)   # <-- preserves original function signature
             async def wrapper(*args, **kwargs):
                 from fastapi import Request
                 from fastapi.responses import JSONResponse

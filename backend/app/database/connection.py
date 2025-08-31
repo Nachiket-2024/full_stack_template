@@ -19,7 +19,7 @@ class Database:
         # Create an asynchronous SQLAlchemy engine
         self.engine = create_async_engine(
             self.database_url,
-            echo=True  # Enable SQL query logging for debugging
+            echo=False  # Enable or disable SQL query logging for debugging
         )
         # Create a session factory bound to the async engine
         self.async_session = sessionmaker(

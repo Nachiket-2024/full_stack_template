@@ -149,10 +149,16 @@ async def oauth2_login_google():
 # ---------------------------- OAuth2 Google Callback ----------------------------
 @router.get("/oauth2/callback/google")
 @rate_limiter_service.rate_limited("oauth2_callback")
-async def oauth2_callback_google(code: str):
+async def oauth2_callback_google(code: str, db=Depends(database.get_session)):
+    """
+    Google OAuth2 callback route:
+    - Takes `code` from query
+    - Calls login handler with DB
+    - Sets JWT tokens in secure cookies
+    """
 
-    # Handle OAuth2 login using the code and get JWT tokens
-    jwt_tokens, status = await oauth2_login_handler.handle_oauth2_login({"code": code})
+    # Handle OAuth2 login using the code and DB session
+    jwt_tokens, status = await oauth2_login_handler.handle_oauth2_login({"code": code}, db)
 
     # If login failed, redirect to failure page
     if status != 200:
@@ -160,7 +166,7 @@ async def oauth2_callback_google(code: str):
 
     # ---------------------------- Set Tokens in HTTP-only Cookies ----------------------------
     response = RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/oauth2-success")
-    
+
     # Access token (1 hour expiry)
     response.set_cookie(
         key="access_token",

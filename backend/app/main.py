@@ -23,13 +23,13 @@ _ = load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 # ---------------------------- Logging Setup ----------------------------
 # Import custom middleware to log all API requests
-from .logging.logging_middleware import LoggingMiddleware
+# from .logging.logging_middleware import LoggingMiddleware
 
 # Import a function to get a JSON-formatted rotating logger
-from .logging.logging_config import get_logger
+# from .logging.logging_config import get_logger
 
 # Initialize a logger instance for the main application
-logger = get_logger("main")
+# logger = get_logger("main")
 
 # ---------------------------- Internal Imports ----------------------------
 # Import authentication router
@@ -56,14 +56,14 @@ app.add_middleware(
 )
 
 # Add custom logging middleware to capture all requests and responses
-app.add_middleware(LoggingMiddleware)
+# app.add_middleware(LoggingMiddleware)
 
 # ---------------------------- Global Exception Handler ----------------------------
 # Define a handler to catch all unhandled exceptions globally
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     # Log exception details with request URL
-    logger.exception(f"Unhandled Exception at {request.url.path}: {str(exc)}")
+    # logger.exception(f"Unhandled Exception at {request.url.path}: {str(exc)}")
 
     # Return a JSON response with HTTP status 500
     return JSONResponse(

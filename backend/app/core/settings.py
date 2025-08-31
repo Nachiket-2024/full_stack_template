@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings
 # Load configuration from .env file and provide structured access
 class Settings(BaseSettings):
     # ---------------------------- App Config ----------------------------
-    DEBUG: bool                                     # Enable debug mode
     BACKEND_BASE_URL: str                           # Backend URL for Auth redirection from frontend
     FRONTEND_BASE_URL: str                          # Frontend URL for redirection
 

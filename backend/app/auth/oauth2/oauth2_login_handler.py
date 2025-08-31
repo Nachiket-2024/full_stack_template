@@ -25,7 +25,7 @@ class OAuth2LoginHandler:
         self.oauth2_service = oauth2_service
 
     # ---------------------------- Main Login Method ----------------------------
-    async def handle_oauth2_login(self, query_params: dict):
+    async def handle_oauth2_login(self, query_params: dict, db):
         """
         Handle Google OAuth2 redirect flow:
         1. Exchange authorization code for access token
@@ -35,6 +35,7 @@ class OAuth2LoginHandler:
 
         Parameters:
         - query_params: Query parameters from OAuth2 callback (e.g., code)
+        - db: Async SQLAlchemy session (passed from FastAPI Depends)
 
         Returns:
         - tuple: (jwt_tokens_dict, status_code)
@@ -52,6 +53,7 @@ class OAuth2LoginHandler:
             if not token_data or "access_token" not in token_data:
                 return {"error": "Failed to exchange code for access token"}, 400
 
+            # Extract Google-issued access token
             access_token_google = token_data["access_token"]
 
             # ---------------------------- Fetch User Info from Google ----------------------------
@@ -61,12 +63,13 @@ class OAuth2LoginHandler:
                 return {"error": "Failed to fetch user info from Google"}, 400
 
             # ---------------------------- Login or Create User ----------------------------
-            # Login the user or create a new user in the DB
-            jwt_tokens = await self.oauth2_service.login_or_create_user(user_info)
+            # FIXED: pass both db and user_info (db was missing earlier)
+            jwt_tokens = await self.oauth2_service.login_or_create_user(db, user_info)
             if not jwt_tokens:
                 return {"error": "Failed to login or create user"}, 500
 
             # ---------------------------- Return JWT Tokens for Redirect ----------------------------
+            # Return tokens for frontend usage
             return jwt_tokens, 200
 
         except Exception:
@@ -76,4 +79,5 @@ class OAuth2LoginHandler:
 
 
 # ---------------------------- Instantiate OAuth2LoginHandler ----------------------------
+# Singleton instance to be used in routes
 oauth2_login_handler = OAuth2LoginHandler()

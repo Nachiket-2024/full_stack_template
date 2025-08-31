@@ -84,7 +84,7 @@ class OAuth2Service:
     # ---------------------------- Login or Create User ----------------------------
     # Static async method to log in an existing user or create a new user with default role
     @staticmethod
-    async def login_or_create_user(user_info: dict) -> dict | None:
+    async def login_or_create_user(db, user_info: dict) -> dict | None:
         """
         Logs in an existing user or creates a new one with default role.
         Stores latest JWT tokens in the database.
@@ -102,7 +102,7 @@ class OAuth2Service:
             # ---------------------------- Search for Existing User ----------------------------
             # Iterate through all roles to find user by email
             for role, crud in ROLE_TABLES.items():
-                user = await crud.get_by_email(email)
+                user = await crud.get_by_email(db, email)   
                 if user:
                     user_role = role
                     crud_instance = crud
@@ -114,7 +114,7 @@ class OAuth2Service:
                 user_role = DEFAULT_ROLE
                 crud_instance = ROLE_TABLES[user_role]
                 user_data = {"name": name, "email": email}
-                user = await crud_instance.create(user_data)
+                user = await crud_instance.create(db, user_data)   
 
             # ---------------------------- Generate JWT Tokens ----------------------------
             # Generate access and refresh tokens concurrently
@@ -125,7 +125,7 @@ class OAuth2Service:
 
             # ---------------------------- Store Tokens in DB ----------------------------
             # Update the user's token fields in the database
-            await crud_instance.update_by_email(email, {
+            await crud_instance.update_by_email(db, email, {   
                 "access_token": access_token,
                 "refresh_token": refresh_token
             })

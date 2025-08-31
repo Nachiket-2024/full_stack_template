@@ -1,7 +1,7 @@
 // ---------------------------- OAuth2 Login Request Type ----------------------------
 // Shape of the request for initiating OAuth2 login (provider name)
 export interface OAuth2LoginPayload {
-    provider: "google" | "facebook"; // Extendable to other providers
+    provider: "google"; // Extendable to other providers
 }
 
 // ---------------------------- OAuth2 Login Response Type ----------------------------
