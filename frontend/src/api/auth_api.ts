@@ -20,13 +20,13 @@ export const oauth2LoginGoogleApi = () =>
 export const oauth2CallbackGoogleApi = (code: string) =>
     api.get("/auth/oauth2/callback/google", { params: { code } });
 
-// POST /auth/logout
-export const logoutApi = (payload: { refresh_token: string }) =>
-    api.post("/auth/logout", payload);
+// POST /auth/logout (no payload, token from cookies)
+export const logoutApi = () =>
+    api.post("/auth/logout");
 
-// POST /auth/logout/all
-export const logoutAllApi = (payload: { refresh_token: string }) =>
-    api.post("/auth/logout/all", payload);
+// POST /auth/logout/all (no payload, token from cookies)
+export const logoutAllApi = () =>
+    api.post("/auth/logout/all");
 
 // POST /auth/password-reset/request
 export const passwordResetRequestApi = (payload: { email: string }) =>

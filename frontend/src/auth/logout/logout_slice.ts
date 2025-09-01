@@ -9,14 +9,14 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 // Import API functions instead of calling axios directly
 import { logoutApi, logoutAllApi } from "../../api/auth_api";
 
-// Import type-only API request/response types for logout
-import type { LogoutPayload, LogoutResponse } from "./logout_types";
+// Import type-only API response type for logout
+import type { LogoutResponse } from "./logout_types";
 
 // ---------------------------- State Type ----------------------------
 // Redux state specific to logout flow
 interface LogoutState {
-    loading: boolean;            // Is logout request in progress
-    error: string | null;        // Error message if request fails
+    loading: boolean;              // Is logout request in progress
+    error: string | null;          // Error message if request fails
     successMessage: string | null; // Message on successful logout
 }
 
@@ -28,30 +28,30 @@ const initialState: LogoutState = {
 };
 
 // ---------------------------- Async Thunks ----------------------------
-// Logout single device
+// Logout single device (cookie-based, no payload sent)
 export const logoutUser = createAsyncThunk<
     LogoutResponse,
-    LogoutPayload,
+    void,
     { rejectValue: string }
->("auth/logout", async (payload, thunkAPI) => {
+>("auth/logout", async (_, thunkAPI) => {
     try {
-        // Call logout API
-        const response = await logoutApi(payload);
+        // Backend extracts refresh_token from cookies automatically
+        const response = await logoutApi();
         return response.data;
     } catch (error: any) {
         return thunkAPI.rejectWithValue(error.response?.data?.error || "Logout failed");
     }
 });
 
-// Logout all devices
+// Logout all devices (cookie-based, no payload sent)
 export const logoutAllDevices = createAsyncThunk<
     LogoutResponse,
-    LogoutPayload,
+    void,
     { rejectValue: string }
->("auth/logoutAll", async (payload, thunkAPI) => {
+>("auth/logoutAll", async (_, thunkAPI) => {
     try {
-        // Call logout all API
-        const response = await logoutAllApi(payload);
+        // Backend extracts refresh_token from cookies automatically
+        const response = await logoutAllApi();
         return response.data;
     } catch (error: any) {
         return thunkAPI.rejectWithValue(error.response?.data?.error || "Logout all devices failed");
@@ -105,8 +105,5 @@ const logoutSlice = createSlice({
 });
 
 // ---------------------------- Exports ----------------------------
-// Export reducer actions (e.g., clearLogoutState)
 export const { clearLogoutState } = logoutSlice.actions;
-
-// Export the slice reducer to add into the store
 export default logoutSlice.reducer;

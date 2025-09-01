@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 class LogoutAllHandler:
     """
     Handles user logout from all devices:
+    - Reads refresh token from cookies
     - Revokes all refresh tokens for the user
     - Clears access and refresh token cookies
     - Returns JSONResponse with status
@@ -32,18 +33,26 @@ class LogoutAllHandler:
 
     # ---------------------------- Logout All Method ----------------------------
     # Method to revoke all refresh tokens for a user and clear cookies
-    async def handle_logout_all(self, refresh_token: str, db):
+    async def handle_logout_all(self, refresh_token: str | None, db):
         """
         Revoke all refresh tokens for a user and return JSONResponse.
 
         Parameters:
-        - refresh_token: Client-provided refresh token
+        - refresh_token: Refresh token from cookie
         - db: AsyncSession for database operations
 
         Returns:
         - JSONResponse with success or error message
         """
         try:
+            # ---------------------------- Validate Token ----------------------------
+            # If no refresh token is provided in cookies, return error response
+            if not refresh_token:
+                return JSONResponse(
+                    content={"error": "No refresh token cookie found"},
+                    status_code=400
+                )
+
             # ---------------------------- Revoke All Tokens ----------------------------
             # Use JWT service to revoke all refresh tokens associated with this user
             revoked_count = await self.jwt_service.revoke_all_refresh_tokens_for_user(refresh_token, db=db)

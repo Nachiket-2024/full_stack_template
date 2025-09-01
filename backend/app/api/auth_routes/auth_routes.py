@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends
 # Async SQLAlchemy session for database interactions
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# FastAPI Cookie dependency to read cookies from requests
-from fastapi import Cookie
+# FastAPI Request ,Cookie dependency to read cookies from requests
+from fastapi import Cookie, Request
 
 # ---------------------------- Internal Imports ----------------------------
 # Schema for signup requests
@@ -16,13 +16,10 @@ from ...auth.signup.signup_schema import SignupSchema
 from ...auth.login.login_schema import LoginSchema
 
 # Schema for password reset confirmation requests
-from ...auth.password_reset_confirm.password_reset__confirm_schema import PasswordResetConfirmSchema
+from ...auth.password_reset_confirm.password_reset_confirm_schema import PasswordResetConfirmSchema
 
 # Schema for password reset request
 from ...auth.password_reset_request.password_reset_request_schema import PasswordResetRequestSchema
-
-# Schema for refresh token handling
-from ...auth.token_logic.refresh_token_schema import RefreshTokenSchema
 
 # Handler to process user registration
 from ...auth.signup.signup_handler import signup_handler
@@ -100,17 +97,23 @@ async def get_current_user(access_token: str = Cookie(None), db: AsyncSession = 
 # POST /logout endpoint with rate limiting
 @router.post("/logout")
 @rate_limiter_service.rate_limited("logout")
-async def logout(payload: RefreshTokenSchema, db: AsyncSession = Depends(database.get_session)):
-    # Logout single session using refresh token
-    return await logout_handler.handle_logout(payload.refresh_token)
+async def logout(request: Request):
+    # Extract refresh_token from cookies
+    refresh_token = request.cookies.get("refresh_token")
+
+    # Logout single session using refresh token from cookie
+    return await logout_handler.handle_logout(refresh_token)
 
 # ---------------------------- Logout All Devices Endpoint ----------------------------
 # POST /logout/all endpoint with rate limiting
 @router.post("/logout/all")
 @rate_limiter_service.rate_limited("logout_all")
-async def logout_all(payload: RefreshTokenSchema, db: AsyncSession = Depends(database.get_session)):
-    # Logout user from all devices using refresh token
-    return await logout_all_handler.handle_logout_all(payload.refresh_token, db=db)
+async def logout_all(request: Request, db: AsyncSession = Depends(database.get_session)):
+    # Extract refresh_token from cookies
+    refresh_token = request.cookies.get("refresh_token")
+
+    # Logout user from all devices using refresh token from cookie
+    return await logout_all_handler.handle_logout_all(refresh_token, db=db)
 
 # ---------------------------- Password Reset Request ----------------------------
 # POST /password-reset/request endpoint with rate limiting

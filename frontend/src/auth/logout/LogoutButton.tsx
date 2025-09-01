@@ -20,13 +20,8 @@ import { logoutUser, logoutAllDevices, clearLogoutState } from "./logout_slice";
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- LogoutButton Component ----------------------------
-// Props for LogoutButton component
-interface LogoutButtonProps {
-    refreshToken: string; // Refresh token needed for logout API calls
-}
-
 // Component to render logout buttons and handle logout actions
-const LogoutButton: React.FC<LogoutButtonProps> = ({ refreshToken }) => {
+const LogoutButton: React.FC = () => {
     // ---------------------------- Redux ----------------------------
     // Get Redux dispatch function typed with AppDispatch
     const dispatch = useDispatch<AppDispatch>();
@@ -36,12 +31,12 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ refreshToken }) => {
     // ---------------------------- Event Handlers ----------------------------
     // Logout from current device
     const handleLogout = () => {
-        dispatch(logoutUser({ refresh_token: refreshToken }));
+        dispatch(logoutUser()); // no payload anymore
     };
 
     // Logout from all devices
     const handleLogoutAll = () => {
-        dispatch(logoutAllDevices({ refresh_token: refreshToken }));
+        dispatch(logoutAllDevices()); // no payload anymore
     };
 
     // Clear logout messages and state

@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 class LogoutHandler:
     """
     Handles user logout:
+    - Reads refresh token from cookies
     - Revokes refresh tokens via refresh_token_service
     - Clears access and refresh token cookies
     - Returns JSONResponse with appropriate status
@@ -31,17 +32,25 @@ class LogoutHandler:
 
     # ---------------------------- Logout Method ----------------------------
     # Process logout request and revoke refresh token
-    async def handle_logout(self, refresh_token: str):
+    async def handle_logout(self, refresh_token: str | None):
         """
         Process logout request and return JSONResponse.
 
         Parameters:
-        - refresh_token: The user's refresh token to revoke
+        - refresh_token: The user's refresh token from cookie
 
         Returns:
         - JSONResponse with success or error message
         """
         try:
+            # ---------------------------- Validate Token ----------------------------
+            # If no refresh token is provided in cookies, return error response
+            if not refresh_token:
+                return JSONResponse(
+                    content={"error": "No refresh token cookie found"},
+                    status_code=400
+                )
+
             # ---------------------------- Revoke Token ----------------------------
             # Attempt to revoke the refresh token
             success = await self.refresh_token_service.revoke_refresh_token(refresh_token)
