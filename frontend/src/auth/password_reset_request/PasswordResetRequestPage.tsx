@@ -1,4 +1,5 @@
 // ---------------------------- External Imports ----------------------------
+// Import React for JSX/TSX syntax
 import React from "react";
 
 // ---------------------------- Internal Imports ----------------------------
@@ -6,7 +7,7 @@ import React from "react";
 import PasswordResetRequestForm from "./PasswordResetRequestForm";
 
 // ---------------------------- Component Definition ----------------------------
-// Define the PasswordResetRequestPage functional component
+// Page component for requesting a password reset
 const PasswordResetRequestPage: React.FC = () => {
     // ---------------------------- JSX Return ----------------------------
     return (
@@ -15,11 +16,12 @@ const PasswordResetRequestPage: React.FC = () => {
             {/* Page heading */}
             <h1>Password Reset Request</h1>
 
-            {/* Render the form component */}
+            {/* Render the password reset request form */}
             <PasswordResetRequestForm />
         </div>
     );
 };
 
-// Export the component as default to use in routing
+// ---------------------------- Export ----------------------------
+// Export PasswordResetRequestPage as default
 export default PasswordResetRequestPage;

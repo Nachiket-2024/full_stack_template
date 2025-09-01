@@ -1,29 +1,32 @@
-// Import React (needed to use JSX/TSX)
+// ---------------------------- External Imports ----------------------------
+// Import React library for JSX/TSX syntax
 import React from 'react';
 
-// Import ReactDOM to render our app into the HTML <div id="root">
+// Import ReactDOM to render React components into the DOM
 import ReactDOM from 'react-dom/client';
 
-// Import Redux provider (to connect React with Redux store)
+// Import Redux Provider to connect React app with Redux store
 import { Provider } from 'react-redux';
 
+// ---------------------------- Internal Imports ----------------------------
 // Import the root App component
 import App from './App.tsx';
 
-// Import tailwind CSS
+// Import Tailwind CSS for styling
 import '../tailwind.css';
 
-// Import Redux store
+// Import the Redux store
 import { store } from './store/store.ts';
 
-// Get the root HTML element with id="root" from index.html
+// ---------------------------- Render App ----------------------------
+// Get the root HTML element where the React app will be mounted
 const rootElement = document.getElementById('root') as HTMLElement;
 
 // Create a React DOM root and render the App inside it
 ReactDOM.createRoot(rootElement).render(
-  // StrictMode helps catch potential problems in development
+  // Wrap in StrictMode to catch potential problems during development
   <React.StrictMode>
-    {/* Wrap the App with Provider so Redux store is available to all components */}
+    {/* Wrap the App with Provider so Redux store is accessible to all components */}
     <Provider store={store}>
       <App />
     </Provider>

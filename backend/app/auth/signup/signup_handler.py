@@ -8,8 +8,11 @@ import traceback
 # Async SQLAlchemy session for database operations
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# FastAPI response class for sending JSON responses
+from fastapi.responses import JSONResponse
+
 # ---------------------------- Internal Imports ----------------------------
-# Auth service that handles user creation and password hashing (no JWT here)
+# Auth service that handles user creation and password hashing
 from .signup_service import signup_service
 
 # Account verification service that handles email verification & Redis token management
@@ -19,7 +22,7 @@ from ..verify_account.account_verification_service import account_verification_s
 from ...access_control.role_tables import DEFAULT_ROLE
 
 # ---------------------------- Logger Setup ----------------------------
-# Configure module-specific logger (centralized config recommended in production)
+# Configure module-specific logger
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Signup Handler Class ----------------------------
@@ -27,19 +30,40 @@ logger = logging.getLogger(__name__)
 class SignupHandler:
     """
     Handles user signup:
-    1. Calls SignupService to create user (is_verified=False initially)
-    2. Sends account verification email
+    - Validates inputs
+    - Calls SignupService to create user
+    - Sends account verification email
+    - Returns JSONResponse with appropriate status code
     """
 
     # ---------------------------- Static Async Signup Method ----------------------------
     # Static async method for handling signup requests
     @staticmethod
     async def handle_signup(name: str, email: str, password: str, role: str = DEFAULT_ROLE, db: AsyncSession = None):
+        """
+        Process signup request and return JSONResponse.
+
+        Parameters:
+        - name: User's full name
+        - email: User's email
+        - password: Plain-text password
+        - role: Role to assign (defaults to DEFAULT_ROLE)
+        - db: Async DB session
+
+        Returns:
+        - JSONResponse with success or error message
+        """
         try:
+            # ---------------------------- Input Validation ----------------------------
+            # Ensure required fields are provided
+            if not name or not email or not password:
+                return JSONResponse(content={"error": "Name, email, and password are required"}, status_code=400)
+
             # Always assign default role (overwrites input role for now)
             role = DEFAULT_ROLE
 
-            # Call signup service to create user in the database
+            # ---------------------------- Call Signup Service ----------------------------
+            # Create user in the database
             user_created = await signup_service.signup(
                 name=name,
                 email=email,
@@ -50,26 +74,28 @@ class SignupHandler:
 
             # Return error if user creation fails (invalid input or duplicate email)
             if not user_created:
-                return {"error": "Signup failed (invalid data or email already registered)"}, 400
+                return JSONResponse(content={"error": "Signup failed (invalid data or email already registered)"}, status_code=400)
 
             # ---------------------------- Send Verification Email ----------------------------
-            # Trigger sending of verification email for newly created user
+            # Trigger sending of verification email
             email_sent = await account_verification_service.send_verification_email(email, role)
             
             # Log warning if email sending fails but continue flow
             if not email_sent:
                 logger.warning("Verification email could not be sent to %s", email)
 
-            # Return success response
-            return {"message": "Signup successful. Please verify your email to activate your account."}, 200
+            # ---------------------------- Return Success ----------------------------
+            return JSONResponse(
+                content={"message": "Signup successful. Please verify your email to activate your account."},
+                status_code=200
+            )
 
         except Exception:
-            # Log full exception stack trace for debugging
+            # Log full exception stack trace
             logger.error("Error during signup logic:\n%s", traceback.format_exc())
             
             # Return generic internal server error
-            return {"error": "Internal Server Error"}, 500
-
+            return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 # ---------------------------- Instantiate SignupHandler ----------------------------
 # Singleton instance to handle signup requests

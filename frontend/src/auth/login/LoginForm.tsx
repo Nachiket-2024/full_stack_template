@@ -1,45 +1,57 @@
 // ---------------------------- External Imports ----------------------------
-// React and hooks for component state
-import React, { useState } from "react";
+// Import React and hooks for component state
+import React, { useState, useEffect } from "react";
 
-// Redux hooks
+// Import Redux hooks for dispatching actions and selecting state
 import { useDispatch, useSelector } from "react-redux";
 
-// Type-only import for TypedUseSelectorHook (required by verbatimModuleSyntax)
+// Type-only import for typed useSelector hook
 import type { TypedUseSelectorHook } from "react-redux";
 
+// ---------------------------- Internal Imports ----------------------------
 // Type-only imports for store types
 import type { RootState, AppDispatch } from "../../store/store";
 
-// ---------------------------- Internal Imports ----------------------------
 // Import login thunk and slice actions
 import { loginUser, clearLoginState } from "./login_slice";
 
+// ---------------------------- Props Interface ----------------------------
+// Props for LoginForm component
+interface LoginFormProps {
+    onSuccess?: () => void; // Callback after successful login
+}
+
 // ---------------------------- Typed Selector Hook ----------------------------
-// Typed selector ensures Redux state is correctly typed
+// Create typed useSelector hook for TypeScript support
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- LoginForm Component ----------------------------
-const LoginForm: React.FC = () => {
+// Component for user login form
+const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     // ---------------------------- Local State ----------------------------
     const [email, setEmail] = useState("");       // Email input
     const [password, setPassword] = useState(""); // Password input
 
     // ---------------------------- Redux ----------------------------
-    const dispatch = useDispatch<AppDispatch>();  // Typed dispatch
-    const { loading, error, accessToken } = useAppSelector(
-        (state) => state.login
-    );
+    const dispatch = useDispatch<AppDispatch>();   // Typed dispatch function
+    const { loading, error, accessToken } = useAppSelector((state) => state.login); // Login state
+
+    // ---------------------------- Effect: redirect on success ----------------------------
+    // Only call the onSuccess callback if provided; do not navigate by default
+    useEffect(() => {
+        if (accessToken && onSuccess) {
+            onSuccess();
+        }
+    }, [accessToken, onSuccess]);
 
     // ---------------------------- Event Handlers ----------------------------
-    // Handles form submission
+    // Handle form submission for login
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Dispatch login thunk with email/password payload
         dispatch(loginUser({ email, password }));
     };
 
-    // Clears the login state manually
+    // Clear login state manually
     const handleClear = () => {
         dispatch(clearLoginState());
     };
@@ -47,8 +59,12 @@ const LoginForm: React.FC = () => {
     // ---------------------------- Render ----------------------------
     return (
         <div>
+            {/* Form title */}
             <h2>Login</h2>
+
+            {/* Login form */}
             <form onSubmit={handleSubmit}>
+                {/* Email input */}
                 <input
                     type="email"
                     value={email}
@@ -56,6 +72,8 @@ const LoginForm: React.FC = () => {
                     placeholder="Email"
                     required
                 />
+
+                {/* Password input */}
                 <input
                     type="password"
                     value={password}
@@ -63,22 +81,25 @@ const LoginForm: React.FC = () => {
                     placeholder="Password"
                     required
                 />
+
+                {/* Submit button */}
                 <button type="submit" disabled={loading}>
                     {loading ? "Logging in..." : "Login"}
                 </button>
             </form>
 
-            {/* Display error if login failed */}
+            {/* Display error message if login failed */}
             {error && <p style={{ color: "red" }}>{error}</p>}
 
             {/* Display success message if login succeeded */}
             {accessToken && <p style={{ color: "green" }}>Login successful!</p>}
 
-            {/* Clear login state */}
+            {/* Clear button to reset form and messages */}
             <button onClick={handleClear}>Clear</button>
         </div>
     );
 };
 
 // ---------------------------- Export ----------------------------
+// Export LoginForm component as default
 export default LoginForm;

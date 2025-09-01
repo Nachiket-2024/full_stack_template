@@ -1,59 +1,79 @@
 # ---------------------------- External Imports ----------------------------
-# For logging and exception handling
+# Logging modules for tracking events and debugging errors
 import logging
 import traceback
 
+# FastAPI response class for sending JSON responses to clients
+from fastapi.responses import JSONResponse
+
 # ---------------------------- Internal Imports ----------------------------
-# Refresh token service to revoke tokens
-from ..token_logic.refresh_token_service import refresh_token_service
+# JWT service for handling token revocation and validation
+from ..token_logic.jwt_service import jwt_service
 
 # ---------------------------- Logger Setup ----------------------------
-# Logger for capturing errors in logout-all logic
+# Logger instance for capturing errors and debug information
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Logout All Handler Class ----------------------------
+# Class that handles logging out a user from all devices
 class LogoutAllHandler:
     """
-    Class to handle logging out a user from all devices.
-    Delegates token verification and revocation to the refresh token service.
+    Handles user logout from all devices:
+    - Revokes all refresh tokens for the user
+    - Clears access and refresh token cookies
+    - Returns JSONResponse with status
     """
 
     # ---------------------------- Constructor ----------------------------
+    # Initialize the handler with required services
     def __init__(self):
-        # Assign the refresh token service to an instance variable
-        self.refresh_token_service = refresh_token_service
+        # Assign JWT service for token operations
+        self.jwt_service = jwt_service
 
-    # ---------------------------- Main Logout All Method ----------------------------
+    # ---------------------------- Logout All Method ----------------------------
+    # Method to revoke all refresh tokens for a user and clear cookies
     async def handle_logout_all(self, refresh_token: str, db):
         """
-        Logs the user out from all devices by revoking all refresh tokens
-        associated with the user identified by the provided refresh token.
+        Revoke all refresh tokens for a user and return JSONResponse.
 
         Parameters:
-        - refresh_token: The refresh token provided by the client
+        - refresh_token: Client-provided refresh token
         - db: AsyncSession for database operations
 
         Returns:
-        - tuple: (response_dict, status_code)
+        - JSONResponse with success or error message
         """
         try:
             # ---------------------------- Revoke All Tokens ----------------------------
-            # Delegate revocation logic to the service
-            revoked_count = await self.refresh_token_service.revoke_all_tokens(refresh_token, db=db)
+            # Use JWT service to revoke all refresh tokens associated with this user
+            revoked_count = await self.jwt_service.revoke_all_refresh_tokens_for_user(refresh_token, db=db)
 
             # ---------------------------- Check Revocation Result ----------------------------
+            # If no tokens were revoked, respond with an error
             if revoked_count == 0:
-                # Token invalid, malformed, or no tokens found
-                return {"error": "Invalid refresh token or no tokens to revoke"}, 400
+                return JSONResponse(
+                    content={"error": "Invalid refresh token or no tokens to revoke"},
+                    status_code=400
+                )
 
-            # Logout successful
-            return {"message": f"Logged out from {revoked_count} devices"}, 200
+            # ---------------------------- Clear Cookies ----------------------------
+            # Prepare response and delete both access and refresh cookies
+            resp = JSONResponse(
+                content={"message": f"Logged out from {revoked_count} devices"},
+                status_code=200
+            )
+            resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
+            resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
+
+            # Return the prepared response
+            return resp
 
         except Exception:
-            # Catch any unexpected errors and log the full traceback
+            # Log full traceback to help with debugging
             logger.error("Error during logout-all logic:\n%s", traceback.format_exc())
-            return {"error": "Internal Server Error"}, 500
-
+            # Return generic internal server error response
+            return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 # ---------------------------- Instantiate LogoutAllHandler ----------------------------
+# Create a singleton instance for use in routes
 logout_all_handler = LogoutAllHandler()

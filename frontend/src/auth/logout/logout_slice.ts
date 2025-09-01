@@ -28,7 +28,6 @@ const initialState: LogoutState = {
 };
 
 // ---------------------------- Async Thunks ----------------------------
-
 // Logout single device
 export const logoutUser = createAsyncThunk<
     LogoutResponse,

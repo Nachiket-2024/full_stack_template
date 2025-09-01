@@ -1,60 +1,77 @@
 # ---------------------------- External Imports ----------------------------
-# For logging and exception handling
+# Logging for tracking events and debugging
 import logging
 import traceback
+
+# FastAPI response class for sending JSON responses
+from fastapi.responses import JSONResponse
 
 # ---------------------------- Internal Imports ----------------------------
 # Refresh token service to revoke tokens
 from ..token_logic.refresh_token_service import refresh_token_service
 
 # ---------------------------- Logger Setup ----------------------------
-# Create a logger for this module
+# Configure module-specific logger
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Logout Handler Class ----------------------------
+# Class responsible for handling user logout flow
 class LogoutHandler:
     """
-    Class to handle user logout operations.
-    Encapsulates logic to revoke refresh tokens and handle errors.
+    Handles user logout:
+    - Revokes refresh tokens via refresh_token_service
+    - Clears access and refresh token cookies
+    - Returns JSONResponse with appropriate status
     """
 
     # ---------------------------- Constructor ----------------------------
+    # Initialize handler with required services
     def __init__(self):
-        # Assign the refresh token service to an instance variable
         self.refresh_token_service = refresh_token_service
 
-    # ---------------------------- Main Logout Method ----------------------------
+    # ---------------------------- Logout Method ----------------------------
+    # Process logout request and revoke refresh token
     async def handle_logout(self, refresh_token: str):
         """
-        Handle user logout by revoking their refresh token.
+        Process logout request and return JSONResponse.
 
         Parameters:
-        - refresh_token: The user's refresh token to be revoked
+        - refresh_token: The user's refresh token to revoke
 
         Returns:
-        - tuple: (response_dict, status_code)
-          - If successful, returns success message and 200
-          - If token invalid or already revoked, returns error and 400
-          - On exception, returns error and 500
+        - JSONResponse with success or error message
         """
         try:
             # ---------------------------- Revoke Token ----------------------------
-            # Attempt to revoke the refresh token via the service
+            # Attempt to revoke the refresh token
             success = await self.refresh_token_service.revoke_refresh_token(refresh_token)
 
             # ---------------------------- Check Revocation Result ----------------------------
+            # If revocation failed, return error response
             if not success:
-                # Token is invalid or already revoked
-                return {"error": "Invalid refresh token or already revoked"}, 400
+                return JSONResponse(
+                    content={"error": "Invalid refresh token or already revoked"},
+                    status_code=400
+                )
 
-            # Logout successful
-            return {"message": "Logged out successfully"}, 200
+            # ---------------------------- Clear Cookies ----------------------------
+            # Create response and delete access and refresh cookies
+            resp = JSONResponse(
+                content={"message": "Logged out successfully"},
+                status_code=200
+            )
+            resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
+            resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
+
+            # Return the response
+            return resp
 
         except Exception:
-            # Catch any unexpected errors and log the full traceback
+            # Log full traceback for debugging
             logger.error("Error during logout logic:\n%s", traceback.format_exc())
-            return {"error": "Internal Server Error"}, 500
-
+            # Return generic server error response
+            return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 # ---------------------------- Instantiate LogoutHandler ----------------------------
+# Singleton instance for route usage
 logout_handler = LogoutHandler()
