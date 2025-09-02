@@ -6,56 +6,56 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import API function to logout a single device
-import { logoutApi } from "../../api/auth_api";
+// Import API function to perform logout from all devices
+import { logoutAllApi } from "../../api/auth_api";
 
 // Import type-only LogoutResponse for typing API response
-import type { LogoutResponse } from "./logout_types";
+import type { LogoutResponse } from "./logout_all_types";
 
 // ---------------------------- State Type ----------------------------
-// Define Redux state structure for single-device logout
-interface LogoutState {
-    loading: boolean;              // Indicates if logout request is in progress
-    error: string | null;          // Stores error message if request fails
+// Define Redux state structure for logout all devices
+interface LogoutAllState {
+    loading: boolean;              // Indicates if the logout all request is in progress
+    error: string | null;          // Stores error message if the request fails
     successMessage: string | null; // Stores success message after logout completes
 }
 
 // ---------------------------- Initial State ----------------------------
-// Set initial values for single-device logout state
-const initialState: LogoutState = {
+// Set initial values for the logout all devices state
+const initialState: LogoutAllState = {
     loading: false,                // Not loading initially
     error: null,                   // No error initially
     successMessage: null,          // No success message initially
 };
 
 // ---------------------------- Async Thunks ----------------------------
-// Define an async thunk to logout a single device
-export const logoutUser = createAsyncThunk<
+// Define an async thunk to logout from all devices
+export const logoutAllDevices = createAsyncThunk<
     LogoutResponse,                // Type of successful response
     void,                          // No argument needed for this thunk
     { rejectValue: string }        // Type of error value if rejected
 >(
-    "logout/logoutUser",
+    "logout_all/logoutAllDevices",
     async (_, thunkAPI) => {
         try {
-            // Call API to logout; backend reads cookies automatically
-            const response = await logoutApi();
+            // Call API to logout from all devices; backend reads cookies automatically
+            const response = await logoutAllApi();
             return response.data; // Return API response data on success
         } catch (error: any) {
             // Return a reject value with error message if API call fails
-            return thunkAPI.rejectWithValue(error.response?.data?.error || "Logout failed");
+            return thunkAPI.rejectWithValue(error.response?.data?.error || "Logout all devices failed");
         }
     }
 );
 
 // ---------------------------- Slice ----------------------------
-// Create Redux slice for single-device logout feature
-const logoutSlice = createSlice({
-    name: "logout",                 // Name of the slice
+// Create Redux slice for logout all devices feature
+const logoutAllSlice = createSlice({
+    name: "logoutAll",              // Name of the slice
     initialState,                   // Initial state defined above
     reducers: {
-        // Reducer to reset logout state to initial values
-        clearLogoutState: (state) => {
+        // Reducer to reset logout all state to initial values
+        clearLogoutAllState: (state) => {
             state.loading = false;        // Reset loading
             state.error = null;           // Clear error
             state.successMessage = null;  // Clear success message
@@ -64,25 +64,25 @@ const logoutSlice = createSlice({
     extraReducers: (builder) => {
         // Handle different states of the async thunk
         builder
-            .addCase(logoutUser.pending, (state) => {
+            .addCase(logoutAllDevices.pending, (state) => {
                 state.loading = true;      // Set loading while request is pending
                 state.error = null;        // Clear previous errors
                 state.successMessage = null;// Clear previous success message
             })
-            .addCase(logoutUser.fulfilled, (state, action: PayloadAction<LogoutResponse>) => {
+            .addCase(logoutAllDevices.fulfilled, (state, action: PayloadAction<LogoutResponse>) => {
                 state.loading = false;                 // Stop loading
                 state.successMessage = action.payload.message; // Store success message
             })
-            .addCase(logoutUser.rejected, (state, action) => {
+            .addCase(logoutAllDevices.rejected, (state, action) => {
                 state.loading = false;                 // Stop loading
-                state.error = action.payload || "Logout failed"; // Store error message
+                state.error = action.payload || "Logout all devices failed"; // Store error message
             });
     },
 });
 
 // ---------------------------- Exports ----------------------------
 // Export the action to clear state
-export const { clearLogoutState } = logoutSlice.actions;
+export const { clearLogoutAllState } = logoutAllSlice.actions;
 
 // Export the reducer as default for store integration
-export default logoutSlice.reducer;
+export default logoutAllSlice.reducer;

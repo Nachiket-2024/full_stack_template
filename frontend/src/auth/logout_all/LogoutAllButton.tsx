@@ -12,51 +12,51 @@ import type { TypedUseSelectorHook } from "react-redux";
 // Import type-only RootState and AppDispatch from Redux store for typing hooks
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import async thunk and action to clear logout state from logout slice
-import { logoutUser, clearLogoutState } from "./logout_slice";
+// Import async thunk and action to clear logout-all state from logout-all slice
+import { logoutAllDevices, clearLogoutAllState } from "./logout_all_slice";
 
-// Import styled LogoutButtonComponent to separate UI from container logic
-import LogoutButtonComponent from "./LogoutButtonComponent";
+// Import presentational component to separate UI from container logic
+import LogoutAllButtonComponent from "./LogoutAllButtonComponent";
 
 // ---------------------------- Typed Selector Hook ----------------------------
 // Create a typed useSelector hook for TypeScript support
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
-// ---------------------------- LogoutButton Container ----------------------------
+// ---------------------------- LogoutAllButton Container ----------------------------
 // Container component to connect Redux state and handlers to styled button
-const LogoutButton: React.FC = () => {
+const LogoutAllButton: React.FC = () => {
     // ---------------------------- Redux ----------------------------
     // Initialize dispatch function typed with AppDispatch
     const dispatch = useDispatch<AppDispatch>();
-    // Select logout state from Redux store
+    // Select logout-all state from Redux store
     const { loading, error, successMessage } = useAppSelector(
-        (state) => state.logout
+        (state) => state.logoutAll
     );
 
     // ---------------------------- Event Handlers ----------------------------
-    // Handle logout by dispatching the logout async thunk
-    const handleLogout = () => {
-        dispatch(logoutUser());
+    // Handle logout-all button click by dispatching logoutAllDevices async thunk
+    const handleLogoutAll = () => {
+        dispatch(logoutAllDevices());
     };
 
-    // Handle clearing messages by dispatching the clearLogoutState action
+    // Handle clear button click by dispatching action to reset logout-all state
     const handleClear = () => {
-        dispatch(clearLogoutState());
+        dispatch(clearLogoutAllState());
     };
 
     // ---------------------------- Render ----------------------------
-    // Pass Redux state and event handlers as props to styled component
+    // Pass Redux state and event handlers as props to presentational component
     return (
-        <LogoutButtonComponent
+        <LogoutAllButtonComponent
             loading={loading}
             error={error}
             successMessage={successMessage}
-            onLogout={handleLogout}
+            onLogoutAll={handleLogoutAll}
             onClear={handleClear}
         />
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export LogoutButton container as default
-export default LogoutButton;
+// Export LogoutAllButton container as default
+export default LogoutAllButton;
