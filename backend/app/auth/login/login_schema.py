@@ -4,11 +4,7 @@ from pydantic import BaseModel, EmailStr
 
 # ---------------------------- Login Schema ----------------------------
 class LoginSchema(BaseModel):
-    """
-    Schema for login requests.
-    Defines the required fields for user login input validation.
-    """
-    
+
     # User's email address (validated to ensure proper email format)
     email: EmailStr
     

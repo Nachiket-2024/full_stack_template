@@ -12,6 +12,7 @@ from ..core.settings import settings
 # ---------------------------- Async Engine ----------------------------
 # Database class to encapsulate async engine and session creation
 class Database:
+
     # ---------------------------- Initialization ----------------------------
     def __init__(self, database_url: str):
         # Store the database URL
@@ -34,6 +35,7 @@ class Database:
         # Use async context manager to ensure session is properly closed
         async with self.async_session() as session:
             yield session  # Yield session to be injected into routes
+
 
 # ---------------------------- Database Instance ----------------------------
 # Create a single Database instance using settings

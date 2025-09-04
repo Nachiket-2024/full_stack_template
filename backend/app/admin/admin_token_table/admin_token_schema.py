@@ -1,56 +1,56 @@
 # ---------------------------- External Imports ----------------------------
-
-# Import BaseModel for Pydantic schemas and ConfigDict for ORM configuration
+# Import BaseModel for schema definitions and ConfigDict for ORM config
 from pydantic import BaseModel, ConfigDict
 
 # Import datetime for timestamp fields
 from datetime import datetime
 
-
 # ---------------------------- Base Token Schema ----------------------------
-
-# Base schema containing shared fields for Admin tokens
+# Define base schema containing shared fields for Admin token records
 class AdminTokenBase(BaseModel):
     """
     Shared fields for Admin token records.
     """
-    # Access token string
+
+    # Define email of the Admin user (FK reference)
+    email: str
+
+    # Define access token string
     access_token: str
 
-    # Refresh token string
+    # Define refresh token string
     refresh_token: str
 
-
 # ---------------------------- Schema for Token Creation ----------------------------
-
-# Schema for creating new AdminToken entries in the database
+# Define schema for creating a new token record, inheriting from AdminTokenBase
 class AdminTokenCreate(AdminTokenBase):
     """
     Fields required when creating a new token record.
     """
-    # Optional creation timestamp (can default to DB-generated)
-    created_at: datetime = None
 
-    # Optional last updated timestamp (can default to DB-generated)
-    updated_at: datetime = None
+    # Define optional creation timestamp (defaults to DB-generated if not provided)
+    created_at: datetime | None = None
 
+    # Define optional last updated timestamp (defaults to DB-generated if not provided)
+    updated_at: datetime | None = None
 
 # ---------------------------- Schema for Reading Tokens ----------------------------
-
-# Schema for reading AdminToken records from the database
+# Define schema for reading token records from the DB, inheriting from AdminTokenBase
 class AdminTokenRead(AdminTokenBase):
     """
     Fields returned when reading token records from the DB.
     """
-    # Unique ID of the token record
+
+    # Define unique ID of the token record
     id: int
 
-    # Timestamp when token record was created
+    # Define timestamp when token record was created
     created_at: datetime
 
-    # Timestamp of last update to the token record
+    # Define timestamp of last update to the token record
     updated_at: datetime
 
+    # Configure schema to allow loading from ORM objects
     class Config(ConfigDict):
-        # Enable reading from SQLAlchemy ORM objects
+        # Enable reading attributes directly from ORM models
         from_attributes = True

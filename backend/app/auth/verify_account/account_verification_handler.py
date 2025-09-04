@@ -25,13 +25,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Account Verification Handler Class ----------------------------
 # Class responsible for handling account verification requests
 class AccountVerificationHandler:
-    """
-    Handles user account verification via email tokens:
-    - Validates token
-    - Marks user as verified
-    - Applies brute-force protection
-    - Returns JSONResponse
-    """
 
     # ---------------------------- Constructor ----------------------------
     # Initialize the handler with required services
@@ -43,15 +36,7 @@ class AccountVerificationHandler:
     # ---------------------------- Async Method to Handle Verification ----------------------------
     # Verify account using email token
     async def handle_account_verification(self, token: str):
-        """
-        Verify account using token and return JSONResponse.
 
-        Parameters:
-        - token: JWT token sent to user's email
-
-        Returns:
-        - JSONResponse
-        """
         try:
             # ---------------------------- Verify Token ----------------------------
             # Decode and validate the token
@@ -89,8 +74,10 @@ class AccountVerificationHandler:
         except Exception:
             # Log the error with stack trace
             logger.error("Error during account verification:\n%s", traceback.format_exc())
+            
             # Return generic server error response
             return JSONResponse({"error": "Internal Server Error"}, status_code=500)
+
 
 # ---------------------------- Instantiate Handler ----------------------------
 # Create a global instance of AccountVerificationHandler for usage in routes

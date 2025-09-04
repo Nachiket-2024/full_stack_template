@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 # ---------------------------- Internal Imports ----------------------------
 # Refresh token service to revoke tokens
-from ..token_logic.refresh_token_service import refresh_token_service
+from ..refresh_token_logic.refresh_token_service import refresh_token_service
 
 # ---------------------------- Logger Setup ----------------------------
 # Configure module-specific logger
@@ -17,13 +17,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Logout Handler Class ----------------------------
 # Class responsible for handling user logout flow
 class LogoutHandler:
-    """
-    Handles user logout:
-    - Reads refresh token from cookies
-    - Revokes refresh tokens via refresh_token_service
-    - Clears access and refresh token cookies
-    - Returns JSONResponse with appropriate status
-    """
 
     # ---------------------------- Constructor ----------------------------
     # Initialize handler with required services
@@ -33,15 +26,7 @@ class LogoutHandler:
     # ---------------------------- Logout Method ----------------------------
     # Process logout request and revoke refresh token
     async def handle_logout(self, refresh_token: str | None):
-        """
-        Process logout request and return JSONResponse.
 
-        Parameters:
-        - refresh_token: The user's refresh token from cookie
-
-        Returns:
-        - JSONResponse with success or error message
-        """
         try:
             # ---------------------------- Validate Token ----------------------------
             # If no refresh token is provided in cookies, return error response
@@ -78,8 +63,10 @@ class LogoutHandler:
         except Exception:
             # Log full traceback for debugging
             logger.error("Error during logout logic:\n%s", traceback.format_exc())
+            
             # Return generic server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
+
 
 # ---------------------------- Instantiate LogoutHandler ----------------------------
 # Singleton instance for route usage

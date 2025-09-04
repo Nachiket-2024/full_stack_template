@@ -22,24 +22,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Current User Handler Class ----------------------------
 # Handler class to manage fetching the currently authenticated user
 class CurrentUserHandler:
-    """
-    Handles retrieval of current authenticated user:
-    - Verifies JWT access token
-    - Extracts user email and table (same as role)
-    - Fetches user from database
-    """
 
     # ---------------------------- Get Current User ----------------------------
     # Main method to fetch user from access token
     async def get_current_user(self, access_token: str, db) -> dict | None:
-        """
-        Retrieves current user info using JWT access token.
-        Params:
-        - access_token: JWT access token from request cookie
-        - db: Async database session
-        Returns:
-        - dict with user info (name, email, table/role) or error if invalid
-        """
+
         try:
             if not access_token:
                 return {"error": "No access token provided"}
@@ -81,6 +68,7 @@ class CurrentUserHandler:
             # Log any other exceptions
             logger.error("Error fetching current user:\n%s", traceback.format_exc())
             return {"error": "Internal server error"}
+
 
 # ---------------------------- Service Instance ----------------------------
 # Singleton instance for reuse in auth routes

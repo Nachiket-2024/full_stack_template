@@ -17,13 +17,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Logout All Handler Class ----------------------------
 # Class that handles logging out a user from all devices
 class LogoutAllHandler:
-    """
-    Handles user logout from all devices:
-    - Reads refresh token from cookies
-    - Revokes all refresh tokens for the user
-    - Clears access and refresh token cookies
-    - Returns JSONResponse with status
-    """
 
     # ---------------------------- Constructor ----------------------------
     # Initialize the handler with required services
@@ -34,16 +27,7 @@ class LogoutAllHandler:
     # ---------------------------- Logout All Method ----------------------------
     # Method to revoke all refresh tokens for a user and clear cookies
     async def handle_logout_all(self, refresh_token: str | None, db):
-        """
-        Revoke all refresh tokens for a user and return JSONResponse.
 
-        Parameters:
-        - refresh_token: Refresh token from cookie
-        - db: AsyncSession for database operations
-
-        Returns:
-        - JSONResponse with success or error message
-        """
         try:
             # ---------------------------- Validate Token ----------------------------
             # If no refresh token is provided in cookies, return error response
@@ -80,8 +64,10 @@ class LogoutAllHandler:
         except Exception:
             # Log full traceback to help with debugging
             logger.error("Error during logout-all logic:\n%s", traceback.format_exc())
+            
             # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
+
 
 # ---------------------------- Instantiate LogoutAllHandler ----------------------------
 # Create a singleton instance for use in routes

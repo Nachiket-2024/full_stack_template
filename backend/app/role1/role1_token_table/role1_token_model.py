@@ -1,50 +1,50 @@
 # ---------------------------- External Imports ----------------------------
-# Import SQLAlchemy column types and ForeignKey support
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+# Import Column, String, DateTime, Boolean, ForeignKey, and Integer for defining SQLAlchemy model fields
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Integer
 
-# Import SQL function helpers (e.g., func.now() for timestamps)
+# Import func for SQL functions like now()
 from sqlalchemy.sql import func
 
 # ---------------------------- Internal Imports ----------------------------
-# Import async declarative base for model inheritance
+# Import Base class for declarative model definitions
 from ...database.base import Base
 
 # ---------------------------- Role1Token Model ----------------------------
-# Table to store multiple login sessions for Admin users
+# Define Role1Token model extending Base (SQLAlchemy ORM model)
 class Role1Token(Base):
     """
     Stores multiple access and refresh tokens per Role1 user.
-    Each login session creates a new row to support concurrent sessions.
+    Uses email as FK reference to Role1 table (unique identifier).
     """
+
+    # Set table name for this model
     __tablename__ = "role1_token"
 
-    # ---------------------------- Columns ----------------------------
-
-    # Unique internal ID for this token row
+    # Define unique internal ID as primary key with index
     id = Column(Integer, primary_key=True, index=True)
 
-    # Foreign key reference to Admin table
-    role1_id = Column(Integer, ForeignKey("role1.id"), nullable=False)
+    # Define foreign key linking email field to Role1 table
+    email = Column(String, ForeignKey("role1.email"), nullable=False, index=True)
 
-    # Access token for authentication
+    # Define access token field (required)
     access_token = Column(String, nullable=False)
 
-    # Refresh token to obtain new access tokens
+    # Define refresh token field (required)
     refresh_token = Column(String, nullable=False)
 
-    # Optional metadata about the device/browser used
+    # Define optional field to store device/browser information
     device_info = Column(String, nullable=True)
 
-    # Indicates if the session is active
+    # Define active status flag with default True
     is_active = Column(Boolean, default=True, nullable=False)
 
-    # Timestamp when this token row was created
+    # Define creation timestamp with default value as current time
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    # Optional timestamp when token expires
+    # Define optional expiration timestamp for token
     expires_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Timestamp for last update (auto-updates on modification)
+    # Define auto-updated timestamp for modifications
     updated_at = Column(
         DateTime(timezone=True),
         onupdate=func.now(),

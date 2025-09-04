@@ -13,7 +13,7 @@ import type { TypedUseSelectorHook } from "react-redux";
 import type { RootState, AppDispatch } from "../../store/store";
 
 // Import async thunk and action to clear logout state from logout slice
-import { logoutUser, clearLogoutState } from "./logout_slice";
+import { logoutUser } from "./logout_slice";
 
 // Import styled LogoutButtonComponent to separate UI from container logic
 import LogoutButtonComponent from "./LogoutButtonComponent";
@@ -39,11 +39,6 @@ const LogoutButton: React.FC = () => {
         dispatch(logoutUser());
     };
 
-    // Handle clearing messages by dispatching the clearLogoutState action
-    const handleClear = () => {
-        dispatch(clearLogoutState());
-    };
-
     // ---------------------------- Render ----------------------------
     // Pass Redux state and event handlers as props to styled component
     return (
@@ -52,7 +47,6 @@ const LogoutButton: React.FC = () => {
             error={error}
             successMessage={successMessage}
             onLogout={handleLogout}
-            onClear={handleClear}
         />
     );
 };

@@ -18,94 +18,76 @@ from .login_service import login_service
 # Service handling login protection like rate limiting and lockouts
 from ..security.login_protection_service import login_protection_service
 
+# Cookie utility for setting tokens
+from ..token_logic.token_cookie_handler import token_cookie_handler
+
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Login Handler Class ----------------------------
-# Class responsible for handling user login requests
 class LoginHandler:
-    """
-    Handles user login including:
-    - Input validation
-    - Calling login service
-    - Rate limiting & lockout checks
-    - Setting JWT tokens in cookies
-    """
 
-    # ---------------------------- Static Async Method ----------------------------
-    # Static method to handle login without requiring class instantiation
+    # ---------------------------- Handle Login ----------------------------
     @staticmethod
     async def handle_login(email: str, password: str, db: AsyncSession = None):
-        """
-        Process login request and return JSONResponse with tokens or errors.
-
-        Parameters:
-        - email: User email
-        - password: User password
-        - db: Async DB session
-
-        Returns:
-        - JSONResponse with appropriate status code
-        """
+        
+        # Start a try-except block to handle runtime errors
         try:
             # ---------------------------- Input Validation ----------------------------
-            # Check if both email and password are provided
+            # Check if email or password is missing
             if not email or not password:
-                return JSONResponse(content={"error": "Email and password are required"}, status_code=400)
+                # Return a JSON error response if required fields are missing
+                return JSONResponse(
+                    content={"error": "Email and password are required"},
+                    status_code=400,
+                )
 
             # ---------------------------- Call Auth Service ----------------------------
-            # Attempt to login using the login service
+            # Call the login service to authenticate the user
             tokens = await login_service.login(email=email, password=password, db=db)
-            
-            # Return error if login fails
+
+            # If authentication fails or tokens not returned
             if not tokens:
-                return JSONResponse(content={"error": "Invalid credentials or account locked"}, status_code=401)
+                # Return a JSON error response for invalid credentials
+                return JSONResponse(
+                    content={"error": "Invalid credentials or account locked"},
+                    status_code=401,
+                )
 
             # ---------------------------- Login Protection ----------------------------
-            # Create a unique key for tracking login attempts
+            # Create a unique key for tracking login attempts for this email
             email_lock_key = f"login_lock:email:{email}"
-            
-            # Check if login is allowed and record the successful attempt
-            allowed = await login_protection_service.check_and_record_action(email_lock_key, success=True)
-            
-            # If too many failed attempts, block login
+
+            # Record the successful login attempt and check if further actions are allowed
+            allowed = await login_protection_service.check_and_record_action(
+                email_lock_key, success=True
+            )
+
+            # If login attempts are not allowed (too many failed attempts)
             if not allowed:
-                return JSONResponse(content={"error": "Too many failed login attempts, account temporarily locked"}, status_code=429)
+                # Return a JSON error response for rate limiting / lockout
+                return JSONResponse(
+                    content={
+                        "error": "Too many failed login attempts, account temporarily locked"
+                    },
+                    status_code=429,
+                )
 
             # ---------------------------- Set Tokens in HTTP-only Cookies ----------------------------
-            # Create JSON response with login tokens
-            response = JSONResponse(content=tokens, status_code=200)
-            
-            # Set access token cookie
-            response.set_cookie(
-                key="access_token",
-                value=tokens["access_token"],
-                httponly=True,
-                secure=True,
-                samesite="Strict",
-                max_age=3600
-            )
-            
-            # Set refresh token cookie
-            response.set_cookie(
-                key="refresh_token",
-                value=tokens["refresh_token"],
-                httponly=True,
-                secure=True,
-                samesite="Strict",
-                max_age=2592000
-            )
+            # Set authentication tokens in secure HTTP-only cookies and return response
+            return token_cookie_handler.set_tokens_in_cookies(tokens)
 
-            # Return the response with tokens set
-            return response
-
+        # Handle unexpected exceptions
         except Exception:
-            # Log the error with stack trace
+            # Log the error with traceback for debugging
             logger.error("Error during login:\n%s", traceback.format_exc())
-            # Return generic server error response
-            return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
+            # Return a generic internal server error response
+            return JSONResponse(
+                content={"error": "Internal Server Error"}, status_code=500
+            )
+
 
 # ---------------------------- Instantiate LoginHandler ----------------------------
-# Create a global instance of LoginHandler for usage in routes
+# Create a single instance of LoginHandler to be reused
 login_handler = LoginHandler()

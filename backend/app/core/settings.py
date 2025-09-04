@@ -49,6 +49,7 @@ class Settings(BaseSettings):
         # Encoding for the .env file
         env_file_encoding = "utf-8"
 
+
 # ---------------------------- Settings Instance ----------------------------
 # Create a single settings instance for global use across the app
 settings = Settings()

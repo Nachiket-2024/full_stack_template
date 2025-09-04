@@ -28,31 +28,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Signup Handler Class ----------------------------
 # Class encapsulating user signup logic
 class SignupHandler:
-    """
-    Handles user signup:
-    - Validates inputs
-    - Calls SignupService to create user
-    - Sends account verification email
-    - Returns JSONResponse with appropriate status code
-    """
 
     # ---------------------------- Static Async Signup Method ----------------------------
     # Static async method for handling signup requests
     @staticmethod
     async def handle_signup(name: str, email: str, password: str, role: str = DEFAULT_ROLE, db: AsyncSession = None):
-        """
-        Process signup request and return JSONResponse.
-
-        Parameters:
-        - name: User's full name
-        - email: User's email
-        - password: Plain-text password
-        - role: Role to assign (defaults to DEFAULT_ROLE)
-        - db: Async DB session
-
-        Returns:
-        - JSONResponse with success or error message
-        """
+        
         try:
             # ---------------------------- Input Validation ----------------------------
             # Ensure required fields are provided
@@ -85,6 +66,7 @@ class SignupHandler:
                 logger.warning("Verification email could not be sent to %s", email)
 
             # ---------------------------- Return Success ----------------------------
+            # Respond with success message and instructions
             return JSONResponse(
                 content={"message": "Signup successful. Please verify your email to activate your account."},
                 status_code=200
@@ -96,6 +78,7 @@ class SignupHandler:
             
             # Return generic internal server error
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
+
 
 # ---------------------------- Instantiate SignupHandler ----------------------------
 # Singleton instance to handle signup requests

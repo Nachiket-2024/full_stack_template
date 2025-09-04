@@ -25,29 +25,16 @@ logger = logging.getLogger(__name__)
 # ---------------------------- OAuth2 Service ----------------------------
 # Service class handling Google OAuth2 operations
 class OAuth2Service:
-    """
-    Service for Google OAuth2:
-    - Exchange authorization code for Google tokens
-    - Fetch user info from Google
-    - Login or create user and generate JWT tokens
-    """
 
     # ---------------------------- Exchange Code for Tokens ----------------------------
+    # Exchange authorization code for access and refresh tokens from Google
     @staticmethod
     async def exchange_code_for_tokens(code: str, client_id: str, client_secret: str, redirect_uri: str) -> dict | None:
-        """
-        Exchanges OAuth2 authorization code for access and refresh tokens.
-        Params:
-        - code: OAuth2 authorization code
-        - client_id: Google OAuth2 client ID
-        - client_secret: Google OAuth2 client secret
-        - redirect_uri: Redirect URI registered in Google Console
-        Returns:
-        - dict with access_token, refresh_token, etc. or None if failed
-        """
+
         try:
             # Google token endpoint
             token_url = "https://oauth2.googleapis.com/token"
+
             # Payload for POST request
             data = {
                 "code": code,
@@ -56,54 +43,48 @@ class OAuth2Service:
                 "redirect_uri": redirect_uri,
                 "grant_type": "authorization_code",
             }
-            # Async HTTP POST request to exchange code
+
+            # Async HTTP POST request to exchange code for tokens
             async with httpx.AsyncClient() as client:
                 resp = await client.post(token_url, data=data)
                 resp.raise_for_status()
                 return resp.json()
+
+        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log errors with full traceback
             logger.error("Error exchanging code for tokens:\n%s", traceback.format_exc())
             return None
 
     # ---------------------------- Get User Info ----------------------------
+    # Retrieve user profile information from Google using access token
     @staticmethod
     async def get_user_info(access_token: str) -> dict | None:
-        """
-        Fetches Google user info using the access token.
-        Params:
-        - access_token: OAuth2 access token from Google
-        Returns:
-        - dict with user info (email, name, etc.) or None if failed
-        """
+
         try:
             # Google userinfo endpoint
             userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
             headers = {"Authorization": f"Bearer {access_token}"}
+
             # Async HTTP GET request to fetch user info
             async with httpx.AsyncClient() as client:
                 resp = await client.get(userinfo_url, headers=headers)
                 resp.raise_for_status()
                 return resp.json()
+
+        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log errors with full traceback
             logger.error("Error fetching user info:\n%s", traceback.format_exc())
             return None
 
     # ---------------------------- Login or Create User ----------------------------
+    # Authenticate existing user or create new user and generate JWT tokens
     @staticmethod
     async def login_or_create_user(db, user_info: dict) -> dict | None:
-        """
-        Logs in an existing user or creates a new user with default role.
-        Generates JWT access and refresh tokens and stores them in DB.
-        Params:
-        - db: Async database session
-        - user_info: dict with Google user info (email, name)
-        Returns:
-        - dict with access_token and refresh_token or None if failed
-        """
+        
         try:
-            # Extract email and name
+            # Extract email and name from user info
             email = user_info.get("email")
             name = user_info.get("name", "Unknown")
 
@@ -126,26 +107,29 @@ class OAuth2Service:
                 user_data = {"name": name, "email": email}
                 user = await crud_instance.create(db, user_data)
 
-            # Generate JWT tokens concurrently
+            # ---------------------------- Generate JWT Tokens ----------------------------
+            # Generate access and refresh tokens concurrently
             access_token, refresh_token = await asyncio.gather(
                 jwt_service.create_access_token(email, user_role),
                 jwt_service.create_refresh_token(email, user_role)
             )
 
-            # Update tokens in database
+            # ---------------------------- Update Tokens in Database ----------------------------
             await crud_instance.update_by_email(db, email, {
                 "access_token": access_token,
                 "refresh_token": refresh_token
             })
 
-            # Return tokens
+            # Return the generated tokens
             return {"access_token": access_token, "refresh_token": refresh_token}
 
+        # ---------------------------- Exception Handling ----------------------------
         except Exception:
-            # Log any exception
+            # Log any exception that occurs during login or creation
             logger.error("Error in login or create user:\n%s", traceback.format_exc())
             return None
 
+
 # ---------------------------- Service Instance ----------------------------
-# Singleton instance for reuse in handler
+# Singleton instance of OAuth2Service for reuse in handlers
 oauth2_service = OAuth2Service()

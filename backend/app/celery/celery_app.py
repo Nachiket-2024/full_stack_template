@@ -10,6 +10,7 @@ import logging
 from ..core.settings import settings
 
 # ---------------------------- Logger Setup ----------------------------
+# Create module-specific logger
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Celery App Initialization ----------------------------
@@ -20,10 +21,11 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
 )
 
-# Auto-discover task modules
+# Auto-discover task modules in the email_tasks package
 celery_app.autodiscover_tasks(["app.celery.email_tasks"])
 
 # ---------------------------- Celery Configuration ----------------------------
+# Update Celery configuration
 celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
@@ -34,4 +36,5 @@ celery_app.conf.update(
     worker_pool="asyncio",
 )
 
+# Log successful initialization
 logger.info("Celery app initialized with broker: %s", settings.CELERY_BROKER_URL)

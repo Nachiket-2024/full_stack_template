@@ -1,5 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-
 # Logging for structured event and error logging
 import logging
 
@@ -20,7 +19,7 @@ from ..password_logic.password_service import password_service
 from ..token_logic.jwt_service import jwt_service
 
 # Schema for structured JWT token responses
-from ..token_logic.refresh_token_schema import TokenPairResponseSchema
+from ..refresh_token_logic.refresh_token_schema import TokenPairResponseSchema
 
 # ---------------------------- Logger Setup ----------------------------
 # Configure logger specific to this module
@@ -29,29 +28,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Login Service ----------------------------
 # Service class to handle login functionality
 class LoginService:
-    """
-    Handles user login flow:
-    - Validates email/password
-    - Issues JWT tokens
-    - Stores/updates tokens in dedicated token tables
-    """
 
     # ---------------------------- Static Async Login Method ----------------------------
     # Static async method for user login
     @staticmethod
     async def login(email: str, password: str, db=None) -> TokenPairResponseSchema | None:
-        """
-        Handle user login.
 
-        Parameters:
-        - email: User's email
-        - password: Plain-text password
-        - db: AsyncSession for database operations (required for token CRUD)
-
-        Returns:
-        - TokenPairResponseSchema if successful
-        - None if login fails
-        """
         try:
             # ---------------------------- Input Validation ----------------------------
             # Return None if email or password is missing

@@ -10,9 +10,10 @@ import LogoutAllButton from "../auth/logout_all/LogoutAllButton";
 // Dashboard page displaying welcome message and logout options
 const DashboardPage: React.FC = () => {
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-100 space-y-4">
+        // Only the white card container, centered text inside
+        <div className="max-w-md mx-auto bg-white rounded-lg shadow p-6 space-y-4 text-center">
             {/* Dashboard welcome message */}
-            <h1 className="text-4xl font-bold">Welcome to your Dashboard</h1>
+            <h1 className="text-2xl font-bold">Welcome to your Dashboard</h1>
 
             {/* Logout current device button */}
             <LogoutButton />

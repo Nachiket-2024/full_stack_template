@@ -1,56 +1,65 @@
-# --- Import base class for creating custom middleware ---
+# ---------------------------- External Imports ----------------------------
+# Base class for creating custom Starlette middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# --- Import classes for handling streaming and JSON responses ---
+# Classes for handling streaming and JSON responses
 from starlette.responses import StreamingResponse, JSONResponse
 
-# --- Import type definitions required by Starlette middleware ---
+# Type definitions required by Starlette middleware
 from starlette.types import ASGIApp
 
-# --- Import custom logger setup from logging_config module ---
+# ---------------------------- Internal Imports ----------------------------
+# Import custom logger setup from local logging configuration
 from .logging_config import get_logger
 
-# --- Initialize the logger instance using the configured logger ---
+# ---------------------------- Logger Initialization ----------------------------
+# Initialize the logger instance using the configured logger
 logger = get_logger()
 
-# --- Define the custom logging middleware class that inherits from BaseHTTPMiddleware ---
+# ---------------------------- Custom Logging Middleware Class ----------------------------
+# Define a custom middleware class to log HTTP requests and responses
 class LoggingMiddleware(BaseHTTPMiddleware):
-    # --- Constructor to initialize middleware with the ASGI app ---
+    
+    # ---------------------------- Constructor ----------------------------
+    # Initialize middleware with the ASGI app
     def __init__(self, app: ASGIApp) -> None:
-        # --- Call the parent constructor with the app ---
+        # Call the parent constructor with the app
         super().__init__(app)
 
-    # --- This method is called for each request ---
+    # ---------------------------- Dispatch Method ----------------------------
+    # Called for each incoming HTTP request
     async def dispatch(self, request, call_next):
-        # --- Log the incoming HTTP request method and URL ---
+        # Log the incoming HTTP request method and URL
         logger.info(f"Incoming request: {request.method} {request.url}")
 
         try:
-            # --- Process the request and get the response ---
+            # Process the request and get the response
             response = await call_next(request)
         except Exception as e:
-            # --- Log any exception that occurs during request handling ---
+            # Log any exception that occurs during request handling
             logger.error(f"Error processing request: {request.method} {request.url} - {str(e)}")
-            # --- Return a standard 500 Internal Server Error response ---
+            # Return a standard 500 Internal Server Error response
             return JSONResponse({"detail": "Internal Server Error"}, status_code=500)
 
-        # --- If the response is not a streaming response, log its status code ---
+        # If the response is not a streaming response, log its status code
         if not isinstance(response, StreamingResponse):
             logger.info(f"Response: {response.status_code} for {request.method} {request.url}")
 
-        # --- If the response is a streaming response, wrap the body to allow logging ---
+        # If the response is a streaming response, wrap the body to allow logging
         if isinstance(response, StreamingResponse):
-            # --- Define an async generator to yield chunks of the streaming body ---
+
+            # ---------------------------- Streaming Body Wrapper ----------------------------
+            # Define an async generator to yield chunks of the streaming body
             async def streaming_body():
                 async for chunk in response.body_iterator:
                     yield chunk
 
-            # --- Wrap the original response in a new StreamingResponse with the same content ---
+            # Wrap the original response in a new StreamingResponse with the same content
             response = StreamingResponse(
                 streaming_body(), status_code=response.status_code, headers=response.headers
             )
-            # --- Log the status code of the streaming response ---
+            # Log the status code of the streaming response
             logger.info(f"Streaming response with status code: {response.status_code}")
 
-        # --- Return the final response to the client ---
+        # Return the final response to the client
         return response

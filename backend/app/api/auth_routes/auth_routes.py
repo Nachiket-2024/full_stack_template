@@ -43,7 +43,7 @@ from ...auth.password_reset_confirm.password_reset_confirm_handler import passwo
 from ...auth.logout.logout_handler import logout_handler
 
 # Handler for logging out from all devices
-from ...auth.logout.logout_all_handler import logout_all_handler
+from ...auth.logout_all.logout_all_handler import logout_all_handler
 
 # Handler for account verification
 from ...auth.verify_account.account_verification_handler import account_verification_handler

@@ -13,7 +13,7 @@ import type { TypedUseSelectorHook } from "react-redux";
 import type { RootState, AppDispatch } from "../../store/store";
 
 // Import async thunk and action to clear logout-all state from logout-all slice
-import { logoutAllDevices, clearLogoutAllState } from "./logout_all_slice";
+import { logoutAllDevices } from "./logout_all_slice";
 
 // Import presentational component to separate UI from container logic
 import LogoutAllButtonComponent from "./LogoutAllButtonComponent";
@@ -39,11 +39,6 @@ const LogoutAllButton: React.FC = () => {
         dispatch(logoutAllDevices());
     };
 
-    // Handle clear button click by dispatching action to reset logout-all state
-    const handleClear = () => {
-        dispatch(clearLogoutAllState());
-    };
-
     // ---------------------------- Render ----------------------------
     // Pass Redux state and event handlers as props to presentational component
     return (
@@ -52,7 +47,6 @@ const LogoutAllButton: React.FC = () => {
             error={error}
             successMessage={successMessage}
             onLogoutAll={handleLogoutAll}
-            onClear={handleClear}
         />
     );
 };

@@ -6,9 +6,6 @@ from pydantic import BaseModel, EmailStr
 # ---------------------------- Signup Schema ----------------------------
 # Define a Pydantic model for signup requests
 class SignupSchema(BaseModel):
-    """
-    Schema for signup requests.
-    """
 
     # User's full name as a string
     name: str

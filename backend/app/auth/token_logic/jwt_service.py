@@ -15,11 +15,6 @@ from ...redis.client import redis_client
 # ---------------------------- JWT Service ----------------------------
 # Service to handle JWT access and refresh tokens, including revocation
 class JWTService:
-    """
-    Handles JWT access and refresh tokens, including Redis-based revocation.
-    Tokens include the user's table_name (role).
-    Redis revocation acts as a "kill switch" for forced logout / stolen token invalidation.
-    """
 
     # ---------------------------- Create Access Token ----------------------------
     # Generate a short-lived access token
@@ -55,13 +50,16 @@ class JWTService:
     # Verify an access or refresh token and return its payload
     @staticmethod
     async def verify_token(token: str) -> dict | None:
+
         try:
             # Decode token using secret key and algorithm
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
             return payload
+        
         except jwt.ExpiredSignatureError:
             # Token expired
             return None
+        
         except jwt.InvalidTokenError:
             # Token invalid
             return None
@@ -70,6 +68,7 @@ class JWTService:
     # Revoke a refresh token by storing it in Redis with TTL
     @staticmethod
     async def revoke_refresh_token(token: str) -> bool:
+
         try:
             # Decode token without verifying expiration
             payload = jwt.decode(token, 
@@ -88,29 +87,24 @@ class JWTService:
             # Store token in Redis blacklist
             await redis_client.set(f"revoked:{token}", "1", ex=ttl)
             return True
+        
         except jwt.InvalidTokenError:
+            # Token is invalid
             return False
+        
         except Exception:
+            # Any other exception
             return False
         
     # ---------------------------- Revoke All Refresh Tokens for User ----------------------------
     # Revoke all refresh tokens for a specific email in a given table
     @staticmethod
     async def revoke_all_refresh_tokens_for_user(email: str, table: str, all_tokens: list[str]) -> int:
-        """
-        Revoke all provided refresh tokens for a user by storing each in Redis.
-
-        Parameters:
-        - email: user's email
-        - table: user's role/table
-        - all_tokens: list of refresh tokens to revoke
-
-        Returns:
-        - Number of tokens successfully revoked
-        """
+        
         revoked_count = 0
 
         for token in all_tokens:
+            
             try:
                 # Decode token without verifying expiration
                 payload = jwt.decode(token, 
@@ -125,8 +119,10 @@ class JWTService:
                     if exp_timestamp:
                         ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
                         if ttl > 0:
+                            # Store revoked token in Redis
                             await redis_client.set(f"revoked:{token}", "1", ex=ttl)
                             revoked_count += 1
+
             except Exception:
                 # Skip invalid tokens silently
                 continue

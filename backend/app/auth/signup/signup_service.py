@@ -22,19 +22,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Signup Service ----------------------------
 # Service class to handle user signup logic
 class SignupService:
-    """
-    Handles user signup flow:
-    - Validates password strength
-    - Checks for duplicate users
-    - Assigns role (or default role)
-    - Stores hashed password
-    - Does NOT issue JWT tokens here (tokens are issued after email verification + login)
-    """
 
     # ---------------------------- Static Async Signup Method ----------------------------
     # Static async method to create a new user
     @staticmethod
     async def signup(name: str, email: str, password: str, role: str | None = None, db: AsyncSession = None) -> bool:
+        
         try:
             # ---------------------------- Validate Password Strength ----------------------------
             # Check if password meets security requirements
