@@ -1,84 +1,111 @@
 # ---------------------------- External Imports ----------------------------
-# For logging events, errors, and debugging information
+# Logging for tracking events, warnings, and errors
 import logging
 
-# For printing detailed exception traces in case of errors
+# Capture full stack traces for detailed exception debugging
 import traceback
 
-# FastAPI response class for sending JSON responses
+# FastAPI JSONResponse for sending structured HTTP responses
 from fastapi.responses import JSONResponse
 
 # ---------------------------- Internal Imports ----------------------------
-# Service for verifying account tokens
+# Service to verify account tokens
 from .account_verification_service import account_verification_service
 
-# Service for marking users as verified
+# Service to mark users as verified
 from .user_verification_service import user_verification_service
 
-# Service for login protection like rate limiting and lockouts
+# Service for login protection (rate limiting, lockouts)
 from ..security.login_protection_service import login_protection_service
 
 # ---------------------------- Logger Setup ----------------------------
-# Create a logger instance for this module
+# Initialize a logger specific to this module
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Account Verification Handler Class ----------------------------
 # Class responsible for handling account verification requests
 class AccountVerificationHandler:
+    """
+    1. handle_account_verification - Verify account using email token and enforce login protection.
+    """
 
     # ---------------------------- Constructor ----------------------------
-    # Initialize the handler with required services
+    # Initialize handler with required service dependencies
     def __init__(self):
+        # Service to decode and validate verification tokens
         self.account_verification_service = account_verification_service
+        # Service to mark users as verified in database
         self.user_verification_service = user_verification_service
+        # Service for brute-force protection during verification
         self.login_protection_service = login_protection_service
 
-    # ---------------------------- Async Method to Handle Verification ----------------------------
-    # Verify account using email token
-    async def handle_account_verification(self, token: str):
+    # ---------------------------- Handle Account Verification ----------------------------
+    async def handle_account_verification(self, token: str) -> JSONResponse:
+        """
+        Input:
+            1. token (str): Verification token received via email.
 
+        Process:
+            1. Verify the token and decode payload.
+            2. Extract user email from payload.
+            3. Mark user as verified in the database.
+            4. Record action with login protection and enforce lockout if necessary.
+
+        Output:
+            1. JSONResponse: Success or error message with HTTP status code.
+        """
         try:
             # ---------------------------- Verify Token ----------------------------
-            # Decode and validate the token
+            # Decode and validate the verification token
             payload = await self.account_verification_service.verify_token(token)
-            
-            # Check if payload is valid and contains email
-            if not payload or "email" not in payload:
-                return JSONResponse({"error": "Invalid, expired, or already used verification token"}, status_code=400)
 
-            # Extract email from token payload
+            # ---------------------------- Validate Payload ----------------------------
+            # Ensure payload exists and contains required email field
+            if not payload or "email" not in payload:
+                return JSONResponse(
+                    content={"error": "Invalid, expired, or already used verification token"},
+                    status_code=400
+                )
+
+            # ---------------------------- Extract Email ----------------------------
+            # Get user email from token payload
             email = payload["email"]
-            
-            # Unique key for tracking login/account actions
+
+            # ---------------------------- Build Lock Key ----------------------------
+            # Key for tracking failed attempts per email
             email_lock_key = f"login_lock:email:{email}"
 
             # ---------------------------- Mark User Verified ----------------------------
-            # Mark the user as verified in the database
+            # Update database record to mark user as verified
             updated = await self.user_verification_service.mark_user_verified(email)
-            
-            # Determine response status and message
+
+            # Determine response content based on update outcome
             status = 200 if updated else 400
             content = {"message": f"Account verified successfully for {email}."} if updated else {"error": "User not found or already verified"}
 
             # ---------------------------- Brute-force Protection ----------------------------
             # Record the verification attempt and enforce lockout if necessary
-            allowed = await self.login_protection_service.check_and_record_action(email_lock_key, success=(status==200))
-            
-            # If too many failed attempts, block further verification
-            if not allowed:
-                return JSONResponse({"error": "Too many failed attempts, account temporarily locked"}, status_code=429)
+            allowed = await self.login_protection_service.check_and_record_action(email_lock_key, success=(status == 200))
 
-            # Return the final response
+            # Deny further action if too many failed attempts
+            if not allowed:
+                return JSONResponse(
+                    content={"error": "Too many failed attempts, account temporarily locked"},
+                    status_code=429
+                )
+
+            # ---------------------------- Return Response ----------------------------
             return JSONResponse(content, status_code=status)
 
+        # ---------------------------- Exception Handling ----------------------------
         except Exception:
-            # Log the error with stack trace
+            # Log exception with full stack trace
             logger.error("Error during account verification:\n%s", traceback.format_exc())
-            
-            # Return generic server error response
-            return JSONResponse({"error": "Internal Server Error"}, status_code=500)
+
+            # Return generic internal server error
+            return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 
-# ---------------------------- Instantiate Handler ----------------------------
-# Create a global instance of AccountVerificationHandler for usage in routes
+# ---------------------------- Singleton Instance ----------------------------
+# Global instance for route usage
 account_verification_handler = AccountVerificationHandler()

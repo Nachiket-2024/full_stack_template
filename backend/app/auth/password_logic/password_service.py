@@ -26,26 +26,67 @@ pwd_context = CryptContext(
 )
 
 # ---------------------------- Password Service ----------------------------
-# Service class for password operations: hashing, verification, validation, and reset tokens
+# Service class handling password hashing, verification, and reset tokens
 class PasswordService:
+    """
+    1. hash_password: Hash a plain password.
+    2. verify_password: Compare plain and hashed passwords.
+    3. validate_password_strength: Check password complexity.
+    4. create_reset_token: Generate JWT for password reset.
+    5. verify_reset_token: Decode and validate reset JWT.
+    """
 
     # ---------------------------- Hash Password ----------------------------
-    # Generate a hashed password asynchronously
+    # Static method to hash a plain password
     @staticmethod
     async def hash_password(password: str) -> str:
+        """
+        Input:
+            1. password (str): Plain password string to be hashed.
+
+        Process:
+            1. Use pwd_context to hash the password using Argon2.
+
+        Output:
+            1. str: Hashed password string.
+        """
+        # Hash the password using Argon2
         return pwd_context.hash(password)
 
     # ---------------------------- Verify Password ----------------------------
-    # Check if a plain password matches a hashed password asynchronously
+    # Static method to verify a plain password against a hashed password
     @staticmethod
     async def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """
+        Input:
+            1. plain_password (str): Plain password to verify.
+            2. hashed_password (str): Hashed password to compare against.
+
+        Process:
+            1. Use pwd_context to verify the plain password against the hash.
+
+        Output:
+            1. bool: True if passwords match, False otherwise.
+        """
+        # Verify plain password against hashed password
         return pwd_context.verify(plain_password, hashed_password)
 
     # ---------------------------- Validate Password Strength ----------------------------
-    # Ensure password meets minimum security requirements asynchronously
+    # Static method to validate password complexity requirements
     @staticmethod
     async def validate_password_strength(password: str) -> bool:
+        """
+        Input:
+            1. password (str): Password string to validate.
 
+        Process:
+            1. Check if length is at least 8 characters.
+            2. Ensure it contains at least one digit.
+            3. Ensure it contains at least one special character.
+
+        Output:
+            1. bool: True if password passes all checks, False otherwise.
+        """
         # Minimum length 8 characters
         if len(password) < 8:
             return False
@@ -55,58 +96,85 @@ class PasswordService:
         # Must contain at least one special character
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
             return False
+        # Password passed all checks
         return True
 
     # ---------------------------- Create Reset Token ----------------------------
-    # Generate a JWT token for password reset asynchronously
+    # Static method to create a JWT for password reset
     @staticmethod
     async def create_reset_token(email: str, 
                                  role: str | None = None, 
                                  expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
                                  ) -> str:
+        """
+        Input:
+            1. email (str): Email of the user requesting reset.
+            2. role (str | None): User role; defaults to DEFAULT_ROLE if None.
+            3. expires_minutes (int): Expiration time in minutes for token.
 
-        # Use default role if none is provided
+        Process:
+            1. Assign default role if role is None.
+            2. Validate role exists in ROLE_TABLES.
+            3. Calculate expiration timestamp.
+            4. Create payload with email, role, and exp.
+            5. Encode JWT using SECRET_KEY and JWT_ALGORITHM.
+
+        Output:
+            1. str: Encoded JWT token string.
+        """
+        # Use default role if none provided
         if role is None:
             role = DEFAULT_ROLE
 
-        # Ensure the role exists in ROLE_TABLES
+        # Ensure the role exists
         if role not in ROLE_TABLES:
             raise ValueError(f"Invalid role for reset token: {role}")
 
         # Calculate expiration timestamp in UTC
         expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
 
-        # Prepare token payload with email, role, and expiration
+        # Prepare JWT payload
         payload: dict[str, str | float] = {
             "email": email,
             "role": role,
             "exp": expire.timestamp()
         }
 
-        # Encode the payload as a JWT
+        # Encode payload as JWT
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
         return token
 
     # ---------------------------- Verify Reset Token ----------------------------
-    # Decode and validate a password reset JWT asynchronously
+    # Static method to decode and verify a password reset JWT
     @staticmethod
     async def verify_reset_token(token: str) -> dict | None:
+        """
+        Input:
+            1. token (str): JWT token string to verify.
 
+        Process:
+            1. Decode JWT using SECRET_KEY and JWT_ALGORITHM.
+            2. Validate that role in payload exists in ROLE_TABLES.
+
+        Output:
+            1. dict | None: Payload dict if valid, None if invalid or expired.
+        """
         try:
-            # Decode JWT using the secret key and allowed algorithm
+            # Decode JWT using secret and algorithm
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-            # Ensure the role in the payload is valid
+            # Validate role in payload
             if payload.get("role") not in ROLE_TABLES:
                 return None
+            # Return valid payload
             return payload
         except jwt.ExpiredSignatureError:
-            # Token has expired
+            # Token expired
             return None
         except jwt.InvalidTokenError:
-            # Token is invalid
+            # Token invalid
             return None
 
 
 # ---------------------------- Service Instance ----------------------------
-# Single global instance of the PasswordService for use in other modules
+# Single global instance of PasswordService
 password_service = PasswordService()

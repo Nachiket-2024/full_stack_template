@@ -6,97 +6,176 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------- Base CRUD Class Definition ----------------------------
-# Generic async CRUD operations for any SQLAlchemy model
 class BaseCRUD:
+    """
+    1. get_by_id - Fetch a single record by primary key ID.
+    2. get_all - Fetch all records of the model.
+    3. get_by_email - Fetch a record by email field.
+    4. create - Create a new record with provided data.
+    5. update - Update an existing record with provided data.
+    6. update_by_email - Fetch a record by email and update it.
+    7. delete - Delete a record from the database.
+    """
 
     # ---------------------------- Initialization ----------------------------
-    # Initialize the CRUD instance with a SQLAlchemy model
     def __init__(self, model):
-        # Store the SQLAlchemy ORM model class
+        # Store SQLAlchemy ORM model
         self.model = model
 
     # ---------------------------- Get Record by ID ----------------------------
-    # Fetch a single record by its primary key ID
     async def get_by_id(self, db: AsyncSession, id: int):
-        # Execute a select query filtered by the model's id
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+            2. id (int): Primary key ID.
+
+        Process:
+            1. Execute a select query with model.id filter.
+            2. Return matching record.
+
+        Output:
+            1. object | None: ORM instance or None if not found.
+        """
+        # Execute query by ID
         result = await db.execute(select(self.model).where(self.model.id == id))
-        # Return the single object or None if not found
+        # Return single object or None
         return result.scalar_one_or_none()
 
     # ---------------------------- Get All Records ----------------------------
-    # Fetch all records of the model
     async def get_all(self, db: AsyncSession):
-        # Execute a select query for all objects
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+
+        Process:
+            1. Execute a select query for all model records.
+
+        Output:
+            1. list: List of ORM instances.
+        """
+        # Execute query for all records
         result = await db.execute(select(self.model))
-        # Return a list of all objects
+        # Return all objects
         return result.scalars().all()
 
     # ---------------------------- Get Record by Email ----------------------------
-    # Fetch a record by the email field
     async def get_by_email(self, db: AsyncSession, email: str):
-        # Execute a select query filtered by email
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+            2. email (str): Email to filter by.
+
+        Process:
+            1. Execute select query with email filter.
+
+        Output:
+            1. object | None: ORM instance or None if not found.
+        """
+        # Execute query by email
         result = await db.execute(select(self.model).where(self.model.email == email))
-        # Return the single object or None if not found
+        # Return single object or None
         return result.scalar_one_or_none()
 
     # ---------------------------- Create New Record ----------------------------
-    # Create a new record with provided data
     async def create(self, db: AsyncSession, obj_data: dict):
-        # Instantiate the model with the provided dictionary data
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+            2. obj_data (dict): Data for new record.
+
+        Process:
+            1. Instantiate ORM object.
+            2. Add to session and commit.
+            3. Refresh object with DB values.
+
+        Output:
+            1. object: Newly created ORM instance.
+        """
+        # Create ORM object
         obj = self.model(**obj_data)
-        # Add the object to the current DB session
+        # Add to session
         db.add(obj)
-        # Commit the transaction to persist changes
+        # Commit transaction
         await db.commit()
-        # Refresh the object to load any new DB-generated fields (like id)
+        # Refresh with DB values
         await db.refresh(obj)
-        # Return the newly created object
+        # Return new object
         return obj
 
     # ---------------------------- Update Record ----------------------------
-    # Update an existing record with provided data
     async def update(self, db: AsyncSession, db_obj, update_data: dict):
-        # If no object is provided, return None
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+            2. db_obj (object): ORM object to update.
+            3. update_data (dict): Fields and values to update.
+
+        Process:
+            1. Check object exists.
+            2. Update attributes.
+            3. Commit and refresh.
+
+        Output:
+            1. object | None: Updated object or None if not found.
+        """
+        # Return None if object missing
         if not db_obj:
             return None
-        # Loop through the update dictionary and set attributes
+        # Update fields
         for field, value in update_data.items():
             setattr(db_obj, field, value)
-        # Add updated object to session
+        # Add updated object
         db.add(db_obj)
-        # Commit the transaction to save changes
+        # Commit transaction
         await db.commit()
-        # Refresh the object to reflect latest DB state
+        # Refresh object
         await db.refresh(db_obj)
-        # Return the updated object
+        # Return updated object
         return db_obj
 
     # ---------------------------- Update by Email ----------------------------
-    # Fetch a record by email and update it with provided fields
     async def update_by_email(self, db: AsyncSession, email: str, update_data: dict):
-        # Fetch object by email
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+            2. email (str): Email to filter by.
+            3. update_data (dict): Fields and values to update.
+
+        Process:
+            1. Fetch record by email.
+            2. Update record with given data.
+
+        Output:
+            1. object | None: Updated object or None if not found.
+        """
+        # Get object by email
         db_obj = await self.get_by_email(db, email)
-        # Return None if object not found
+        # Return None if not found
         if not db_obj:
             return None
-        # Update the object using the update method
+        # Update object
         return await self.update(db, db_obj, update_data)
 
-    # ---------------------------- Update Refresh Token ----------------------------
-    # Update the refresh_token field of a record identified by email
-    async def update_refresh_token(self, db: AsyncSession, email: str, refresh_token: str):
-        # Use update_by_email to update only the refresh_token
-        return await self.update_by_email(db, email, {"refresh_token": refresh_token})
-
     # ---------------------------- Delete Record ----------------------------
-    # Delete a record from the database
     async def delete(self, db: AsyncSession, db_obj):
-        # Return False if no object provided
+        """
+        Input:
+            1. db (AsyncSession): Active database session.
+            2. db_obj (object): ORM object to delete.
+
+        Process:
+            1. Validate object exists.
+            2. Delete and commit transaction.
+
+        Output:
+            1. bool: True if deleted, False if not found.
+        """
+        # Return False if no object
         if not db_obj:
             return False
-        # Delete the object from the session
+        # Delete object
         await db.delete(db_obj)
-        # Commit the transaction
+        # Commit transaction
         await db.commit()
-        # Return True to indicate successful deletion
+        # Return success
         return True

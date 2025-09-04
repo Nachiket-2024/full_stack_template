@@ -9,35 +9,64 @@ from sqlalchemy.orm import sessionmaker
 # Import application settings (contains DATABASE_URL, etc.)
 from ..core.settings import settings
 
-# ---------------------------- Async Engine ----------------------------
-# Database class to encapsulate async engine and session creation
+# ---------------------------- Database Class ----------------------------
+# Encapsulates async engine creation and session management
 class Database:
+    """
+    1. __init__ - Initialize database engine and session factory.
+    2. get_session - Async generator to provide database session for endpoints.
+    """
 
     # ---------------------------- Initialization ----------------------------
     def __init__(self, database_url: str):
-        # Store the database URL
+        """
+        Input:
+            1. database_url (str): Connection URL for the database.
+
+        Process:
+            1. Store database URL.
+            2. Create async SQLAlchemy engine.
+            3. Configure session factory with AsyncSession.
+
+        Output:
+            1. None
+        """
+        # ---------------------------- Store Database URL ----------------------------
         self.database_url = database_url
-        # Create an asynchronous SQLAlchemy engine
+
+        # ---------------------------- Create Async Engine ----------------------------
         self.engine = create_async_engine(
             self.database_url,
             echo=False  # Enable or disable SQL query logging for debugging
         )
-        # Create a session factory bound to the async engine
+
+        # ---------------------------- Create Session Factory ----------------------------
         self.async_session = sessionmaker(
             bind=self.engine,          # Bind sessions to this engine
             class_=AsyncSession,       # Use AsyncSession for async operations
             expire_on_commit=False     # Prevent automatic expiration of objects after commit
         )
 
-    # ---------------------------- Async session generator ----------------------------
-    # Provides a session dependency for FastAPI endpoints
+    # ---------------------------- Async Session Generator ----------------------------
     async def get_session(self):
-        # Use async context manager to ensure session is properly closed
+        """
+        Input:
+            1. None
+
+        Process:
+            1. Open async session using session factory.
+            2. Yield session for FastAPI dependency injection.
+            3. Ensure session is properly closed after use.
+
+        Output:
+            1. AsyncSession: Provides an active async database session.
+        """
+        # Use async context manager to ensure session closure
         async with self.async_session() as session:
-            yield session  # Yield session to be injected into routes
+            # Yield session to be injected into routes
+            yield session
 
 
 # ---------------------------- Database Instance ----------------------------
-# Create a single Database instance using settings
-# This instance will be used throughout the application
+# Singleton database instance for use across the application
 database = Database(settings.DATABASE_URL)

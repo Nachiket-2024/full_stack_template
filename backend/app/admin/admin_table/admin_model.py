@@ -10,7 +10,6 @@ from sqlalchemy.sql import func
 from ...database.base import Base
 
 # ---------------------------- Admin Model ----------------------------
-
 # Define Admin table for admin users
 class Admin(Base):
     """

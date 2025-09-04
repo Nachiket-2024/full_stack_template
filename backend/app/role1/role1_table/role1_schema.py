@@ -1,6 +1,9 @@
 # ---------------------------- External Imports ----------------------------
-from pydantic import BaseModel, EmailStr, ConfigDict
-from datetime import datetime
+# Import BaseModel for schema definitions, ConfigDict for ORM config, EmailStr for validated email field
+from pydantic import BaseModel, ConfigDict, EmailStr  
+
+# Import datetime for timestamp fields
+from datetime import datetime  
 
 # ---------------------------- Base Schema ----------------------------
 class Role1Base(BaseModel):

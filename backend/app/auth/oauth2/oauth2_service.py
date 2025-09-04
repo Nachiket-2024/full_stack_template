@@ -25,17 +25,38 @@ logger = logging.getLogger(__name__)
 # ---------------------------- OAuth2 Service ----------------------------
 # Service class handling Google OAuth2 operations
 class OAuth2Service:
+    """
+    1. exchange_code_for_tokens - Exchange authorization code for Google access and refresh tokens.
+    2. get_user_info - Retrieve Google user profile information using access token.
+    3. login_or_create_user - Authenticate existing user or create new user and generate JWT tokens.
+    """
 
     # ---------------------------- Exchange Code for Tokens ----------------------------
     # Exchange authorization code for access and refresh tokens from Google
     @staticmethod
     async def exchange_code_for_tokens(code: str, client_id: str, client_secret: str, redirect_uri: str) -> dict | None:
+        """
+        Input:
+            1. code (str): Authorization code from Google.
+            2. client_id (str): Google OAuth2 client ID.
+            3. client_secret (str): Google OAuth2 client secret.
+            4. redirect_uri (str): Callback URL.
 
+        Process:
+            1. Build payload with code, client credentials, redirect_uri, grant_type.
+            2. Make async POST request to Google's token endpoint.
+            3. Parse JSON response.
+
+        Output:
+            1. dict: Contains access_token, refresh_token, etc., or None on error.
+        """
         try:
-            # Google token endpoint
+            # ---------------------------- Define Token Endpoint ----------------------------
+            # URL for Google token exchange
             token_url = "https://oauth2.googleapis.com/token"
 
-            # Payload for POST request
+            # ---------------------------- Prepare POST Payload ----------------------------
+            # Data to send in POST request
             data = {
                 "code": code,
                 "client_id": client_id,
@@ -44,11 +65,12 @@ class OAuth2Service:
                 "grant_type": "authorization_code",
             }
 
-            # Async HTTP POST request to exchange code for tokens
+            # ---------------------------- Make Async POST Request ----------------------------
+            # Use httpx AsyncClient to send POST request
             async with httpx.AsyncClient() as client:
-                resp = await client.post(token_url, data=data)
-                resp.raise_for_status()
-                return resp.json()
+                resp = await client.post(token_url, data=data)  # Send request
+                resp.raise_for_status()  # Raise exception for HTTP errors
+                return resp.json()  # Return JSON response
 
         # ---------------------------- Exception Handling ----------------------------
         except Exception:
@@ -60,17 +82,30 @@ class OAuth2Service:
     # Retrieve user profile information from Google using access token
     @staticmethod
     async def get_user_info(access_token: str) -> dict | None:
+        """
+        Input:
+            1. access_token (str): Google OAuth2 access token.
 
+        Process:
+            1. Build request headers with Bearer token.
+            2. Make async GET request to Google userinfo endpoint.
+            3. Parse JSON response.
+
+        Output:
+            1. dict: Contains user profile info (email, name, etc.) or None on error.
+        """
         try:
-            # Google userinfo endpoint
+            # ---------------------------- Define Userinfo Endpoint ----------------------------
+            # Google endpoint for fetching user info
             userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
-            headers = {"Authorization": f"Bearer {access_token}"}
+            headers = {"Authorization": f"Bearer {access_token}"}  # Add auth header
 
-            # Async HTTP GET request to fetch user info
+            # ---------------------------- Make Async GET Request ----------------------------
+            # Use httpx AsyncClient to fetch user info
             async with httpx.AsyncClient() as client:
-                resp = await client.get(userinfo_url, headers=headers)
-                resp.raise_for_status()
-                return resp.json()
+                resp = await client.get(userinfo_url, headers=headers)  # Send GET request
+                resp.raise_for_status()  # Raise exception for HTTP errors
+                return resp.json()  # Return JSON response
 
         # ---------------------------- Exception Handling ----------------------------
         except Exception:
@@ -82,30 +117,48 @@ class OAuth2Service:
     # Authenticate existing user or create new user and generate JWT tokens
     @staticmethod
     async def login_or_create_user(db, user_info: dict) -> dict | None:
-        
+        """
+        Input:
+            1. db: Database session for user operations.
+            2. user_info (dict): Contains user email and name from Google.
+
+        Process:
+            1. Extract email and name from user_info.
+            2. Check all role tables for existing user.
+            3. If user does not exist, create new with default role.
+            4. Generate access and refresh JWT tokens concurrently.
+            5. Update tokens in the database.
+
+        Output:
+            1. dict: Contains generated access_token and refresh_token or None on error.
+        """
         try:
-            # Extract email and name from user info
+            # ---------------------------- Extract Email and Name ----------------------------
+            # Get email and name from Google user info
             email = user_info.get("email")
             name = user_info.get("name", "Unknown")
 
+            # ---------------------------- Initialize Variables ----------------------------
+            # Initialize placeholders for user, role, and CRUD instance
             user = None
             user_role = None
             crud_instance = None
 
-            # Check all role tables for existing user
+            # ---------------------------- Check Existing User ----------------------------
+            # Iterate over role tables to find existing user by email
             for role, crud in ROLE_TABLES.items():
-                user = await crud.get_by_email(db, email)
+                user = await crud.get_by_email(db, email)  # Query user
                 if user:
-                    user_role = role
-                    crud_instance = crud
-                    break
+                    user_role = role  # Assign role if user exists
+                    crud_instance = crud  # Assign CRUD instance
+                    break  # Stop loop once user is found
 
-            # If user does not exist, create new with default role
+            # ---------------------------- Create New User if Not Found ----------------------------
             if not user:
-                user_role = DEFAULT_ROLE
-                crud_instance = ROLE_TABLES[user_role]
-                user_data = {"name": name, "email": email}
-                user = await crud_instance.create(db, user_data)
+                user_role = DEFAULT_ROLE  # Assign default role
+                crud_instance = ROLE_TABLES[user_role]  # Get CRUD for default role
+                user_data = {"name": name, "email": email}  # Prepare user data
+                user = await crud_instance.create(db, user_data)  # Create user
 
             # ---------------------------- Generate JWT Tokens ----------------------------
             # Generate access and refresh tokens concurrently
@@ -115,17 +168,19 @@ class OAuth2Service:
             )
 
             # ---------------------------- Update Tokens in Database ----------------------------
+            # Update user record with new tokens
             await crud_instance.update_by_email(db, email, {
                 "access_token": access_token,
                 "refresh_token": refresh_token
             })
 
-            # Return the generated tokens
+            # ---------------------------- Return Tokens ----------------------------
+            # Return generated tokens
             return {"access_token": access_token, "refresh_token": refresh_token}
 
         # ---------------------------- Exception Handling ----------------------------
         except Exception:
-            # Log any exception that occurs during login or creation
+            # Log exception with full traceback
             logger.error("Error in login or create user:\n%s", traceback.format_exc())
             return None
 

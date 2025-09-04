@@ -17,49 +17,74 @@ from .logging_config import get_logger
 logger = get_logger()
 
 # ---------------------------- Custom Logging Middleware Class ----------------------------
-# Define a custom middleware class to log HTTP requests and responses
 class LoggingMiddleware(BaseHTTPMiddleware):
-    
+    """
+    1. __init__ - Initialize middleware with ASGI app.
+    2. dispatch - Log HTTP requests and responses, handle exceptions.
+    """
+
     # ---------------------------- Constructor ----------------------------
-    # Initialize middleware with the ASGI app
     def __init__(self, app: ASGIApp) -> None:
+        """
+        Input:
+            1. app (ASGIApp): The Starlette ASGI application instance.
+        
+        Process:
+            1. Call the parent BaseHTTPMiddleware constructor with the app.
+
+        Output:
+            1. None
+        """
         # Call the parent constructor with the app
         super().__init__(app)
 
     # ---------------------------- Dispatch Method ----------------------------
-    # Called for each incoming HTTP request
     async def dispatch(self, request, call_next):
-        # Log the incoming HTTP request method and URL
+        """
+        Input:
+            1. request: Incoming HTTP request object.
+            2. call_next: Callable to forward request to the next middleware/endpoint.
+
+        Process:
+            1. Log the incoming request method and URL.
+            2. Process the request and capture response, handle exceptions.
+            3. Log status code for standard responses.
+            4. Wrap streaming responses to allow logging of body chunks.
+            5. Log streaming response status code.
+
+        Output:
+            1. Response object (JSONResponse or StreamingResponse) to return to client.
+        """
+        # ---------------------------- Log Incoming Request ----------------------------
         logger.info(f"Incoming request: {request.method} {request.url}")
 
         try:
-            # Process the request and get the response
+            # ---------------------------- Process Request ----------------------------
             response = await call_next(request)
         except Exception as e:
-            # Log any exception that occurs during request handling
+            # ---------------------------- Exception Handling ----------------------------
             logger.error(f"Error processing request: {request.method} {request.url} - {str(e)}")
-            # Return a standard 500 Internal Server Error response
             return JSONResponse({"detail": "Internal Server Error"}, status_code=500)
 
-        # If the response is not a streaming response, log its status code
+        # ---------------------------- Log Standard Response ----------------------------
         if not isinstance(response, StreamingResponse):
             logger.info(f"Response: {response.status_code} for {request.method} {request.url}")
 
-        # If the response is a streaming response, wrap the body to allow logging
+        # ---------------------------- Wrap Streaming Response ----------------------------
         if isinstance(response, StreamingResponse):
 
             # ---------------------------- Streaming Body Wrapper ----------------------------
-            # Define an async generator to yield chunks of the streaming body
             async def streaming_body():
                 async for chunk in response.body_iterator:
                     yield chunk
 
-            # Wrap the original response in a new StreamingResponse with the same content
+            # Recreate streaming response with same status and headers
             response = StreamingResponse(
                 streaming_body(), status_code=response.status_code, headers=response.headers
             )
-            # Log the status code of the streaming response
+
+            # Log streaming response status code
             logger.info(f"Streaming response with status code: {response.status_code}")
 
-        # Return the final response to the client
+        # ---------------------------- Return Response ----------------------------
         return response

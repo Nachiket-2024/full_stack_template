@@ -28,12 +28,33 @@ logger = logging.getLogger(__name__)
 # ---------------------------- Login Service ----------------------------
 # Service class to handle login functionality
 class LoginService:
+    """
+    1. login - Authenticate user, verify credentials, and return access and refresh tokens.
+    """
 
     # ---------------------------- Static Async Login Method ----------------------------
     # Static async method for user login
     @staticmethod
     async def login(email: str, password: str, db=None) -> TokenPairResponseSchema | None:
+        """
+        Input:
+            1. email (str): User's email address.
+            2. password (str): User's password.
+            3. db: Optional database session for querying user and token records.
 
+        Process:
+            1. Validate that email and password are provided.
+            2. Iterate through ROLE_TABLES to find the user by email.
+            3. Verify that the user account is verified.
+            4. Check password correctness using password_service.
+            5. Generate access and refresh tokens concurrently.
+            6. Update or create token record in TOKEN_TABLES.
+            7. Return structured token response.
+
+        Output:
+            1. TokenPairResponseSchema: Contains access_token and refresh_token if successful,
+                                        otherwise returns None.
+        """
         try:
             # ---------------------------- Input Validation ----------------------------
             # Return None if email or password is missing
@@ -43,13 +64,13 @@ class LoginService:
             # ---------------------------- Find User ----------------------------
             # Initialize variables
             user = None
-            user_role = None
+            user_table_name = None
 
-            # Iterate over all roles to find the user by email
-            for role_name, crud in ROLE_TABLES.items():
-                user = await crud.get_by_email(email, db=db)
+            # Iterate over all role tables to find the user by email
+            for table_name, crud in ROLE_TABLES.items():
+                user = await crud.get_by_email(db, email)  # returns correct model instance
                 if user:
-                    user_role = role_name
+                    user_table_name = table_name
                     break
 
             # Log and return None if user is not found
@@ -59,7 +80,7 @@ class LoginService:
 
             # ---------------------------- Check Verification ----------------------------
             # Ensure user account is verified before login
-            if not getattr(user, "is_verified", False):
+            if not user.is_verified:
                 logger.info("Login blocked for unverified account: %s", email)
                 return None
 
@@ -72,23 +93,24 @@ class LoginService:
             # ---------------------------- Generate Tokens ----------------------------
             # Concurrently create access and refresh tokens
             access_token, refresh_token = await asyncio.gather(
-                jwt_service.create_access_token(email, user_role),
-                jwt_service.create_refresh_token(email, user_role)
+                jwt_service.create_access_token(email, user_table_name),
+                jwt_service.create_refresh_token(email, user_table_name)
             )
 
             # ---------------------------- Update or Create Token Record ----------------------------
-            # Get token CRUD operations for the user role
-            token_crud = TOKEN_TABLES[user_role]
-            
-            # Check if token already exists
+            # Get token CRUD instance for the user's role/table
+            token_crud = TOKEN_TABLES[user_table_name]
+
+            # Check if token already exists (by access token)
             existing_token = await token_crud.get_by_access_token(db, access_token)
-            
+
             # Update refresh token if access token exists
             if existing_token:
                 await token_crud.update_refresh_token_by_access_token(db, access_token, refresh_token)
             else:
-                # Create new token record if none exists
+                # Create new token record if none exists, including email for FK
                 token_data = {
+                    "email": email,  # FK mapping
                     "access_token": access_token,
                     "refresh_token": refresh_token
                 }
@@ -98,6 +120,8 @@ class LoginService:
             # Return structured token response
             return TokenPairResponseSchema(access_token=access_token, refresh_token=refresh_token)
 
+        # ---------------------------- Exception Handling ----------------------------
+        # Catch all unexpected errors
         except Exception:
             # Log full exception stack trace
             logger.error("Error during login:\n%s", traceback.format_exc())

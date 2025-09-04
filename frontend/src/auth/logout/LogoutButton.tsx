@@ -1,12 +1,15 @@
 // ---------------------------- External Imports ----------------------------
 // Import React to use JSX/TSX syntax in component
-import React from "react";
+import React, { useEffect } from "react";
 
 // Import hooks from react-redux for accessing and dispatching Redux state
 import { useDispatch, useSelector } from "react-redux";
 
 // Import type-only TypedUseSelectorHook for strongly-typed selector
 import type { TypedUseSelectorHook } from "react-redux";
+
+// Import React Router navigate hook for redirect
+import { useNavigate } from "react-router-dom";
 
 // ---------------------------- Internal Imports ----------------------------
 // Import type-only RootState and AppDispatch from Redux store for typing hooks
@@ -26,21 +29,28 @@ const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 // Container component to connect Redux state and handlers to styled button
 const LogoutButton: React.FC = () => {
     // ---------------------------- Redux ----------------------------
-    // Initialize dispatch function typed with AppDispatch
     const dispatch = useDispatch<AppDispatch>();
-    // Select logout state from Redux store
     const { loading, error, successMessage } = useAppSelector(
         (state) => state.logout
     );
 
+    // ---------------------------- Router ----------------------------
+    const navigate = useNavigate();
+
     // ---------------------------- Event Handlers ----------------------------
-    // Handle logout by dispatching the logout async thunk
     const handleLogout = () => {
         dispatch(logoutUser());
     };
 
+    // ---------------------------- Side Effect ----------------------------
+    // Redirect to login when logout succeeds
+    useEffect(() => {
+        if (successMessage) {
+            navigate("/login");
+        }
+    }, [successMessage, navigate]);
+
     // ---------------------------- Render ----------------------------
-    // Pass Redux state and event handlers as props to styled component
     return (
         <LogoutButtonComponent
             loading={loading}
@@ -52,5 +62,4 @@ const LogoutButton: React.FC = () => {
 };
 
 // ---------------------------- Export ----------------------------
-// Export LogoutButton container as default
 export default LogoutButton;

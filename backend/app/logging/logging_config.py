@@ -22,35 +22,49 @@ os.makedirs(LOG_DIR, exist_ok=True)
 ACCESS_LOG_PATH = os.path.join(LOG_DIR, 'access.log')
 
 # ---------------------------- Logger Factory Function ----------------------------
-# Function to create and return a configured logger instance
 def get_logger(name: str = "base_logger") -> logging.Logger:
+    """
+    Input:
+        1. name (str): Name of the logger (default "base_logger").
     
-    # Get or create a logger with the specified name
+    Process:
+        1. Get or create a logger instance with the specified name.
+        2. Set logging level to DEBUG for capturing all logs.
+        3. Check if logger already has handlers to avoid duplicates.
+        4. Create JSON formatter with standard fields.
+        5. Create a timed rotating file handler for access logs.
+        6. Set handler level and formatter.
+        7. Add handler to logger.
+    
+    Output:
+        1. logging.Logger: Configured logger instance.
+    """
+    # ---------------------------- Get or Create Logger ----------------------------
     logger = logging.getLogger(name)
 
-    # Set base logging level to DEBUG to capture all log levels
+    # ---------------------------- Set Logging Level ----------------------------
     logger.setLevel(logging.DEBUG)
 
-    # Avoid adding multiple handlers if logger already has them
+    # ---------------------------- Avoid Duplicate Handlers ----------------------------
     if not logger.handlers:
-        # Create JSON formatter with standard fields
+        # ---------------------------- Create JSON Formatter ----------------------------
         formatter = jsonlogger.JsonFormatter(
             '%(asctime)s %(levelname)s %(name)s %(message)s'
         )
 
-        # Create a time-based rotating file handler for access logs
+        # ---------------------------- Create Timed Rotating File Handler ----------------------------
         access_handler = TimedRotatingFileHandler(
             ACCESS_LOG_PATH, when="midnight", interval=1, backupCount=0
         )
 
-        # Set handler to log INFO level and above
+        # ---------------------------- Set Handler Level ----------------------------
         access_handler.setLevel(logging.INFO)
 
-        # Apply JSON formatter to the handler
+        # ---------------------------- Apply Formatter ----------------------------
         access_handler.setFormatter(formatter)
 
-        # Add the access log handler to the logger
+        # ---------------------------- Add Handler to Logger ----------------------------
         logger.addHandler(access_handler)
 
-    # Return the configured logger instance
+    # ---------------------------- Return Configured Logger ----------------------------
     return logger

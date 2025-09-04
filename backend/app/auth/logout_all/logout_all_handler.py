@@ -15,22 +15,38 @@ from ..token_logic.jwt_service import jwt_service
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Logout All Handler Class ----------------------------
-# Class that handles logging out a user from all devices
+# Handler class for logging a user out from all devices
 class LogoutAllHandler:
+    """
+    1. handle_logout_all - Revoke all refresh tokens for the user and clear authentication cookies.
+    """
 
     # ---------------------------- Constructor ----------------------------
-    # Initialize the handler with required services
+    # Initialize LogoutAllHandler with required services
     def __init__(self):
-        # Assign JWT service for token operations
         self.jwt_service = jwt_service
 
     # ---------------------------- Logout All Method ----------------------------
-    # Method to revoke all refresh tokens for a user and clear cookies
+    # Async method to revoke all tokens for a user
     async def handle_logout_all(self, refresh_token: str | None, db):
+        """
+        Input:
+            1. refresh_token (str | None): Refresh token from user's cookie.
+            2. db: Database session for token revocation operations.
 
+        Process:
+            1. Validate that refresh token is provided.
+            2. Revoke all refresh tokens for the user using JWT service.
+            3. Check number of tokens revoked and handle error if none.
+            4. Clear access and refresh cookies.
+            5. Return appropriate JSONResponse.
+
+        Output:
+            1. JSONResponse: Success message with count of devices logged out or error message.
+        """
         try:
             # ---------------------------- Validate Token ----------------------------
-            # If no refresh token is provided in cookies, return error response
+            # Return error if no refresh token is provided
             if not refresh_token:
                 return JSONResponse(
                     content={"error": "No refresh token cookie found"},
@@ -38,11 +54,11 @@ class LogoutAllHandler:
                 )
 
             # ---------------------------- Revoke All Tokens ----------------------------
-            # Use JWT service to revoke all refresh tokens associated with this user
+            # Revoke all refresh tokens associated with this user
             revoked_count = await self.jwt_service.revoke_all_refresh_tokens_for_user(refresh_token, db=db)
 
             # ---------------------------- Check Revocation Result ----------------------------
-            # If no tokens were revoked, respond with an error
+            # Return error if no tokens were revoked
             if revoked_count == 0:
                 return JSONResponse(
                     content={"error": "Invalid refresh token or no tokens to revoke"},
@@ -50,7 +66,7 @@ class LogoutAllHandler:
                 )
 
             # ---------------------------- Clear Cookies ----------------------------
-            # Prepare response and delete both access and refresh cookies
+            # Prepare response and delete access and refresh cookies
             resp = JSONResponse(
                 content={"message": f"Logged out from {revoked_count} devices"},
                 status_code=200
@@ -61,14 +77,15 @@ class LogoutAllHandler:
             # Return the prepared response
             return resp
 
+        # ---------------------------- Exception Handling ----------------------------
+        # Catch all unexpected errors
         except Exception:
-            # Log full traceback to help with debugging
+            # Log full traceback for debugging
             logger.error("Error during logout-all logic:\n%s", traceback.format_exc())
-            
             # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 
 # ---------------------------- Instantiate LogoutAllHandler ----------------------------
-# Create a singleton instance for use in routes
+# Singleton instance for use in routes
 logout_all_handler = LogoutAllHandler()

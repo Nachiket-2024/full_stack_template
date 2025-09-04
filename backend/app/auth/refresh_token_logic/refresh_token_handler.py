@@ -28,21 +28,40 @@ from ...auth.token_logic.token_cookie_handler import token_cookie_handler
 # Create a logger instance for this module
 logger = logging.getLogger(__name__)
 
-# ---------------------------- Refresh Token Handler ----------------------------
-# Define handler class for refresh token operations
+# ---------------------------- Refresh Token Handler Class ----------------------------
+# Handler class responsible for refresh token operations
 class RefreshTokenHandler:
+    """
+    1. handle_refresh_tokens - Validate and rotate refresh tokens with rate limiting and brute-force protection.
+    """
 
     # ---------------------------- Handle Refresh Tokens ----------------------------
-    # Define static method to handle refresh token logic
+    # Static method to process refresh token requests
     @staticmethod
     async def handle_refresh_tokens(request: Request, payload: RefreshTokenSchema = Body(...)):
-        # Start a try-except block to catch runtime errors
+        """
+        Input:
+            1. request (Request): FastAPI request object for client information.
+            2. payload (RefreshTokenSchema): Request body containing refresh token.
+
+        Process:
+            1. Extract client IP address and generate Redis keys for rate limiting and lockout.
+            2. Check rate limits for the IP address.
+            3. Verify if the IP is temporarily locked due to failed attempts.
+            4. Validate and rotate the refresh token using refresh_token_service.
+            5. Handle invalid or revoked tokens and record failed attempts.
+            6. Reset failed attempts counter on successful refresh.
+            7. Set new access and refresh tokens in secure HTTP-only cookies.
+
+        Output:
+            1. Response object with cookies set or raises HTTPException on error.
+        """
         try:
             # ---------------------------- Extract Client Info ----------------------------
             # Extract client IP address from request
             client_ip = request.client.host
 
-            # Create Redis keys for rate limiting and login protection
+            # Redis keys for rate limiting and brute-force protection
             rate_key = f"refresh:ip:{client_ip}"
             lock_key = f"refresh:ip:{client_ip}"
 
@@ -65,7 +84,7 @@ class RefreshTokenHandler:
                 )
 
             # ---------------------------- Call Refresh Token Service ----------------------------
-            # Call service to validate and rotate refresh token
+            # Validate and rotate the refresh token
             tokens = await refresh_token_service.refresh_tokens(payload.refresh_token)
 
             # ---------------------------- Handle Invalid Token ----------------------------
@@ -85,7 +104,6 @@ class RefreshTokenHandler:
             return token_cookie_handler.set_tokens_in_cookies(tokens)
 
         # ---------------------------- Exception Handling ----------------------------
-        # Catch unexpected exceptions
         except Exception:
             # Log error with traceback for debugging
             logger.error("Error in refresh tokens handler:\n%s", traceback.format_exc())

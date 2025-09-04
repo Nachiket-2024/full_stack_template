@@ -15,21 +15,36 @@ from ..refresh_token_logic.refresh_token_service import refresh_token_service
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Logout Handler Class ----------------------------
-# Class responsible for handling user logout flow
+# Handler class for managing user logout operations
 class LogoutHandler:
+    """
+    1. handle_logout - Revoke refresh token, clear cookies, and return logout response.
+    """
 
     # ---------------------------- Constructor ----------------------------
-    # Initialize handler with required services
+    # Initialize LogoutHandler with required services
     def __init__(self):
         self.refresh_token_service = refresh_token_service
 
     # ---------------------------- Logout Method ----------------------------
-    # Process logout request and revoke refresh token
+    # Async method to handle user logout
     async def handle_logout(self, refresh_token: str | None):
+        """
+        Input:
+            1. refresh_token (str | None): Refresh token from user's cookie.
 
+        Process:
+            1. Validate that refresh token is provided.
+            2. Revoke the refresh token using refresh_token_service.
+            3. Clear access and refresh cookies if revocation succeeds.
+            4. Return appropriate JSONResponse.
+
+        Output:
+            1. JSONResponse: Success message if logout succeeds or error details otherwise.
+        """
         try:
             # ---------------------------- Validate Token ----------------------------
-            # If no refresh token is provided in cookies, return error response
+            # Return error if no refresh token is provided
             if not refresh_token:
                 return JSONResponse(
                     content={"error": "No refresh token cookie found"},
@@ -41,7 +56,7 @@ class LogoutHandler:
             success = await self.refresh_token_service.revoke_refresh_token(refresh_token)
 
             # ---------------------------- Check Revocation Result ----------------------------
-            # If revocation failed, return error response
+            # Return error if revocation failed
             if not success:
                 return JSONResponse(
                     content={"error": "Invalid refresh token or already revoked"},
@@ -60,11 +75,12 @@ class LogoutHandler:
             # Return the response
             return resp
 
+        # ---------------------------- Exception Handling ----------------------------
+        # Catch all unexpected errors
         except Exception:
             # Log full traceback for debugging
             logger.error("Error during logout logic:\n%s", traceback.format_exc())
-            
-            # Return generic server error response
+            # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 

@@ -15,7 +15,6 @@ from ..admin.admin_token_table.admin_token_model import AdminToken
 from ..role1.role1_token_table.role1_token_model import Role1Token
 from ..role2.role2_token_table.role2_token_model import Role2Token
 
-
 # ---------------------------- Centralized Role Tables ----------------------------
 # Dictionary mapping role name -> CRUD instance for that role's table
 ROLE_TABLES = {

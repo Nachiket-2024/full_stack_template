@@ -32,9 +32,14 @@ send_email_task: Task = _send_email_task
 # Configure module-specific logger
 logger = logging.getLogger(__name__)
 
-# ---------------------------- Account Verification Service ----------------------------
+# ---------------------------- Account Verification Service Class ----------------------------
 # Service for managing account verification emails and tokens
 class AccountVerificationService:
+    """
+    1. send_verification_email - Generate a token, store in Redis, and send email via Celery.
+    2. create_verification_token - Generate JWT token for account verification.
+    3. verify_token - Validate verification token and enforce single-use.
+    """
 
     # ---------------------------- Send Verification Email ----------------------------
     @staticmethod
@@ -42,20 +47,34 @@ class AccountVerificationService:
                                       table: str, 
                                       expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
                                       ) -> bool:
+        """
+        Input:
+            1. email (str): Recipient's email address.
+            2. table (str): Role table for user.
+            3. expires_minutes (int): Token expiration in minutes.
 
+        Process:
+            1. Generate verification token with expiration.
+            2. Store token in Redis for single-use tracking.
+            3. Compose verification URL with token.
+            4. Schedule asynchronous email task via Celery.
+
+        Output:
+            1. bool: True if email scheduled successfully, False on failure.
+        """
         try:
-            # Create short-lived verification token
+            # ---------------------------- Generate Token ----------------------------
             verification_token = await AccountVerificationService.create_verification_token(
                 email, table, expires_minutes
             )
 
-            # Store token in Redis with expiry
+            # ---------------------------- Store Token in Redis ----------------------------
             await redis_client.set(f"verify:{verification_token}", "1", ex=expires_minutes * 60)
 
-            # Compose verification URL (frontend endpoint)
+            # ---------------------------- Build Verification URL ----------------------------
             verify_url = f"{settings.FRONTEND_BASE_URL}/verify-account?token={verification_token}"
 
-            # Schedule Celery task (IDE will recognize apply_async)
+            # ---------------------------- Schedule Celery Email Task ----------------------------
             send_email_task.apply_async(
                 kwargs={
                     "to_email": email,
@@ -64,12 +83,12 @@ class AccountVerificationService:
                 }
             )
 
-            # Log that email scheduling succeeded
+            # ---------------------------- Log Success ----------------------------
             logger.info("Verification email scheduled for %s", email)
             return True
 
+        # ---------------------------- Exception Handling ----------------------------
         except Exception:
-            # Log full stack trace on failure
             logger.error("Error sending verification email:\n%s", traceback.format_exc())
             return False
 
@@ -79,49 +98,75 @@ class AccountVerificationService:
                                         table: str, 
                                         expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
                                         ) -> str:
+        """
+        Input:
+            1. email (str): User email.
+            2. table (str): Role table for the user.
+            3. expires_minutes (int): Expiration time in minutes.
 
-        # Compute expiration datetime
+        Process:
+            1. Compute expiration datetime.
+            2. Build JWT payload including email, table, and expiration.
+            3. Encode JWT token.
+
+        Output:
+            1. str: JWT verification token.
+        """
+        # ---------------------------- Compute Expiration ----------------------------
         expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
-        # Build JWT payload
+
+        # ---------------------------- Build JWT Payload ----------------------------
         payload: dict[str, str | float] = {
             "email": email,
             "table": table,
             "exp": expire.timestamp()
         }
-        # Encode payload into JWT token
+
+        # ---------------------------- Encode JWT ----------------------------
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
         return token
 
     # ---------------------------- Verify Token ----------------------------
     @staticmethod
     async def verify_token(token: str) -> dict | None:
+        """
+        Input:
+            1. token (str): Verification token to validate.
 
+        Process:
+            1. Decode JWT token.
+            2. Check Redis for single-use enforcement.
+            3. Delete token from Redis to prevent reuse.
+
+        Output:
+            1. dict | None: Decoded payload if valid, else None.
+        """
         try:
-            # Decode JWT token
+            # ---------------------------- Decode JWT ----------------------------
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
-            # Check Redis for single-use token
+            # ---------------------------- Check Single-use in Redis ----------------------------
             exists = await redis_client.get(f"verify:{token}")
             if not exists:
                 logger.warning("Verification token not found or already used")
                 return None
 
-            # Delete token from Redis to prevent reuse
+            # ---------------------------- Delete Token to Enforce Single-use ----------------------------
             await redis_client.delete(f"verify:{token}")
             return payload
 
+        # ---------------------------- Token Expired ----------------------------
         except jwt.ExpiredSignatureError:
-            # Token has expired
             logger.warning("Expired verification token used")
             return None
-        
+
+        # ---------------------------- Token Invalid ----------------------------
         except jwt.InvalidTokenError:
-            # Token is invalid
             logger.warning("Invalid verification token used")
             return None
-        
+
+        # ---------------------------- Unexpected Exception ----------------------------
         except Exception:
-            # Log any unexpected error
             logger.error("Error verifying account verification token:\n%s", traceback.format_exc())
             return None
 

@@ -22,51 +22,63 @@ from ..security.login_protection_service import login_protection_service
 from ..token_logic.token_cookie_handler import token_cookie_handler
 
 # ---------------------------- Logger Setup ----------------------------
-# Create a logger instance for this module
+# Create a logger instance specific to this module
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Login Handler Class ----------------------------
+# Handler class for managing user login operations
 class LoginHandler:
+    """
+    1. handle_login - Validates input, authenticates user, applies login protection, and sets JWT cookies.
+    """
 
     # ---------------------------- Handle Login ----------------------------
-    @staticmethod
-    async def handle_login(email: str, password: str, db: AsyncSession = None):
-        
-        # Start a try-except block to handle runtime errors
+    # Async method to authenticate user and set JWT tokens
+    async def handle_login(self, email: str, password: str, db: AsyncSession = None):
+        """
+        Input:
+            1. email (str): User's email address.
+            2. password (str): User's password.
+            3. db (AsyncSession, optional): Database session for authentication.
+
+        Process:
+            1. Validate that email and password are provided.
+            2. Authenticate user using login_service.
+            3. Apply login protection checks (rate-limiting, lockouts).
+            4. Set JWT tokens in HTTP-only cookies if authentication succeeds.
+
+        Output:
+            1. JSONResponse: User is either logged in with tokens set in cookies,
+                             or receives an error message.
+        """
         try:
             # ---------------------------- Input Validation ----------------------------
-            # Check if email or password is missing
+            # Return error if email or password is missing
             if not email or not password:
-                # Return a JSON error response if required fields are missing
                 return JSONResponse(
                     content={"error": "Email and password are required"},
                     status_code=400,
                 )
 
-            # ---------------------------- Call Auth Service ----------------------------
-            # Call the login service to authenticate the user
+            # ---------------------------- Authenticate User ----------------------------
+            # Authenticate the user via login_service and get tokens
             tokens = await login_service.login(email=email, password=password, db=db)
-
-            # If authentication fails or tokens not returned
+            # Return error if authentication fails
             if not tokens:
-                # Return a JSON error response for invalid credentials
                 return JSONResponse(
                     content={"error": "Invalid credentials or account locked"},
                     status_code=401,
                 )
 
             # ---------------------------- Login Protection ----------------------------
-            # Create a unique key for tracking login attempts for this email
+            # Generate key for tracking login attempts for this email
             email_lock_key = f"login_lock:email:{email}"
-
-            # Record the successful login attempt and check if further actions are allowed
+            # Record the successful login attempt and verify if allowed
             allowed = await login_protection_service.check_and_record_action(
                 email_lock_key, success=True
             )
-
-            # If login attempts are not allowed (too many failed attempts)
+            # Return error if too many failed attempts
             if not allowed:
-                # Return a JSON error response for rate limiting / lockout
                 return JSONResponse(
                     content={
                         "error": "Too many failed login attempts, account temporarily locked"
@@ -74,20 +86,21 @@ class LoginHandler:
                     status_code=429,
                 )
 
-            # ---------------------------- Set Tokens in HTTP-only Cookies ----------------------------
-            # Set authentication tokens in secure HTTP-only cookies and return response
+            # ---------------------------- Set Tokens in Cookies ----------------------------
+            # Set authentication tokens in secure HTTP-only cookies
             return token_cookie_handler.set_tokens_in_cookies(tokens)
 
-        # Handle unexpected exceptions
+        # ---------------------------- Exception Handling ----------------------------
+        # Catch all unexpected errors
         except Exception:
-            # Log the error with traceback for debugging
+            # Log full traceback for debugging
             logger.error("Error during login:\n%s", traceback.format_exc())
-            # Return a generic internal server error response
+            # Return generic internal server error response
             return JSONResponse(
                 content={"error": "Internal Server Error"}, status_code=500
             )
 
 
 # ---------------------------- Instantiate LoginHandler ----------------------------
-# Create a single instance of LoginHandler to be reused
+# Singleton instance for reuse in routes
 login_handler = LoginHandler()

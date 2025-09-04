@@ -26,5 +26,16 @@ router = APIRouter(prefix="/auth/refresh", tags=["Refresh Token"])
 # ---------------------------- Refresh Tokens Endpoint ----------------------------
 @router.post("/", response_model=TokenPairResponseSchema)
 async def refresh_tokens(request: Request, payload: RefreshTokenSchema = Body(...)):
+    """
+    Input:
+        1. request (Request): FastAPI request object for accessing cookies/headers.
+        2. payload (RefreshTokenSchema): Incoming refresh token from client request.
+
+    Process:
+        1. Delegate handling of refresh token validation and new token issuance to refresh_token_handler.
+
+    Output:
+        1. TokenPairResponseSchema: Response containing new access and refresh tokens or error.
+    """
     # Delegate handling of refresh token logic to handler
     return await refresh_token_handler.handle_refresh_tokens(request, payload)

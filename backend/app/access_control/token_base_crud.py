@@ -1,158 +1,261 @@
 # ---------------------------- External Imports ----------------------------
-# Import the 'select' function for building SQL queries in async context
+# Import 'select' for constructing SQL queries asynchronously
 from sqlalchemy.future import select
 
-# Import the AsyncSession class for async DB session handling
+# Import 'AsyncSession' to handle asynchronous database sessions
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------- Token Base CRUD Class ----------------------------
-# Define a generic CRUD class for managing token records in the database
 class TokenBaseCRUD:
     """
-    Generic async CRUD operations for token tables (access + refresh tokens).
-    All token tables are expected to have:
-        - id
-        - email
-        - access_token
-        - refresh_token
-        - created_at
-        - updated_at
-    Instantiate with a token model and use provided methods.
+    1. get_by_id - Fetch record by primary key ID.
+    2. get_all - Fetch all records of the model.
+    3. get_by_access_token - Fetch record by access token.
+    4. get_by_refresh_token - Fetch record by refresh token.
+    5. get_all_refresh_tokens - Fetch all refresh tokens for an email.
+    6. create - Create a new record.
+    7. update - Update an existing record.
+    8. update_by_refresh_token - Update record identified by refresh token.
+    9. update_by_access_token - Update record identified by access token.
+    10. update_refresh_token_by_access_token - Update refresh token using access token.
+    11. delete - Delete a record.
     """
 
-    # ---------------------------- Initialization ----------------------------
-    # Constructor to initialize the CRUD class with a specific SQLAlchemy model
+    # ---------------------------- Constructor ----------------------------
     def __init__(self, model):
         """
-        :param model: SQLAlchemy ORM token model
+        Input:
+            1. model: SQLAlchemy model class.
+
+        Process:
+            1. Store model reference for CRUD operations.
+
+        Output:
+            1. None
         """
+        # Store model for queries
         self.model = model
 
     # ---------------------------- Get by ID ----------------------------
-    # Async method to fetch a token record by its primary key ID
     async def get_by_id(self, db: AsyncSession, id: int):
         """
-        Fetch a token record by its primary key.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. id (int): Primary key.
+
+        Process:
+            1. Execute query filtering by id.
+
+        Output:
+            1. object | None: Record if found, else None.
         """
-        # Execute a SELECT query filtering by the given ID
+        # Execute query by id
         result = await db.execute(select(self.model).where(self.model.id == id))
-        # Return one record or None if not found
+        # Return object or None
         return result.scalar_one_or_none()
 
-    # ---------------------------- Get all ----------------------------
-    # Async method to fetch all token records
+    # ---------------------------- Get All Records ----------------------------
     async def get_all(self, db: AsyncSession):
         """
-        Fetch all token records for this table.
+        Input:
+            1. db (AsyncSession): Database session.
+
+        Process:
+            1. Execute query for all records.
+
+        Output:
+            1. list: All ORM instances.
         """
-        # Execute a SELECT query to retrieve all rows
+        # Execute query for all records
         result = await db.execute(select(self.model))
-        # Return the list of objects
+        # Return list of objects
         return result.scalars().all()
 
     # ---------------------------- Get by Access Token ----------------------------
-    # Async method to fetch a token by its access_token value
     async def get_by_access_token(self, db: AsyncSession, access_token: str):
         """
-        Fetch a token record by its access token.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. access_token (str): Access token value.
+
+        Process:
+            1. Execute query filtering by access_token.
+
+        Output:
+            1. object | None: Record if found, else None.
         """
-        # Execute query filtering by access_token
+        # Execute query by access_token
         result = await db.execute(select(self.model).where(self.model.access_token == access_token))
-        # Return one record or None
+        # Return object or None
         return result.scalar_one_or_none()
 
     # ---------------------------- Get by Refresh Token ----------------------------
-    # Async method to fetch a token by its refresh_token value
     async def get_by_refresh_token(self, db: AsyncSession, refresh_token: str):
         """
-        Fetch a token record by its refresh token.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. refresh_token (str): Refresh token value.
+
+        Process:
+            1. Execute query filtering by refresh_token.
+
+        Output:
+            1. object | None: Record if found, else None.
         """
-        # Execute query filtering by refresh_token
+        # Execute query by refresh_token
         result = await db.execute(select(self.model).where(self.model.refresh_token == refresh_token))
-        # Return one record or None
+        # Return object or None
         return result.scalar_one_or_none()
 
-    # ---------------------------- Get all Refresh Tokens for a User ----------------------------
-    # Async method to fetch all refresh tokens linked to a specific user email
+    # ---------------------------- Get All Refresh Tokens for Email ----------------------------
     async def get_all_refresh_tokens(self, email: str, db: AsyncSession) -> list[str]:
         """
-        Fetch all refresh tokens for a given user (by email).
-        Returns a list of refresh_token strings.
+        Input:
+            1. email (str): User email.
+            2. db (AsyncSession): Database session.
+
+        Process:
+            1. Execute query filtering by email.
+            2. Collect refresh tokens.
+
+        Output:
+            1. list[str]: List of refresh tokens.
         """
-        # Execute query to fetch only refresh_token column where email matches
-        result = await db.execute(
-            select(self.model.refresh_token).where(self.model.email == email)
-        )
-        # Return list of refresh_token values from the rows
+        # Execute query by email
+        result = await db.execute(select(self.model.refresh_token).where(self.model.email == email))
+        # Extract refresh tokens
         return [row[0] for row in result.fetchall()]
 
-    # ---------------------------- Create a new token record ----------------------------
-    # Async method to insert a new token record into the database
+    # ---------------------------- Create Record ----------------------------
     async def create(self, db: AsyncSession, obj_data: dict):
         """
-        Create a new token record.
-        :param obj_data: Dictionary containing email, access_token, refresh_token, optional timestamps
+        Input:
+            1. db (AsyncSession): Database session.
+            2. obj_data (dict): Data for new record.
+
+        Process:
+            1. Instantiate model.
+            2. Add to session, commit, refresh.
+
+        Output:
+            1. object: Created record.
         """
-        # Create an instance of the model with given data
+        # Create object
         obj = self.model(**obj_data)
-        # Add object to the session
+        # Add to session
         db.add(obj)
         # Commit transaction
         await db.commit()
-        # Refresh object to load DB-generated fields (like id, timestamps)
+        # Refresh object with DB state
         await db.refresh(obj)
-        # Return the created object
+        # Return created object
         return obj
 
-    # ---------------------------- Update a record ----------------------------
-    # Async method to update an existing record with given fields
+    # ---------------------------- Update Record ----------------------------
     async def update(self, db: AsyncSession, db_obj, update_data: dict):
         """
-        Update an existing token record with provided data.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. db_obj (object): Existing object.
+            3. update_data (dict): Fields to update.
+
+        Process:
+            1. Apply updates.
+            2. Commit and refresh.
+
+        Output:
+            1. object: Updated record.
         """
-        # Loop through key-value pairs in update data
+        # Update fields
         for field, value in update_data.items():
-            # Set attribute on the DB object
             setattr(db_obj, field, value)
-        # Add updated object back to session
+        # Add to session
         db.add(db_obj)
         # Commit transaction
         await db.commit()
-        # Refresh object to get updated state
+        # Refresh object
         await db.refresh(db_obj)
-        # Return the updated object
+        # Return updated object
         return db_obj
 
-    # ---------------------------- Update by Access Token ----------------------------
-    # Async method to update a record found via access_token
-    async def update_by_access_token(self, db: AsyncSession, access_token: str, update_data: dict):
+    # ---------------------------- Update by Refresh Token ----------------------------
+    async def update_by_refresh_token(self, db: AsyncSession, refresh_token: str, update_data: dict):
         """
-        Find a token record by access token and update it.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. refresh_token (str): Token identifier.
+            3. update_data (dict): Fields to update.
+
+        Process:
+            1. Fetch record by refresh_token.
+            2. Update if found.
+
+        Output:
+            1. object | None: Updated record or None.
         """
-        # Fetch the record by access_token
-        db_obj = await self.get_by_access_token(db, access_token)
-        # If not found, return None
+        # Fetch record
+        db_obj = await self.get_by_refresh_token(db, refresh_token)
+        # Return None if not found
         if not db_obj:
             return None
-        # Otherwise update the record with provided data
+        # Update record
         return await self.update(db, db_obj, update_data)
 
-    # ---------------------------- Update Refresh Token by Access Token ----------------------------
-    # Async method to update only refresh_token of a record found via access_token
+    # ---------------------------- Update by Access Token ----------------------------
+    async def update_by_access_token(self, db: AsyncSession, access_token: str, update_data: dict):
+        """
+        Input:
+            1. db (AsyncSession): Database session.
+            2. access_token (str): Token identifier.
+            3. update_data (dict): Fields to update.
+
+        Process:
+            1. Fetch record by access_token.
+            2. Update if found.
+
+        Output:
+            1. object | None: Updated record or None.
+        """
+        # Fetch record
+        db_obj = await self.get_by_access_token(db, access_token)
+        # Return None if not found
+        if not db_obj:
+            return None
+        # Update record
+        return await self.update(db, db_obj, update_data)
+
+    # ---------------------------- Update Refresh Token Using Access Token ----------------------------
     async def update_refresh_token_by_access_token(self, db: AsyncSession, access_token: str, new_refresh_token: str):
         """
-        Update only the refresh_token for a record found via access_token.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. access_token (str): Token identifier.
+            3. new_refresh_token (str): New refresh token.
+
+        Process:
+            1. Update refresh_token field.
+
+        Output:
+            1. object | None: Updated record or None.
         """
-        # Call update_by_access_token with new refresh_token value
+        # Update refresh_token via access_token
         return await self.update_by_access_token(db, access_token, {"refresh_token": new_refresh_token})
 
-    # ---------------------------- Delete a record ----------------------------
-    # Async method to delete a token record from the database
+    # ---------------------------- Delete Record ----------------------------
     async def delete(self, db: AsyncSession, db_obj):
         """
-        Delete a token record from the database.
+        Input:
+            1. db (AsyncSession): Database session.
+            2. db_obj (object): Record to delete.
+
+        Process:
+            1. Delete record.
+            2. Commit transaction.
+
+        Output:
+            1. None
         """
-        # Remove object from DB session
+        # Delete object
         await db.delete(db_obj)
         # Commit transaction
         await db.commit()

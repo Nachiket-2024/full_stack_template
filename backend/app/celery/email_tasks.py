@@ -29,10 +29,23 @@ from ..core.settings import settings
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Async Email Sending Task ----------------------------
-# Celery task to send emails asynchronously
 @shared_task(bind=True, name="send_email_task")
 async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
+    """
+    Input:
+        1. to_email (str): Recipient email address.
+        2. subject (str): Email subject line.
+        3. body (str): Email content/body.
 
+    Process:
+        1. Compose email using EmailMessage class.
+        2. Prepare OAuth2 credentials and refresh to obtain access token.
+        3. Send email via Gmail SMTP using aiosmtplib.
+        4. Log success or capture any exceptions with full traceback.
+
+    Output:
+        1. bool: True if email sent successfully, False otherwise.
+    """
     try:
         # ---------------------------- Compose Email ----------------------------
         # Create a new email message
@@ -56,13 +69,13 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
             token_uri="https://oauth2.googleapis.com/token",
         )
 
-        # Refresh token to get access token (blocking operation run in a separate thread)
+        # Refresh token to get access token (blocking operation run in separate thread)
         await asyncio.to_thread(creds.refresh, None)
         # Extract access token after refresh
         access_token = creds.token
 
         # ---------------------------- Send Email ----------------------------
-        # Send email via Gmail SMTP using OAuth2 token
+        # Send email via Gmail SMTP using OAuth2 access token
         await aiosmtplib.send(
             message,
             hostname="smtp.gmail.com",
@@ -72,13 +85,12 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
             password=access_token,  # OAuth2 access token
         )
 
-        # Log success
+        # ---------------------------- Log Success ----------------------------
         logger.info("Email sent to %s", to_email)
-        # Return success
         return True
 
+    # ---------------------------- Exception Handling ----------------------------
     except Exception:
         # Log any exception with full stack trace
         logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())
-        # Return failure
         return False

@@ -23,12 +23,24 @@ router = APIRouter(
 )
 
 # ---------------------------- Get Own Profile ----------------------------
-# Endpoint to fetch currently authenticated user's profile
 @router.get("/me")
 async def get_my_profile(
     data: tuple = Depends(role_checker.require_permission_dependency("get_my_profile")),
     db: AsyncSession = Depends(database.get_session)
 ):
+    """
+    Input:
+        1. data (tuple): Role and email from permission dependency.
+        2. db (AsyncSession): Async database session.
+
+    Process:
+        1. Unpack role and email from dependency.
+        2. Select CRUD table for the role.
+        3. Fetch user by email.
+
+    Output:
+        1. dict: Dictionary with user's role and profile information.
+    """
     # Unpack role and email from dependency
     role, email = data
 
@@ -43,13 +55,27 @@ async def get_my_profile(
 
 
 # ---------------------------- Update Own Profile ----------------------------
-# Endpoint allowing the user to update their own profile
 @router.put("/me")
 async def update_my_profile(
     update_data: dict,
     data: tuple = Depends(role_checker.require_permission_dependency("update_my_profile")),
     db: AsyncSession = Depends(database.get_session)
 ):
+    """
+    Input:
+        1. update_data (dict): Fields to update for the user.
+        2. data (tuple): Role and email from permission dependency.
+        3. db (AsyncSession): Async database session.
+
+    Process:
+        1. Unpack role and email.
+        2. Select CRUD table for the role.
+        3. Fetch current user record.
+        4. Apply updates to user's record.
+
+    Output:
+        1. dict: Updated user object.
+    """
     # Unpack role and email
     role, email = data
 
@@ -67,12 +93,24 @@ async def update_my_profile(
 
 
 # ---------------------------- List All Users ----------------------------
-# Endpoint to list all users (requires permission)
 @router.get("/")
 async def list_all_users(
     data: tuple = Depends(role_checker.require_permission_dependency("list_all_users")),
     db: AsyncSession = Depends(database.get_session)
 ):
+    """
+    Input:
+        1. data (tuple): Role and email from permission dependency.
+        2. db (AsyncSession): Async database session.
+
+    Process:
+        1. Iterate over all role tables.
+        2. Fetch all users from each role table.
+        3. Aggregate users by role.
+
+    Output:
+        1. dict: Dictionary of all users grouped by role.
+    """
     # Initialize a dictionary to hold users grouped by role
     all_users = {}
 
@@ -86,7 +124,6 @@ async def list_all_users(
 
 
 # ---------------------------- Update Any User ----------------------------
-# Admin-only endpoint to update any user's profile
 @router.put("/{user_email}")
 async def update_any_user(
     user_email: str,
@@ -94,6 +131,20 @@ async def update_any_user(
     data: tuple = Depends(role_checker.require_permission_dependency("update_any_user")),
     db: AsyncSession = Depends(database.get_session)
 ):
+    """
+    Input:
+        1. user_email (str): Email of the user to update.
+        2. update_data (dict): Fields to update.
+        3. data (tuple): Role and email from permission dependency.
+        4. db (AsyncSession): Async database session.
+
+    Process:
+        1. Search all role tables for the user.
+        2. Update the user's record if found.
+
+    Output:
+        1. dict: Updated user object.
+    """
     # Search through all role tables to locate the user
     for role, crud in ROLE_TABLES.items():
         user = await crud.get_by_email(db=db, email=user_email)
@@ -107,13 +158,25 @@ async def update_any_user(
 
 
 # ---------------------------- Delete Any User ----------------------------
-# Admin-only endpoint to delete any user's profile
 @router.delete("/{user_email}")
 async def delete_any_user(
     user_email: str,
     data: tuple = Depends(role_checker.require_permission_dependency("delete_any_user")),
     db: AsyncSession = Depends(database.get_session)
 ):
+    """
+    Input:
+        1. user_email (str): Email of the user to delete.
+        2. data (tuple): Role and email from permission dependency.
+        3. db (AsyncSession): Async database session.
+
+    Process:
+        1. Search all role tables for the user.
+        2. Delete the user record if found.
+
+    Output:
+        1. dict: Confirmation message of deletion.
+    """
     # Search through all role tables to locate the user
     for role, crud in ROLE_TABLES.items():
         user = await crud.get_by_email(db=db, email=user_email)
@@ -127,7 +190,6 @@ async def delete_any_user(
 
 
 # ---------------------------- Manage Roles ----------------------------
-# Admin-only endpoint to assign or revoke roles
 @router.post("/manage-role")
 async def manage_roles(
     user_email: str,
@@ -135,6 +197,21 @@ async def manage_roles(
     data: tuple = Depends(role_checker.require_permission_dependency("manage_roles")),
     db: AsyncSession = Depends(database.get_session)
 ):
+    """
+    Input:
+        1. user_email (str): Email of the user to modify.
+        2. new_role (str): Role to assign.
+        3. data (tuple): Role and email from permission dependency.
+        4. db (AsyncSession): Async database session.
+
+    Process:
+        1. Validate the new role exists.
+        2. Remove user from current role table.
+        3. Add user to new role table.
+
+    Output:
+        1. dict: Confirmation message of role change.
+    """
     # Admin role already enforced by dependency
     role, _ = data
 
