@@ -3,7 +3,6 @@
 import api from "./axiosInstance";
 
 // ---------------------------- Auth API Calls ----------------------------
-
 // POST /auth/signup
 export const signupApi = (payload: { name: string; email: string; password: string }) =>
     api.post("/auth/signup", payload);
@@ -11,6 +10,10 @@ export const signupApi = (payload: { name: string; email: string; password: stri
 // POST /auth/login
 export const loginApi = (payload: { email: string; password: string }) =>
     api.post("/auth/login", payload);
+
+// GET /auth/me (fetch current authenticated user via cookie)
+export const getCurrentUserApi = () =>
+    api.get("/auth/me");
 
 // GET /auth/oauth2/login/google
 export const oauth2LoginGoogleApi = () =>

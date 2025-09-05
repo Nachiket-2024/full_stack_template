@@ -6,45 +6,46 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import API function instead of calling axios directly
-import { loginApi } from "../../api/auth_api";
+// Import API functions instead of calling axios directly
+import { loginApi, getCurrentUserApi } from "../../api/auth_api";
 
 // Import type-only API request/response types for login
-import type { LoginRequest, LoginResponse } from "./login_types";
+import type { LoginRequest } from "./login_types";
 
 // ---------------------------- State Type ----------------------------
-// Redux state specific to login (UI + tokens), not backend API schema
+// Redux state specific to login (UI + user), not backend API schema
 interface LoginState {
-    loading: boolean;         // true when API request is in progress
-    error: string | null;     // error message if login fails
-    accessToken: string | null;  // JWT access token
-    refreshToken: string | null; // JWT refresh token
+    loading: boolean;          // true when API request is in progress
+    error: string | null;      // error message if login fails
+    user: { id: string; email: string } | null; // authenticated user info
+    isAuthenticated: boolean;  // true if user logged in
 }
 
 // ---------------------------- Initial State ----------------------------
 const initialState: LoginState = {
     loading: false,
     error: null,
-    accessToken: null,
-    refreshToken: null,
+    user: null,
+    isAuthenticated: false,
 };
 
-// ---------------------------- Async Thunk ----------------------------
+// ---------------------------- Async Thunks ----------------------------
 // Async function to handle login API call
 export const loginUser = createAsyncThunk<
-    LoginResponse,          // Return type on success
-    LoginRequest,           // Payload type when dispatched
-    { rejectValue: string } // Error type if rejected
+    { id: string; email: string }, // Return type on success
+    LoginRequest,                  // Payload type when dispatched
+    { rejectValue: string }        // Error type if rejected
 >(
-    "auth/login",           // Redux action type
+    "auth/login",                  // Redux action type
     async (payload: LoginRequest, thunkAPI) => {
         try {
-            // Call login API (abstracted in auth_api.ts)
-            const response = await loginApi(payload);
-            // Return successful response data
+            // 1. Call login API (sets cookies in response)
+            await loginApi(payload);
+            // 2. Fetch user info using session cookies
+            const response = await getCurrentUserApi();
+            // 3. Return user data
             return response.data;
         } catch (error: any) {
-            // If error occurs, reject with a message
             return thunkAPI.rejectWithValue(
                 error.response?.data?.error || "Login failed"
             );
@@ -61,22 +62,24 @@ const loginSlice = createSlice({
         clearLoginState: (state) => {
             state.loading = false;
             state.error = null;
-            state.accessToken = null;
-            state.refreshToken = null;
+            state.user = null;
+            state.isAuthenticated = false;
         },
     },
     extraReducers: (builder) => {
-        // Handle pending, fulfilled, and rejected states of loginUser thunk
         builder
             .addCase(loginUser.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginResponse>) => {
-                state.loading = false;
-                state.accessToken = action.payload.access_token;
-                state.refreshToken = action.payload.refresh_token;
-            })
+            .addCase(
+                loginUser.fulfilled,
+                (state, action: PayloadAction<{ id: string; email: string }>) => {
+                    state.loading = false;
+                    state.user = action.payload;
+                    state.isAuthenticated = true;
+                }
+            )
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload || "Login failed";
@@ -85,8 +88,5 @@ const loginSlice = createSlice({
 });
 
 // ---------------------------- Exports ----------------------------
-// Export reducer actions (e.g., clearLoginState)
 export const { clearLoginState } = loginSlice.actions;
-
-// Export the slice reducer to add into the store
 export default loginSlice.reducer;
