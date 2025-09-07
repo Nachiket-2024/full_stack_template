@@ -28,14 +28,15 @@ class LogoutHandler:
 
     # ---------------------------- Logout Method ----------------------------
     # Async method to handle user logout
-    async def handle_logout(self, refresh_token: str | None):
+    async def handle_logout(self, refresh_token: str | None, db) -> JSONResponse:
         """
         Input:
             1. refresh_token (str | None): Refresh token from user's cookie.
+            2. db: Database session for revoking the refresh token.
 
         Process:
             1. Validate that refresh token is provided.
-            2. Revoke the refresh token using refresh_token_service.
+            2. Revoke the refresh token using refresh_token_service with db.
             3. Clear access and refresh cookies if revocation succeeds.
             4. Return appropriate JSONResponse.
 
@@ -52,8 +53,8 @@ class LogoutHandler:
                 )
 
             # ---------------------------- Revoke Token ----------------------------
-            # Attempt to revoke the refresh token
-            success = await self.refresh_token_service.revoke_refresh_token(refresh_token)
+            # Attempt to revoke the refresh token with db
+            success = await self.refresh_token_service.revoke_refresh_token(refresh_token, db)
 
             # ---------------------------- Check Revocation Result ----------------------------
             # Return error if revocation failed
@@ -72,7 +73,7 @@ class LogoutHandler:
             resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
             resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
 
-            # Return the response
+            # ---------------------------- Return Response ----------------------------
             return resp
 
         # ---------------------------- Exception Handling ----------------------------

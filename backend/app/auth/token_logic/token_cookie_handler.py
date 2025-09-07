@@ -1,50 +1,46 @@
 # ---------------------------- External Imports ----------------------------
-# Import FastAPI's JSONResponse for HTTP response handling
+# Import FastAPI's JSONResponse for typing and response handling
 from fastapi.responses import JSONResponse
 
 # ---------------------------- Token Cookie Handler Class ----------------------------
-# Service class to set access and refresh tokens in HTTP-only cookies
+# Service class to attach access and refresh tokens as secure HTTP-only cookies to existing responses
 class TokenCookieHandler:
     """
-    1. set_tokens_in_cookies - Sets access and refresh tokens in secure HTTP-only cookies and returns JSONResponse.
+    1. set_tokens_in_cookies - Attaches access and refresh tokens as secure HTTP-only cookies to a response.
     """
 
     # ---------------------------- Set Tokens in Cookies ----------------------------
-    @staticmethod
-    def set_tokens_in_cookies(tokens: dict[str, str]) -> JSONResponse:
+    def set_tokens_in_cookies(self, response: JSONResponse, tokens: dict[str, str]) -> JSONResponse:
         """
         Input:
-            1. tokens (dict[str, str]): Dictionary containing 'access_token' and 'refresh_token'.
+            1. response (JSONResponse): Existing FastAPI response object to modify.
+            2. tokens (dict[str, str]): Dictionary containing 'access_token' and 'refresh_token'.
 
         Process:
-            1. Create a base JSONResponse with a success message.
-            2. Set access token cookie with 1-hour expiry and security flags.
-            3. Set refresh token cookie with 30-day expiry and security flags.
+            1. Attach access token cookie with 1-hour expiry and security flags to the response.
+            2. Attach refresh token cookie with 30-day expiry and security flags to the response.
 
         Output:
-            1. JSONResponse: Response object with cookies set.
+            1. JSONResponse: Same response object with cookies added.
         """
-        # ---------------------------- Create Base Response ----------------------------
-        response = JSONResponse(content={"message": "Tokens issued successfully"})
-
         # ---------------------------- Set Access Token Cookie ----------------------------
         response.set_cookie(
             key="access_token",                     # Cookie key name
-            value=tokens["access_token"],           # Cookie value from input tokens
+            value=tokens["access_token"],           # Access token value
             httponly=True,                          # HTTP-only flag
-            secure=True,                            # Secure flag
+            secure=True,                            # Secure flag for HTTPS
             samesite="Strict",                      # SameSite attribute
-            max_age=3600                             # 1 hour expiry in seconds
+            max_age=3600                            # Expiry time in seconds (1 hour)
         )
 
         # ---------------------------- Set Refresh Token Cookie ----------------------------
         response.set_cookie(
             key="refresh_token",                    # Cookie key name
-            value=tokens["refresh_token"],          # Cookie value from input tokens
+            value=tokens["refresh_token"],          # Refresh token value
             httponly=True,                          # HTTP-only flag
-            secure=True,                            # Secure flag
+            secure=True,                            # Secure flag for HTTPS
             samesite="Strict",                      # SameSite attribute
-            max_age=2592000                          # 30 days expiry in seconds
+            max_age=2592000                         # Expiry time in seconds (30 days)
         )
 
         # ---------------------------- Return Response ----------------------------

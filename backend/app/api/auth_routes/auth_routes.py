@@ -144,21 +144,21 @@ async def get_current_user(access_token: str = Cookie(None), db: AsyncSession = 
 # ---------------------------- Logout Endpoint ----------------------------
 @router.post("/logout")
 @rate_limiter_service.rate_limited("logout")
-async def logout(request: Request):
+async def logout(request: Request, db: AsyncSession = Depends(database.get_session)):
     """
     Input:
         1. request (Request): FastAPI request object containing cookies.
+        2. db (Session): Database session dependency.
 
     Process:
         1. Extract refresh_token from cookies.
-        2. Call logout_handler to revoke session.
+        2. Call logout_handler with refresh_token and db to revoke session.
 
     Output:
         1. JSONResponse: Response indicating logout success or failure.
     """
-    # Extract refresh_token from cookies
     refresh_token = request.cookies.get("refresh_token")
-    return await logout_handler.handle_logout(refresh_token)
+    return await logout_handler.handle_logout(refresh_token, db)
 
 # ---------------------------- Logout All Devices Endpoint ----------------------------
 @router.post("/logout/all")

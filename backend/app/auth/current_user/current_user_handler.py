@@ -8,11 +8,14 @@ import traceback
 # SQLAlchemy exceptions for handling DB errors
 from sqlalchemy.exc import SQLAlchemyError
 
+# FastAPI HTTP exception for proper status codes
+from fastapi import HTTPException, status
+
 # ---------------------------- Internal Imports ----------------------------
 # JWT service to decode and verify access tokens
 from ..token_logic.jwt_service import jwt_service
 
-# Role tables for querying user based on role (we'll call it 'table' in JWT for consistency)
+# Role tables for querying user based on role
 from ...access_control.role_tables import ROLE_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
@@ -20,15 +23,13 @@ from ...access_control.role_tables import ROLE_TABLES
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Current User Handler Class ----------------------------
-# Handler class to manage fetching the currently authenticated user
 class CurrentUserHandler:
     """
     1. get_current_user - Fetch the currently authenticated user's basic information.
     """
 
     # ---------------------------- Get Current User ----------------------------
-    # Async method to fetch the current user from DB using access token
-    async def get_current_user(self, access_token: str, db) -> dict | None:
+    async def get_current_user(self, access_token: str, db) -> dict:
         """
         Input:
             1. access_token (str): JWT token provided by the client.
@@ -41,68 +42,96 @@ class CurrentUserHandler:
             4. Validate email and table values.
             5. Get the appropriate CRUD instance for the user's role/table.
             6. Query the database for the user by email.
-            7. Return basic user information if found.
+            7. Return basic user information if found, else raise exception.
 
         Output:
-            1. dict: Contains user info ('name', 'email', 'table') if successful,
-                     or an 'error' key with a message if unsuccessful.
+            1. dict: Contains user info ('name', 'email', 'table') if successful.
         """
         try:
             # ---------------------------- Validate Token ----------------------------
-            # Return error if no token is provided
+            # Ensure token is provided
             if not access_token:
-                return {"error": "No access token provided"}
+                # Raise HTTP 401 if no token
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="No access token provided"
+                )
 
             # ---------------------------- Verify Token ----------------------------
-            # Verify token using JWT service
+            # Decode and verify token payload
             payload = await jwt_service.verify_token(access_token)
-            # Return error if token is invalid or expired
             if not payload:
-                return {"error": "Invalid or expired token"}
+                # Raise HTTP 401 if invalid or expired
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired token"
+                )
 
             # ---------------------------- Extract User Info ----------------------------
-            # Extract email and table (role) from token payload
+            # Extract user email and role table from payload
             email = payload.get("email")
             table = payload.get("table")
-            # Return error if email or table is missing
             if not email or not table:
-                return {"error": "Invalid token payload"}
+                # Raise HTTP 401 if payload missing required fields
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload"
+                )
 
             # ---------------------------- Get CRUD Instance ----------------------------
-            # Get corresponding CRUD instance for the user's role/table
+            # Retrieve role-specific CRUD instance
             crud_instance = ROLE_TABLES.get(table)
-            # Return error if no CRUD instance found for the role/table
             if not crud_instance:
-                return {"error": "User table/role not found"}
+                # Raise HTTP 401 if no valid role/table found
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User table/role not found"
+                )
 
             # ---------------------------- Fetch User from DB ----------------------------
-            # Query database for user by email
+            # Query database for user record
             user = await crud_instance.get_by_email(db, email)
-            # Return error if user not found
             if not user:
-                return {"error": "User not found"}
+                # Raise HTTP 401 if user not found in DB
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found"
+                )
 
             # ---------------------------- Return User Info ----------------------------
-            # Return user's basic info
+            # Return dictionary with basic user information
             return {
                 "name": getattr(user, "name", "Unknown"),
                 "email": getattr(user, "email", None),
                 "table": table
             }
 
-        # ---------------------------- Exception Handling: Database Errors ----------------------------
-        # Handle SQLAlchemy database errors
+        # ---------------------------- Handle DB Errors ----------------------------
         except SQLAlchemyError:
+            # Log DB error with traceback
             logger.error("Database error fetching current user:\n%s", traceback.format_exc())
-            return {"error": "Database error"}
+            # Raise HTTP 500 for DB issues
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database error"
+            )
 
-        # ---------------------------- Exception Handling: General Errors ----------------------------
-        # Handle any other unexpected errors
+        # ---------------------------- Handle Known HTTP Errors ----------------------------
+        except HTTPException:
+            # Re-raise known HTTPExceptions to preserve status codes
+            raise
+
+        # ---------------------------- Handle Other Errors ----------------------------
         except Exception:
+            # Log unexpected error with traceback
             logger.error("Error fetching current user:\n%s", traceback.format_exc())
-            return {"error": "Internal server error"}
+            # Raise HTTP 500 for generic internal server error
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error"
+            )
 
 
 # ---------------------------- Service Instance ----------------------------
-# Singleton instance for reuse in authentication routes
+# Singleton instance of CurrentUserHandler
 current_user_handler = CurrentUserHandler()

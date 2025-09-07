@@ -12,11 +12,19 @@ import type { TypedUseSelectorHook } from "react-redux";
 // Type-only imports for store types
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import slice action to clear OAuth2 state
-import { clearOAuth2State } from "./oauth2_slice";
+// Import slice actions to manage OAuth2 state
+import {
+    clearUserSession,
+    setUserSession,
+    setOAuth2Error,
+    setOAuth2Loading,
+} from "./oauth2_slice";
 
 // Import app settings (API base URL)
 import settings from "../../core/settings";
+
+// Import API function to fetch current user session
+import { getCurrentUserApi } from "../../api/auth_api";
 
 // ---------------------------- Props Interface ----------------------------
 // Props for OAuth2LoginButton component
@@ -32,28 +40,39 @@ const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 // Component to handle OAuth2 login (Google)
 const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
     // ---------------------------- Redux ----------------------------
-    // Get typed dispatch function
     const dispatch = useDispatch<AppDispatch>();
-    // Get OAuth2 login state from Redux store
-    const { loading, error, accessToken } = useAppSelector((state) => state.oauth2);
+    const { loading, error, isAuthenticated, user } = useAppSelector(
+        (state) => state.oauth2
+    );
 
-    // ---------------------------- Effect: redirect on success ----------------------------
-    // Call onSuccess callback when login succeeds
+    // ---------------------------- Effect: verify session after redirect ----------------------------
     useEffect(() => {
-        if (accessToken && onSuccess) {
-            onSuccess();
-        }
-    }, [accessToken, onSuccess]);
+        const verifySession = async () => {
+            try {
+                dispatch(setOAuth2Loading());
+                const response = await getCurrentUserApi(); // cookie sent automatically
+                if (response.data) {
+                    dispatch(setUserSession(response.data));
+                    if (onSuccess) onSuccess();
+                }
+            } catch (err: any) {
+                dispatch(setOAuth2Error("Failed to verify session"));
+            }
+        };
+
+        // Run only once on mount (handles post-OAuth2 redirect)
+        verifySession();
+    }, [dispatch, onSuccess]);
 
     // ---------------------------- Event Handlers ----------------------------
-    // Redirect to OAuth2 login endpoint
     const handleLogin = () => {
+        // Redirect user to backend OAuth2 login URL
         window.location.href = `${settings.apiBaseUrl}/auth/oauth2/login/google`;
     };
 
-    // Clear OAuth2 state in Redux store
     const handleClear = () => {
-        dispatch(clearOAuth2State());
+        // Clear user session in Redux store
+        dispatch(clearUserSession());
     };
 
     // ---------------------------- Render ----------------------------
@@ -68,14 +87,17 @@ const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
             {error && <p style={{ color: "red" }}>{error}</p>}
 
             {/* Display success message if login succeeded */}
-            {accessToken && <p style={{ color: "green" }}>Login successful!</p>}
+            {isAuthenticated && user && (
+                <p style={{ color: "green" }}>
+                    Welcome, {user.email}! (role: {user.role})
+                </p>
+            )}
 
-            {/* Button to clear OAuth2 state */}
+            {/* Button to clear user session */}
             <button onClick={handleClear}>Clear</button>
         </div>
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export OAuth2LoginButton component as default
 export default OAuth2LoginButton;

@@ -120,9 +120,9 @@ class OAuth2Service:
         Process:
         1. Extract email and name from user_info.
         2. Search existing users in all role tables.
-        3. Create new user if not found with default role.
+        3. Create new user if not found with default role and set is_verified=True.
         4. Generate access and refresh JWT tokens.
-        5. Update or create token record in token table.
+        5. Always insert a new token record for each login (multi-device support).
         6. Return tokens if successful.
         7. Log error and return None if exception occurs.
 
@@ -131,78 +131,66 @@ class OAuth2Service:
         """
         try:
             # ---------------------------- Extract User Info ----------------------------
-            # Extract email from user info
+            # Extract email
             email = user_info.get("email")
             # Extract name or default to "Unknown"
             name = user_info.get("name", "Unknown")
 
-            # ---------------------------- Initialize Placeholders ----------------------------
-            # Placeholder for user object
-            user = None
-            # Placeholder for user role
-            user_role = None
-            # Placeholder for CRUD instance
-            crud_instance = None
+            # Initialize placeholders
+            user, user_role, crud_instance = None, None, None
 
             # ---------------------------- Check Existing User ----------------------------
-            # Iterate through role tables to find existing user
+            # Loop through role tables to find user by email
             for role, crud in ROLE_TABLES.items():
-                # Fetch user by email
+                # Attempt to get user by email
                 user = await crud.get_by_email(db, email)
-                # If user found, store role and CRUD instance
+                # If user exists, store role and crud instance, then break
                 if user:
-                    user_role = role
-                    crud_instance = crud
+                    user_role, crud_instance = role, crud
                     break
 
             # ---------------------------- Create New User if Not Found ----------------------------
+            # If no existing user found
             if not user:
                 # Assign default role
                 user_role = DEFAULT_ROLE
                 # Get CRUD instance for default role
                 crud_instance = ROLE_TABLES[user_role]
-                # Prepare user data
-                user_data = {"name": name, "email": email}
-                # Create new user in DB
+                # Prepare user data for creation
+                user_data = {
+                    "name": name,
+                    "email": email,
+                    "is_verified": True  # Auto-verify OAuth2 users
+                }
+                # Create new user record
                 user = await crud_instance.create(db, user_data)
 
             # ---------------------------- Generate JWT Tokens ----------------------------
-            # Create access and refresh tokens concurrently
+            # Generate access and refresh tokens concurrently
             access_token, refresh_token = await asyncio.gather(
-                jwt_service.create_access_token(email, user_role),  # Generate access token
-                jwt_service.create_refresh_token(email, user_role)  # Generate refresh token
+                jwt_service.create_access_token(email, user_role),
+                jwt_service.create_refresh_token(email, user_role)
             )
 
-            # ---------------------------- Update or Create Token Record ----------------------------
-            # Get token CRUD instance for user role
+            # ---------------------------- Always Insert New Token Record ----------------------------
+            # Get token CRUD for user role
             token_crud = TOKEN_TABLES[user_role]
-            # Check if token record already exists
-            existing_token = await token_crud.get_by_email(db, email)
-
-            if existing_token:
-                # Update existing token record
-                await token_crud.update_by_email(db, email, {
-                    "access_token": access_token,
-                    "refresh_token": refresh_token
-                })
-            else:
-                # Prepare token data for new record
-                token_data = {
-                    "email": email,
-                    "access_token": access_token,
-                    "refresh_token": refresh_token
-                }
-                # Create new token record
-                await token_crud.create(db, token_data)
+            # Prepare token data for insertion
+            token_data = {
+                "email": email,
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }
+            # Insert new row (no overwrite) for multi-device support
+            await token_crud.create(db, token_data)
 
             # ---------------------------- Return Tokens ----------------------------
-            # Return dictionary with generated tokens
+            # Return dictionary containing tokens
             return {"access_token": access_token, "refresh_token": refresh_token}
 
         except Exception:
-            # Log full traceback in case of error
+            # Log error with traceback and return None on failure
             logger.error("Error in login or create user:\n%s", traceback.format_exc())
-            # Return None on failure
             return None
 
 
