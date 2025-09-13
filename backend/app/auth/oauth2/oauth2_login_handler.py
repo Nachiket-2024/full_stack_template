@@ -36,7 +36,6 @@ class OAuth2LoginHandler:
     # ---------------------------- Constructor ----------------------------
     # Initialize handler with OAuth2 service instance
     def __init__(self):
-        # Assign OAuth2 service instance for token exchange and user login
         self.oauth2_service = oauth2_service
 
     # ---------------------------- OAuth2 Login Initiation ----------------------------
@@ -54,7 +53,6 @@ class OAuth2LoginHandler:
             1. RedirectResponse: User redirected to Google login page or frontend login on error.
         """
         try:
-            # ---------------------------- Build Authorization URL ----------------------------
             # Google OAuth2 authorization endpoint
             google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
 
@@ -74,16 +72,13 @@ class OAuth2LoginHandler:
                 f"&prompt=consent"
             )
 
-            # ---------------------------- Redirect User ----------------------------
             # Redirect user to Google login page
             return RedirectResponse(url=auth_url)
 
-        # ---------------------------- Exception Handling ----------------------------
-        # Catch unexpected errors
         except Exception:
             # Log error with full traceback
             logger.error("Error initiating OAuth2 login:\n%s", traceback.format_exc())
-
+            
             # Redirect to frontend login page on error
             return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
@@ -110,11 +105,9 @@ class OAuth2LoginHandler:
             1. RedirectResponse: User redirected to dashboard with cookies set or frontend login on error.
         """
         try:
-            # ---------------------------- Build Redirect URI ----------------------------
             # Callback URL for OAuth2 redirect
             redirect_uri = f"{settings.BACKEND_BASE_URL}/auth/oauth2/callback/google"
 
-            # ---------------------------- Exchange Code for Tokens ----------------------------
             # Use OAuth2 service to exchange code for tokens
             token_data = await self.oauth2_service.exchange_code_for_tokens(
                 code,
@@ -125,42 +118,32 @@ class OAuth2LoginHandler:
 
             # Validate token exchange
             if not token_data or "access_token" not in token_data:
-                # Redirect to frontend login on failure
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
-            # Extract Google access token
             access_token_google = token_data["access_token"]
 
-            # ---------------------------- Fetch User Info ----------------------------
             # Retrieve user info from Google using access token
             user_info = await self.oauth2_service.get_user_info(access_token_google)
 
             # Validate user info
             if not user_info or "email" not in user_info:
-                # Redirect to frontend login on invalid user info
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
-            # ---------------------------- Login or Create User ----------------------------
             # Authenticate existing user or create new user, then generate JWT tokens
             jwt_tokens = await self.oauth2_service.login_or_create_user(db, user_info)
 
             # Validate generated JWT tokens
             if not jwt_tokens or "access_token" not in jwt_tokens:
-                # Redirect to frontend login if JWT tokens are missing
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
-            # ---------------------------- Set Tokens via TokenCookieHandler ----------------------------
             # Create redirect response to dashboard
             response = RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/dashboard")
 
             # Set JWT tokens in secure HTTP-only cookies
             token_cookie_handler.set_tokens_in_cookies(response, jwt_tokens)
 
-            # Return response with cookies set
             return response
 
-        # ---------------------------- Exception Handling ----------------------------
-        # Catch unexpected errors
         except Exception:
             # Log full traceback for debugging
             logger.error("Error handling OAuth2 callback:\n%s", traceback.format_exc())

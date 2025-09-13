@@ -18,6 +18,7 @@ class Database:
     """
 
     # ---------------------------- Initialization ----------------------------
+    # Initialize database engine and session factory
     def __init__(self, database_url: str):
         """
         Input:
@@ -31,16 +32,16 @@ class Database:
         Output:
             1. None
         """
-        # ---------------------------- Store Database URL ----------------------------
+        # Store Database URL
         self.database_url = database_url
 
-        # ---------------------------- Create Async Engine ----------------------------
+        # Instantiate SQLAlchemy async engine for database connectivity
         self.engine = create_async_engine(
             self.database_url,
             echo=False  # Enable or disable SQL query logging for debugging
         )
 
-        # ---------------------------- Create Session Factory ----------------------------
+        # Configure session factory for producing AsyncSession objects
         self.async_session = sessionmaker(
             bind=self.engine,          # Bind sessions to this engine
             class_=AsyncSession,       # Use AsyncSession for async operations
@@ -48,6 +49,7 @@ class Database:
         )
 
     # ---------------------------- Async Session Generator ----------------------------
+    # Async generator to yield database sessions for dependency injection
     async def get_session(self):
         """
         Input:

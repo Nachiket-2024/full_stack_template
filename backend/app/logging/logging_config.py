@@ -16,7 +16,7 @@ from pythonjsonlogger import jsonlogger
 LOG_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'logs')
 
 # Create the logs directory if it does not exist
-os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)  # Ensure logs directory exists
 
 # Define full path for the access log file
 ACCESS_LOG_PATH = os.path.join(LOG_DIR, 'access.log')
@@ -39,32 +39,35 @@ def get_logger(name: str = "base_logger") -> logging.Logger:
     Output:
         1. logging.Logger: Configured logger instance.
     """
-    # ---------------------------- Get or Create Logger ----------------------------
+    # Get or create logger instance
     logger = logging.getLogger(name)
 
-    # ---------------------------- Set Logging Level ----------------------------
+    # Set logger to capture all debug and above level logs
     logger.setLevel(logging.DEBUG)
 
-    # ---------------------------- Avoid Duplicate Handlers ----------------------------
+    # Avoid adding duplicate handlers if already present
     if not logger.handlers:
-        # ---------------------------- Create JSON Formatter ----------------------------
+        # Create JSON formatter for structured logging
         formatter = jsonlogger.JsonFormatter(
             '%(asctime)s %(levelname)s %(name)s %(message)s'
         )
 
-        # ---------------------------- Create Timed Rotating File Handler ----------------------------
+        # Create a timed rotating file handler for daily log rotation
         access_handler = TimedRotatingFileHandler(
-            ACCESS_LOG_PATH, when="midnight", interval=1, backupCount=0
+            ACCESS_LOG_PATH,  # Path to log file
+            when="midnight",  # Rotate logs at midnight
+            interval=1,       # Every 1 day
+            backupCount=0     # No backup limit
         )
 
-        # ---------------------------- Set Handler Level ----------------------------
+        # Set logging level for this handler
         access_handler.setLevel(logging.INFO)
 
-        # ---------------------------- Apply Formatter ----------------------------
+        # Attach JSON formatter to handler
         access_handler.setFormatter(formatter)
 
-        # ---------------------------- Add Handler to Logger ----------------------------
+        # Add handler to logger instance
         logger.addHandler(access_handler)
 
-    # ---------------------------- Return Configured Logger ----------------------------
+    # Return the fully configured logger
     return logger

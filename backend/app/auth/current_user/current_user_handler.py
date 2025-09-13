@@ -23,6 +23,7 @@ from ...access_control.role_tables import ROLE_TABLES
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Current User Handler Class ----------------------------
+# Handles fetching the currently authenticated user
 class CurrentUserHandler:
     """
     1. get_current_user - Fetch the currently authenticated user's basic information.
@@ -48,84 +49,83 @@ class CurrentUserHandler:
             1. dict: Contains user info ('name', 'email', 'table') if successful.
         """
         try:
-            # ---------------------------- Validate Token ----------------------------
-            # Ensure token is provided
+            # ensure token is provided
             if not access_token:
-                # Raise HTTP 401 if no token
+                # raise HTTP 401 if no token
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="No access token provided"
                 )
 
-            # ---------------------------- Verify Token ----------------------------
-            # Decode and verify token payload
+            # decode and verify token payload
             payload = await jwt_service.verify_token(access_token)
+
+            # raise HTTP 401 if invalid or expired
             if not payload:
-                # Raise HTTP 401 if invalid or expired
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid or expired token"
                 )
 
-            # ---------------------------- Extract User Info ----------------------------
-            # Extract user email and role table from payload
+            # extract user email and role table from payload
             email = payload.get("email")
             table = payload.get("table")
+
+            # raise HTTP 401 if payload missing required fields
             if not email or not table:
-                # Raise HTTP 401 if payload missing required fields
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token payload"
                 )
 
-            # ---------------------------- Get CRUD Instance ----------------------------
-            # Retrieve role-specific CRUD instance
+            # retrieve role-specific CRUD instance
             crud_instance = ROLE_TABLES.get(table)
+
+            # raise HTTP 401 if no valid role/table found
             if not crud_instance:
-                # Raise HTTP 401 if no valid role/table found
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="User table/role not found"
                 )
 
-            # ---------------------------- Fetch User from DB ----------------------------
-            # Query database for user record
+            # query database for user record
             user = await crud_instance.get_by_email(db, email)
+
+            # raise HTTP 401 if user not found in DB
             if not user:
-                # Raise HTTP 401 if user not found in DB
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="User not found"
                 )
 
-            # ---------------------------- Return User Info ----------------------------
-            # Return dictionary with basic user information
+            # return dictionary with basic user information
             return {
                 "name": getattr(user, "name", "Unknown"),
                 "email": getattr(user, "email", None),
                 "table": table
             }
 
-        # ---------------------------- Handle DB Errors ----------------------------
+        # handle database errors
         except SQLAlchemyError:
-            # Log DB error with traceback
+            # log DB error with traceback
             logger.error("Database error fetching current user:\n%s", traceback.format_exc())
-            # Raise HTTP 500 for DB issues
+
+            # raise HTTP 500 for DB issues
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database error"
             )
 
-        # ---------------------------- Handle Known HTTP Errors ----------------------------
+        # re-raise known HTTPExceptions
         except HTTPException:
-            # Re-raise known HTTPExceptions to preserve status codes
             raise
 
-        # ---------------------------- Handle Other Errors ----------------------------
+        # handle unexpected errors
         except Exception:
-            # Log unexpected error with traceback
+            # log unexpected error with traceback
             logger.error("Error fetching current user:\n%s", traceback.format_exc())
-            # Raise HTTP 500 for generic internal server error
+
+            # raise HTTP 500 for generic internal server error
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error"

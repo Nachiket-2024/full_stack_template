@@ -23,27 +23,28 @@ class TokenCookieHandler:
         Output:
             1. JSONResponse: Same response object with cookies added.
         """
-        # ---------------------------- Set Access Token Cookie ----------------------------
+
+        # Set access token cookie with HTTP-only, secure, and SameSite=Strict
         response.set_cookie(
             key="access_token",                     # Cookie key name
-            value=tokens["access_token"],           # Access token value
+            value=tokens["access_token"],           # Assign access token value
             httponly=True,                          # HTTP-only flag
             secure=True,                            # Secure flag for HTTPS
             samesite="Strict",                      # SameSite attribute
             max_age=3600                            # Expiry time in seconds (1 hour)
         )
 
-        # ---------------------------- Set Refresh Token Cookie ----------------------------
+        # Set refresh token cookie with HTTP-only, secure, and SameSite=Strict
         response.set_cookie(
             key="refresh_token",                    # Cookie key name
-            value=tokens["refresh_token"],          # Refresh token value
+            value=tokens["refresh_token"],          # Assign refresh token value
             httponly=True,                          # HTTP-only flag
             secure=True,                            # Secure flag for HTTPS
             samesite="Strict",                      # SameSite attribute
             max_age=2592000                         # Expiry time in seconds (30 days)
         )
 
-        # ---------------------------- Return Response ----------------------------
+        # Return the modified response with cookies set
         return response
 
 

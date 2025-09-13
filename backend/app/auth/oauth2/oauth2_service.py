@@ -52,6 +52,7 @@ class OAuth2Service:
         try:
             # Define the Google OAuth2 token endpoint
             token_url = "https://oauth2.googleapis.com/token"
+
             # Prepare POST request payload
             data = {
                 "code": code,                     # Authorization code from Google
@@ -60,17 +61,22 @@ class OAuth2Service:
                 "redirect_uri": redirect_uri,     # Callback URI
                 "grant_type": "authorization_code"  # OAuth2 grant type
             }
+            
             # Make asynchronous POST request
             async with httpx.AsyncClient() as client:
                 # Send POST request to exchange code for tokens
                 resp = await client.post(token_url, data=data)
+
                 # Raise exception for non-success status codes
                 resp.raise_for_status()
+
                 # Return response JSON containing tokens
                 return resp.json()
+            
         except Exception:
             # Log full traceback in case of error
             logger.error("Error exchanging code for tokens:\n%s", traceback.format_exc())
+
             # Return None if error occurs
             return None
 
@@ -93,19 +99,25 @@ class OAuth2Service:
         try:
             # Define Google userinfo endpoint
             userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+
             # Prepare headers with Bearer token
             headers = {"Authorization": f"Bearer {access_token}"}
+
             # Make asynchronous GET request
             async with httpx.AsyncClient() as client:
                 # Send GET request to fetch user info
                 resp = await client.get(userinfo_url, headers=headers)
+
                 # Raise exception for non-success status codes
                 resp.raise_for_status()
+
                 # Return response JSON containing user info
                 return resp.json()
+            
         except Exception:
             # Log full traceback in case of error
             logger.error("Error fetching user info:\n%s", traceback.format_exc())
+
             # Return None if error occurs
             return None
 
@@ -130,61 +142,62 @@ class OAuth2Service:
         1. dict | None - Dictionary with access_token and refresh_token or None on failure
         """
         try:
-            # ---------------------------- Extract User Info ----------------------------
             # Extract email
             email = user_info.get("email")
+
             # Extract name or default to "Unknown"
             name = user_info.get("name", "Unknown")
 
             # Initialize placeholders
             user, user_role, crud_instance = None, None, None
 
-            # ---------------------------- Check Existing User ----------------------------
             # Loop through role tables to find user by email
             for role, crud in ROLE_TABLES.items():
                 # Attempt to get user by email
                 user = await crud.get_by_email(db, email)
+
                 # If user exists, store role and crud instance, then break
                 if user:
                     user_role, crud_instance = role, crud
                     break
 
-            # ---------------------------- Create New User if Not Found ----------------------------
             # If no existing user found
             if not user:
                 # Assign default role
                 user_role = DEFAULT_ROLE
+
                 # Get CRUD instance for default role
                 crud_instance = ROLE_TABLES[user_role]
+
                 # Prepare user data for creation
                 user_data = {
                     "name": name,
                     "email": email,
                     "is_verified": True  # Auto-verify OAuth2 users
                 }
+
                 # Create new user record
                 user = await crud_instance.create(db, user_data)
 
-            # ---------------------------- Generate JWT Tokens ----------------------------
             # Generate access and refresh tokens concurrently
             access_token, refresh_token = await asyncio.gather(
                 jwt_service.create_access_token(email, user_role),
                 jwt_service.create_refresh_token(email, user_role)
             )
 
-            # ---------------------------- Always Insert New Token Record ----------------------------
             # Get token CRUD for user role
             token_crud = TOKEN_TABLES[user_role]
+
             # Prepare token data for insertion
             token_data = {
                 "email": email,
                 "access_token": access_token,
                 "refresh_token": refresh_token
             }
+
             # Insert new row (no overwrite) for multi-device support
             await token_crud.create(db, token_data)
 
-            # ---------------------------- Return Tokens ----------------------------
             # Return dictionary containing tokens
             return {"access_token": access_token, "refresh_token": refresh_token}
 

@@ -40,17 +40,13 @@ class JWTService:
         Output:
             1. str: Encoded JWT access token.
         """
-        # ---------------------------- Compute Expiration ----------------------------
+        # compute expiration timestamp for access token
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-        # ---------------------------- Prepare Payload ----------------------------
-        payload: dict[str, str | float] = {
-            "email": email,
-            "table": table,
-            "exp": expire.timestamp(),
-        }
+        # prepare payload with email, table, and expiration
+        payload: dict[str, str | float] = {"email": email, "table": table, "exp": expire.timestamp()}
 
-        # ---------------------------- Encode JWT ----------------------------
+        # encode payload into JWT token string
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
     # ---------------------------- Create Refresh Token ----------------------------
@@ -69,17 +65,13 @@ class JWTService:
         Output:
             1. str: Encoded JWT refresh token.
         """
-        # ---------------------------- Compute Expiration ----------------------------
+        # compute expiration timestamp for refresh token
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
 
-        # ---------------------------- Prepare Payload ----------------------------
-        payload: dict[str, str | float] = {
-            "email": email,
-            "table": table,
-            "exp": expire.timestamp(),
-        }
+        # prepare payload with email, table, and expiration
+        payload: dict[str, str | float] = {"email": email, "table": table, "exp": expire.timestamp()}
 
-        # ---------------------------- Encode JWT ----------------------------
+        # encode payload into JWT token string
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
     # ---------------------------- Verify Token ----------------------------
@@ -97,15 +89,17 @@ class JWTService:
             1. dict | None: Decoded payload or None if invalid/expired.
         """
         try:
-            # ---------------------------- Decode Token ----------------------------
+            # decode JWT token with secret and algorithm
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+            # return decoded payload dictionary
             return payload
 
-        # ---------------------------- Token Expired ----------------------------
+        # token expired case
         except jwt.ExpiredSignatureError:
             return None
 
-        # ---------------------------- Invalid Token ----------------------------
+        # invalid token case
         except jwt.InvalidTokenError:
             return None
 
@@ -125,30 +119,34 @@ class JWTService:
             1. bool: True if successfully revoked, False otherwise.
         """
         try:
-            # ---------------------------- Decode Token Without Exp Check ----------------------------
-            payload = jwt.decode(token, 
-                                 settings.SECRET_KEY, 
-                                 algorithms=[settings.JWT_ALGORITHM], 
-                                 options={"verify_exp": False}
-                                 )
-            
-            # ---------------------------- Compute TTL ----------------------------
+            # decode token ignoring expiration validation
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": False})
+
+            # get expiration timestamp from payload
             exp_timestamp = payload.get("exp")
+
+            # if no expiration present then revoke fails
             if not exp_timestamp:
                 return False
+
+            # compute ttl in seconds from expiration - current time
             ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
+
+            # if ttl is already expired then revoke fails
             if ttl <= 0:
                 return False
 
-            # ---------------------------- Store in Redis ----------------------------
+            # store revoked token in redis with ttl
             await redis_client.set(f"revoked:{token}", "1", ex=ttl)
+
+            # return success
             return True
 
-        # ---------------------------- Invalid Token ----------------------------
+        # invalid token error
         except jwt.InvalidTokenError:
             return False
 
-        # ---------------------------- Any Other Exception ----------------------------
+        # any other unexpected error
         except Exception:
             return False
 
@@ -170,32 +168,38 @@ class JWTService:
         Output:
             1. int: Number of tokens successfully revoked.
         """
+        # initialize revoked counter
         revoked_count = 0
 
-        # ---------------------------- Loop Through Tokens ----------------------------
+        # iterate through all provided tokens
         for token in all_tokens:
             try:
-                # ---------------------------- Decode Token Without Exp Check ----------------------------
-                payload = jwt.decode(token, 
-                                     settings.SECRET_KEY, 
-                                     algorithms=[settings.JWT_ALGORITHM], 
-                                     options={"verify_exp": False}
-                                     )
+                # decode token ignoring expiration
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": False})
 
-                # ---------------------------- Check Email & Table ----------------------------
+                # check if token belongs to given email and table
                 if payload.get("email") == email and payload.get("table") == table:
+                    # extract expiration timestamp
                     exp_timestamp = payload.get("exp")
+
+                    # if expiration exists
                     if exp_timestamp:
+                        # compute ttl seconds
                         ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
+
+                        # if ttl is valid positive
                         if ttl > 0:
-                            # ---------------------------- Store Revoked Token ----------------------------
+                            # store revoked token in redis with ttl
                             await redis_client.set(f"revoked:{token}", "1", ex=ttl)
+
+                            # increment revoked count
                             revoked_count += 1
 
-            # ---------------------------- Skip Invalid Tokens ----------------------------
+            # skip invalid or broken tokens
             except Exception:
                 continue
 
+        # return total revoked tokens
         return revoked_count
 
     # ---------------------------- Check Token Revocation ----------------------------
@@ -211,7 +215,7 @@ class JWTService:
         Output:
             1. bool: True if token is revoked, False otherwise.
         """
-        # ---------------------------- Check Redis ----------------------------
+        # check redis if token exists in revoked set
         return await redis_client.get(f"revoked:{token}") is not None
 
 

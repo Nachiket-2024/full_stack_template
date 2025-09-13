@@ -57,26 +57,21 @@ class PasswordResetService:
             1. bool: True if email scheduled successfully, False otherwise.
         """
         try:
-            # ---------------------------- Default Role ----------------------------
             # Use default role if none provided
             if role is None:
                 role = DEFAULT_ROLE
 
-            # ---------------------------- Role Validation ----------------------------
             # Ensure role exists in ROLE_TABLES
             if role not in ROLE_TABLES:
                 logger.warning("Attempt to send reset email for invalid role: %s", role)
                 return False
 
-            # ---------------------------- Generate Reset Token ----------------------------
             # Create short-lived password reset token
             reset_token = await password_service.create_reset_token(email, role)
 
-            # ---------------------------- Construct Reset URL ----------------------------
             # Frontend link for password reset page
             reset_url = f"{settings.FRONTEND_BASE_URL}/reset-password?token={reset_token}"
 
-            # ---------------------------- Schedule Email ----------------------------
             # Send email asynchronously using Celery task
             send_email_task.apply_async(
                 kwargs={
@@ -86,12 +81,10 @@ class PasswordResetService:
                 }
             )
 
-            # ---------------------------- Log Success ----------------------------
             # Log successful scheduling of password reset email
             logger.info("Password reset email scheduled for %s for role %s", email, role)
             return True
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log any errors encountered during email scheduling
             logger.error("Error sending reset email:\n%s", traceback.format_exc())
@@ -118,35 +111,29 @@ class PasswordResetService:
             1. bool: True if password reset successfully, False otherwise.
         """
         try:
-            # ---------------------------- Verify Token ----------------------------
             # Validate reset token and extract payload
             payload = await password_service.verify_reset_token(token)
             if not payload:
                 logger.warning("Invalid or expired password reset token.")
                 return False
 
-            # ---------------------------- Extract User Info ----------------------------
             # Get email and role from token; fallback to default role
             email = payload.get("email")
             role = payload.get("role", DEFAULT_ROLE)
 
-            # ---------------------------- Role Validation ----------------------------
             # Ensure role exists in ROLE_TABLES
             if role not in ROLE_TABLES:
                 logger.warning("Invalid role from reset token: %s", role)
                 return False
 
-            # ---------------------------- Validate Password Strength ----------------------------
             # Ensure new password meets complexity requirements
             if not await password_service.validate_password_strength(new_password):
                 logger.warning("Weak password provided during reset for email: %s", email)
                 return False
 
-            # ---------------------------- Hash Password ----------------------------
             # Securely hash the new password
             hashed_password = await password_service.hash_password(new_password)
 
-            # ---------------------------- Update Database ----------------------------
             # Update user's hashed password in database
             updated = await ROLE_TABLES[role].update_by_email(email, {"hashed_password": hashed_password})
             if updated:
@@ -155,7 +142,6 @@ class PasswordResetService:
 
             return False
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log errors encountered during password reset process
             logger.error("Error during password reset:\n%s", traceback.format_exc())

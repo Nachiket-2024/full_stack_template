@@ -90,12 +90,15 @@ class PasswordService:
         # Minimum length 8 characters
         if len(password) < 8:
             return False
+        
         # Must contain at least one digit
         if not re.search(r"\d", password):
             return False
+        
         # Must contain at least one special character
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
             return False
+        
         # Password passed all checks
         return True
 
@@ -162,14 +165,18 @@ class PasswordService:
         try:
             # Decode JWT using secret and algorithm
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
             # Validate role in payload
             if payload.get("role") not in ROLE_TABLES:
                 return None
+            
             # Return valid payload
             return payload
+        
         except jwt.ExpiredSignatureError:
             # Token expired
             return None
+        
         except jwt.InvalidTokenError:
             # Token invalid
             return None

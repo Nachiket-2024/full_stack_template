@@ -38,6 +38,7 @@ class BaseCRUD:
         """
         # Execute query by ID
         result = await db.execute(select(self.model).where(self.model.id == id))
+
         # Return single object or None
         return result.scalar_one_or_none()
 
@@ -55,6 +56,7 @@ class BaseCRUD:
         """
         # Execute query for all records
         result = await db.execute(select(self.model))
+
         # Return all objects
         return result.scalars().all()
 
@@ -73,6 +75,7 @@ class BaseCRUD:
         """
         # Execute query by email
         result = await db.execute(select(self.model).where(self.model.email == email))
+
         # Return single object or None
         return result.scalar_one_or_none()
 
@@ -93,12 +96,16 @@ class BaseCRUD:
         """
         # Create ORM object
         obj = self.model(**obj_data)
+
         # Add to session
         db.add(obj)
+
         # Commit transaction
         await db.commit()
+
         # Refresh with DB values
         await db.refresh(obj)
+
         # Return new object
         return obj
 
@@ -121,15 +128,20 @@ class BaseCRUD:
         # Return None if object missing
         if not db_obj:
             return None
+        
         # Update fields
         for field, value in update_data.items():
             setattr(db_obj, field, value)
+
         # Add updated object
         db.add(db_obj)
+
         # Commit transaction
         await db.commit()
+
         # Refresh object
         await db.refresh(db_obj)
+
         # Return updated object
         return db_obj
 
@@ -150,9 +162,11 @@ class BaseCRUD:
         """
         # Get object by email
         db_obj = await self.get_by_email(db, email)
+
         # Return None if not found
         if not db_obj:
             return None
+        
         # Update object
         return await self.update(db, db_obj, update_data)
 
@@ -173,9 +187,12 @@ class BaseCRUD:
         # Return False if no object
         if not db_obj:
             return False
+        
         # Delete object
         await db.delete(db_obj)
+
         # Commit transaction
         await db.commit()
+        
         # Return success
         return True

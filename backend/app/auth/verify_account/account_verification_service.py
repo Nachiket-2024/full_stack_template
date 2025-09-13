@@ -42,11 +42,9 @@ class AccountVerificationService:
     """
 
     # ---------------------------- Send Verification Email ----------------------------
+    # Static method to send verification email asynchronously via Celery
     @staticmethod
-    async def send_verification_email(email: str, 
-                                      table: str, 
-                                      expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
-                                      ) -> bool:
+    async def send_verification_email(email: str, table: str, expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES) -> bool:
         """
         Input:
             1. email (str): Recipient's email address.
@@ -63,41 +61,47 @@ class AccountVerificationService:
             1. bool: True if email scheduled successfully, False on failure.
         """
         try:
-            # ---------------------------- Generate Token ----------------------------
-            verification_token = await AccountVerificationService.create_verification_token(
-                email, table, expires_minutes
-            )
+            # Generate verification token for user
+            verification_token = await AccountVerificationService.create_verification_token(email, table, expires_minutes)
 
-            # ---------------------------- Store Token in Redis ----------------------------
+            # Store token in Redis with expiration for single-use enforcement
             await redis_client.set(f"verify:{verification_token}", "1", ex=expires_minutes * 60)
 
-            # ---------------------------- Build Verification URL ----------------------------
+            # Construct frontend verification URL including token
             verify_url = f"{settings.FRONTEND_BASE_URL}/verify-account?token={verification_token}"
 
-            # ---------------------------- Schedule Celery Email Task ----------------------------
+            # Schedule asynchronous email task via Celery
             send_email_task.apply_async(
                 kwargs={
+                    # Recipient email
                     "to_email": email,
+
+                    # Email subject
                     "subject": "Account Verification",
+
+                    # Email body with verification link
                     "body": f"Click the link to verify your account: {verify_url}"
                 }
             )
 
-            # ---------------------------- Log Success ----------------------------
+            # Log successful scheduling of email
             logger.info("Verification email scheduled for %s", email)
+
+            # Return True indicating success
             return True
 
-        # ---------------------------- Exception Handling ----------------------------
+        # Catch unexpected exceptions during email sending
         except Exception:
+            # Log full traceback for debugging
             logger.error("Error sending verification email:\n%s", traceback.format_exc())
+
+            # Return False indicating failure
             return False
 
     # ---------------------------- Create Verification Token ----------------------------
+    # Static method to create JWT verification token
     @staticmethod
-    async def create_verification_token(email: str, 
-                                        table: str, 
-                                        expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES
-                                        ) -> str:
+    async def create_verification_token(email: str, table: str, expires_minutes: int = settings.RESET_TOKEN_EXPIRE_MINUTES) -> str:
         """
         Input:
             1. email (str): User email.
@@ -112,21 +116,24 @@ class AccountVerificationService:
         Output:
             1. str: JWT verification token.
         """
-        # ---------------------------- Compute Expiration ----------------------------
+        # Calculate expiration datetime in UTC
         expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
 
-        # ---------------------------- Build JWT Payload ----------------------------
+        # Create payload dictionary for JWT token
         payload: dict[str, str | float] = {
-            "email": email,
-            "table": table,
-            "exp": expire.timestamp()
+            "email": email,  # User email
+            "table": table,  # User role table
+            "exp": expire.timestamp()  # Expiration timestamp
         }
 
-        # ---------------------------- Encode JWT ----------------------------
+        # Encode payload into JWT token using secret and algorithm
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+        # Return encoded token
         return token
 
     # ---------------------------- Verify Token ----------------------------
+    # Static method to verify JWT token and enforce single-use
     @staticmethod
     async def verify_token(token: str) -> dict | None:
         """
@@ -142,31 +149,35 @@ class AccountVerificationService:
             1. dict | None: Decoded payload if valid, else None.
         """
         try:
-            # ---------------------------- Decode JWT ----------------------------
+            # Decode token using secret key and algorithm
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
-            # ---------------------------- Check Single-use in Redis ----------------------------
+            # Check if token exists in Redis
             exists = await redis_client.get(f"verify:{token}")
+            
+            # Return None if token not found or already used
             if not exists:
                 logger.warning("Verification token not found or already used")
                 return None
 
-            # ---------------------------- Delete Token to Enforce Single-use ----------------------------
+            # Delete token from Redis to prevent reuse
             await redis_client.delete(f"verify:{token}")
+
+            # Return decoded payload
             return payload
 
-        # ---------------------------- Token Expired ----------------------------
         except jwt.ExpiredSignatureError:
+            # Log expired token usage
             logger.warning("Expired verification token used")
             return None
 
-        # ---------------------------- Token Invalid ----------------------------
         except jwt.InvalidTokenError:
+            # Log invalid token usage
             logger.warning("Invalid verification token used")
             return None
 
-        # ---------------------------- Unexpected Exception ----------------------------
         except Exception:
+            # Log unexpected errors with traceback
             logger.error("Error verifying account verification token:\n%s", traceback.format_exc())
             return None
 

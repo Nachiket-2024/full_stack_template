@@ -44,7 +44,6 @@ class LogoutHandler:
             1. JSONResponse: Success message if logout succeeds or error details otherwise.
         """
         try:
-            # ---------------------------- Validate Token ----------------------------
             # Return error if no refresh token is provided
             if not refresh_token:
                 return JSONResponse(
@@ -52,11 +51,9 @@ class LogoutHandler:
                     status_code=400
                 )
 
-            # ---------------------------- Revoke Token ----------------------------
             # Attempt to revoke the refresh token with db
             success = await self.refresh_token_service.revoke_refresh_token(refresh_token, db)
-
-            # ---------------------------- Check Revocation Result ----------------------------
+            
             # Return error if revocation failed
             if not success:
                 return JSONResponse(
@@ -64,7 +61,6 @@ class LogoutHandler:
                     status_code=400
                 )
 
-            # ---------------------------- Clear Cookies ----------------------------
             # Create response and delete access and refresh cookies
             resp = JSONResponse(
                 content={"message": "Logged out successfully"},
@@ -73,14 +69,13 @@ class LogoutHandler:
             resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
             resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
 
-            # ---------------------------- Return Response ----------------------------
             return resp
 
-        # ---------------------------- Exception Handling ----------------------------
         # Catch all unexpected errors
         except Exception:
             # Log full traceback for debugging
             logger.error("Error during logout logic:\n%s", traceback.format_exc())
+            
             # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 

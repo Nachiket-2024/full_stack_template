@@ -18,7 +18,6 @@ class Admin(Base):
     """
     __tablename__ = "admin"
 
-    # ---------------------------- Columns ----------------------------
     # Unique internal ID (primary key)
     id = Column(Integer, primary_key=True, index=True)
 

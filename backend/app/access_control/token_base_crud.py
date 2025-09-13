@@ -52,6 +52,7 @@ class TokenBaseCRUD:
         """
         # Execute SQL query to find record by id
         result = await db.execute(select(self.model).where(self.model.id == id))
+
         # Return single object or None
         return result.scalar_one_or_none()
 
@@ -69,6 +70,7 @@ class TokenBaseCRUD:
         """
         # Execute query to select all records
         result = await db.execute(select(self.model))
+        
         # Return list of all objects
         return result.scalars().all()
 
@@ -87,6 +89,7 @@ class TokenBaseCRUD:
         """
         # Execute query to find record by email
         result = await db.execute(select(self.model).where(self.model.email == email))
+
         # Return single object or None
         return result.scalar_one_or_none()
 
@@ -105,6 +108,7 @@ class TokenBaseCRUD:
         """
         # Execute query to find record by access token
         result = await db.execute(select(self.model).where(self.model.access_token == access_token))
+
         # Return single object or None
         return result.scalar_one_or_none()
 
@@ -123,6 +127,7 @@ class TokenBaseCRUD:
         """
         # Execute query to find record by refresh token
         result = await db.execute(select(self.model).where(self.model.refresh_token == refresh_token))
+
         # Return single object or None
         return result.scalar_one_or_none()
 
@@ -142,12 +147,16 @@ class TokenBaseCRUD:
         """
         # Create model instance with data
         obj = self.model(**obj_data)
+
         # Add object to session
         db.add(obj)
+
         # Commit transaction to save changes
         await db.commit()
+
         # Refresh object to sync with database state
         await db.refresh(obj)
+
         # Return created object
         return obj
 
@@ -169,12 +178,16 @@ class TokenBaseCRUD:
         # Apply each field update
         for field, value in update_data.items():
             setattr(db_obj, field, value)
+
         # Add updated object to session
         db.add(db_obj)
+
         # Commit changes
         await db.commit()
+
         # Refresh object state
         await db.refresh(db_obj)
+
         # Return updated object
         return db_obj
 
@@ -195,9 +208,11 @@ class TokenBaseCRUD:
         """
         # Fetch record by email
         db_obj = await self.get_by_email(db, email)
+
         # Return None if record not found
         if not db_obj:
             return None
+        
         # Update record with new data
         return await self.update(db, db_obj, update_data)
 
@@ -218,9 +233,11 @@ class TokenBaseCRUD:
         """
         # Fetch record by access token
         db_obj = await self.get_by_access_token(db, access_token)
+
         # Return None if record not found
         if not db_obj:
             return None
+        
         # Update record with new data
         return await self.update(db, db_obj, update_data)
 
@@ -241,9 +258,11 @@ class TokenBaseCRUD:
         """
         # Fetch record by refresh token
         db_obj = await self.get_by_refresh_token(db, refresh_token)
+
         # Return None if record not found
         if not db_obj:
             return None
+        
         # Update record with new data
         return await self.update(db, db_obj, update_data)
 
@@ -280,5 +299,6 @@ class TokenBaseCRUD:
         """
         # Delete object from session
         await db.delete(db_obj)
+
         # Commit transaction to apply deletion
         await db.commit()

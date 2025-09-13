@@ -45,7 +45,6 @@ class LogoutAllHandler:
             1. JSONResponse: Success message with count of devices logged out or error message.
         """
         try:
-            # ---------------------------- Validate Token ----------------------------
             # Return error if no refresh token is provided
             if not refresh_token:
                 return JSONResponse(
@@ -53,11 +52,9 @@ class LogoutAllHandler:
                     status_code=400
                 )
 
-            # ---------------------------- Revoke All Tokens ----------------------------
             # Revoke all refresh tokens associated with this user
             revoked_count = await self.jwt_service.revoke_all_refresh_tokens_for_user(refresh_token, db=db)
 
-            # ---------------------------- Check Revocation Result ----------------------------
             # Return error if no tokens were revoked
             if revoked_count == 0:
                 return JSONResponse(
@@ -65,7 +62,6 @@ class LogoutAllHandler:
                     status_code=400
                 )
 
-            # ---------------------------- Clear Cookies ----------------------------
             # Prepare response and delete access and refresh cookies
             resp = JSONResponse(
                 content={"message": f"Logged out from {revoked_count} devices"},
@@ -77,11 +73,11 @@ class LogoutAllHandler:
             # Return the prepared response
             return resp
 
-        # ---------------------------- Exception Handling ----------------------------
         # Catch all unexpected errors
         except Exception:
             # Log full traceback for debugging
             logger.error("Error during logout-all logic:\n%s", traceback.format_exc())
+            
             # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 

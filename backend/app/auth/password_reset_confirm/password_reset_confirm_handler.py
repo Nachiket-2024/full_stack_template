@@ -34,8 +34,10 @@ class PasswordResetConfirmHandler:
     def __init__(self):
         # Assign JWT service to instance
         self.jwt_service = jwt_service
+
         # Assign password reset service to instance
         self.password_reset_service = password_reset_service
+
         # Assign login protection service to instance
         self.login_protection_service = login_protection_service
 
@@ -58,7 +60,6 @@ class PasswordResetConfirmHandler:
             1. JSONResponse: Success or error message with appropriate HTTP status code.
         """
         try:
-            # ---------------------------- Verify Token ----------------------------
             # Decode and validate the JWT token for password reset
             payload = await self.jwt_service.verify_token(token)
 
@@ -72,7 +73,6 @@ class PasswordResetConfirmHandler:
             # Key for tracking login attempts and potential lockouts
             email_lock_key = f"login_lock:email:{email}"
 
-            # ---------------------------- Reset Password ----------------------------
             # Attempt to reset the user's password using the password reset service
             success = await self.password_reset_service.reset_password(token, new_password)
 
@@ -84,7 +84,6 @@ class PasswordResetConfirmHandler:
                 status = 200
                 content = {"message": "Password has been reset successfully"}
 
-            # ---------------------------- Check Brute-force ----------------------------
             # Record this action and enforce lockout if too many failed attempts
             allowed = await self.login_protection_service.check_and_record_action(
                 email_lock_key, success=(status == 200)
@@ -94,14 +93,13 @@ class PasswordResetConfirmHandler:
             if not allowed:
                 return JSONResponse({"error": "Too many failed attempts, temporarily locked"}, status_code=429)
 
-            # ---------------------------- Return Response ----------------------------
             # Return the final JSON response
             return JSONResponse(content, status_code=status)
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log any exceptions with full stack trace
             logger.error("Error during password reset confirm logic:\n%s", traceback.format_exc())
+            
             # Return generic internal server error response
             return JSONResponse({"error": "Internal Server Error"}, status_code=500)
 

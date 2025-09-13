@@ -21,6 +21,7 @@ class UserVerificationService:
     """
 
     # ---------------------------- Mark User Verified ----------------------------
+    # Static method to mark a user as verified in the database
     @staticmethod
     async def mark_user_verified(email: str) -> bool:
         """
@@ -36,26 +37,31 @@ class UserVerificationService:
             1. bool: True if verification succeeded, False otherwise.
         """
         try:
-            # ---------------------------- Iterate Role Tables ----------------------------
+            # Loop through each role table to find the user
             for role_name, crud in ROLE_TABLES.items():
-                # ---------------------------- Lookup User by Email ----------------------------
+                # Fetch user record from table using email
                 user = await crud.get_by_email(email)
-                
-                # ---------------------------- Check Verification Status ----------------------------
+
+                # Proceed only if user exists and is not yet verified
                 if user and not getattr(user, "is_verified", False):
-                    # ---------------------------- Update User Verification ----------------------------
+                    # Mark the user as verified in the database
                     await crud.update_by_email(email, {"is_verified": True})
 
-                    # ---------------------------- Log Success ----------------------------
+                    # Log the verification action for auditing
                     logger.info("User %s marked as verified in table %s", email, role_name)
+
+                    # Return True indicating successful verification
                     return True
 
-            # ---------------------------- User Not Found or Already Verified ----------------------------
+            # Return False if user was not found or already verified
             return False
 
-        # ---------------------------- Exception Handling ----------------------------
+        # Catch all unexpected exceptions during verification
         except Exception:
+            # Log the full traceback for debugging purposes
             logger.error("Error marking user verified:\n%s", traceback.format_exc())
+
+            # Return False indicating failure
             return False
 
 

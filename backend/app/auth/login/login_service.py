@@ -56,12 +56,10 @@ class LoginService:
                                         otherwise returns None.
         """
         try:
-            # ---------------------------- Input Validation ----------------------------
             # Return None if email or password is missing
             if not email or not password:
                 return None
 
-            # ---------------------------- Find User ----------------------------
             # Initialize variables
             user = None
             user_table_name = None
@@ -78,26 +76,22 @@ class LoginService:
                 logger.info("Login attempt with non-existing email: %s", email)
                 return None
 
-            # ---------------------------- Check Verification ----------------------------
             # Ensure user account is verified before login
             if not user.is_verified:
                 logger.info("Login blocked for unverified account: %s", email)
                 return None
 
-            # ---------------------------- Verify Password ----------------------------
             # Check if the provided password matches the stored hash
             if not await password_service.verify_password(password, user.hashed_password):
                 logger.warning("Incorrect password for email: %s", email)
                 return None
 
-            # ---------------------------- Generate Tokens ----------------------------
             # Concurrently create access and refresh tokens
             access_token, refresh_token = await asyncio.gather(
                 jwt_service.create_access_token(email, user_table_name),
                 jwt_service.create_refresh_token(email, user_table_name)
             )
 
-            # ---------------------------- Update or Create Token Record ----------------------------
             # Get token CRUD instance for the user's role/table
             token_crud = TOKEN_TABLES[user_table_name]
 
@@ -116,11 +110,9 @@ class LoginService:
                 }
                 await token_crud.create(db, token_data)
 
-            # ---------------------------- Return Tokens ----------------------------
             # Return structured token response
             return TokenPairResponseSchema(access_token=access_token, refresh_token=refresh_token)
 
-        # ---------------------------- Exception Handling ----------------------------
         # Catch all unexpected errors
         except Exception:
             # Log full exception stack trace

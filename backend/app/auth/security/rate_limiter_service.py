@@ -33,10 +33,9 @@ class RateLimiterService:
     2. reset_counter - Reset request counter for a given key.
     3. rate_limited - Decorator to apply rate limiting to FastAPI endpoint functions.
     """
-
-    # ---------------------------- Configurable Values ----------------------------
     # Maximum allowed requests per time window
     MAX_REQUESTS_PER_WINDOW: int = settings.MAX_REQUESTS_PER_WINDOW
+
     # Duration of the time window in seconds
     REQUEST_WINDOW_SECONDS: int = settings.REQUEST_WINDOW_SECONDS
 
@@ -65,6 +64,7 @@ class RateLimiterService:
             if count is None:
                 # Set initial count to 1 and set expiration for window
                 await redis_client.set(key, 1, ex=RateLimiterService.REQUEST_WINDOW_SECONDS)
+
                 # Allow request
                 return True
 
@@ -72,6 +72,7 @@ class RateLimiterService:
             elif int(count) < RateLimiterService.MAX_REQUESTS_PER_WINDOW:
                 # Increment request count
                 await redis_client.incr(key)
+
                 # Allow request
                 return True
 
@@ -84,6 +85,7 @@ class RateLimiterService:
         except Exception:
             # Log exception with full traceback
             logger.error("Error recording rate-limited request:\n%s", traceback.format_exc())
+
             # Deny request on error
             return False
 
@@ -103,6 +105,7 @@ class RateLimiterService:
         try:
             # Delete Redis key to reset counter
             await redis_client.delete(key)
+            
         except Exception:
             # Log any error encountered
             logger.error("Error resetting rate limiter counter:\n%s", traceback.format_exc())

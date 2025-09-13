@@ -21,7 +21,6 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,  # Backend URL for task results
 )
 
-# ---------------------------- Auto-Discovery of Tasks ----------------------------
 # Automatically discover Celery tasks in specified packages
 celery_app.autodiscover_tasks(["app.celery.email_tasks"])
 
@@ -36,6 +35,5 @@ celery_app.conf.update(
     worker_pool="asyncio",            # Use asyncio pool for non-blocking tasks
 )
 
-# ---------------------------- Log Initialization ----------------------------
 # Log successful Celery app initialization
 logger.info("Celery app initialized with broker: %s", settings.CELERY_BROKER_URL)

@@ -41,6 +41,7 @@ class RoleChecker:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authorization header must start with Bearer",
             )
+        
         # Extract and return only the raw token
         return authorization.split(" ")[1]
 
@@ -167,10 +168,13 @@ class RoleChecker:
         """
         # Define dependency wrapper
         async def wrapper(token: str = Depends(self._get_token)):
+
             # Ensure permission is valid
             await self.require_permission(permission, token)
+
             # Extract payload
             payload = await self.get_payload(token)
+            
             # Return role and email
             return payload.get("table"), payload.get("email")
 

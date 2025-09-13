@@ -25,10 +25,9 @@ class LoginProtectionService:
     3. reset_failed_attempts - Clear failed attempts after successful login.
     4. check_and_record_action - Record action outcome and enforce lockout if necessary.
     """
-
-    # ---------------------------- Configurable Values ----------------------------
     # Maximum allowed failed login attempts before lockout
     MAX_FAILED_LOGIN_ATTEMPTS: int = settings.MAX_FAILED_LOGIN_ATTEMPTS
+
     # Lockout duration in seconds
     LOGIN_LOCKOUT_TIME: int = settings.LOGIN_LOCKOUT_TIME                
 
@@ -94,6 +93,7 @@ class LoginProtectionService:
         except Exception:
             # Log exception with full traceback
             logger.error("Error checking login lock status:\n%s", traceback.format_exc())
+
             # Default to unlocked on error
             return False
 
@@ -113,6 +113,7 @@ class LoginProtectionService:
         try:
             # Delete the Redis key to reset failed attempts
             await redis_client.delete(key)
+
         except Exception:
             # Log exception with full traceback
             logger.error("Error resetting failed login attempts:\n%s", traceback.format_exc())
@@ -141,6 +142,7 @@ class LoginProtectionService:
         # If action succeeded, reset failed attempts
         if success:
             await LoginProtectionService.reset_failed_attempts(key)
+            
         else:
             # Record a failed attempt if action failed
             await LoginProtectionService.record_failed_attempt(key)

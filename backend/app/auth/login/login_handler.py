@@ -52,7 +52,6 @@ class LoginHandler:
                              or receives an error message.
         """
         try:
-            # ---------------------------- Input Validation ----------------------------
             # Return error if email or password is missing
             if not email or not password:
                 return JSONResponse(
@@ -60,7 +59,6 @@ class LoginHandler:
                     status_code=400,
                 )
 
-            # ---------------------------- Authenticate User ----------------------------
             # Authenticate the user via login_service and get tokens
             tokens = await login_service.login(email=email, password=password, db=db)
             # Return error if authentication fails
@@ -70,9 +68,9 @@ class LoginHandler:
                     status_code=401,
                 )
 
-            # ---------------------------- Login Protection ----------------------------
             # Generate key for tracking login attempts for this email
             email_lock_key = f"login_lock:email:{email}"
+
             # Record the successful login attempt and verify if allowed
             allowed = await login_protection_service.check_and_record_action(
                 email_lock_key, success=True
@@ -86,15 +84,14 @@ class LoginHandler:
                     status_code=429,
                 )
 
-            # ---------------------------- Set Tokens in Cookies ----------------------------
             # Set authentication tokens in secure HTTP-only cookies
             return token_cookie_handler.set_tokens_in_cookies(tokens)
 
-        # ---------------------------- Exception Handling ----------------------------
         # Catch all unexpected errors
         except Exception:
             # Log full traceback for debugging
             logger.error("Error during login:\n%s", traceback.format_exc())
+            
             # Return generic internal server error response
             return JSONResponse(
                 content={"error": "Internal Server Error"}, status_code=500

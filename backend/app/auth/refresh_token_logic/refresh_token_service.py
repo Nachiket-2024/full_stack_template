@@ -1,21 +1,23 @@
 # ---------------------------- External Imports ----------------------------
-# For async logging and traceback
+# Import logging module for async logging and tracing
 import logging
+
+# Import traceback module to capture full stack traces
 import traceback
 
 # ---------------------------- Internal Imports ----------------------------
-# JWT creation, verification, and revocation service
+# Import JWT service for token creation, verification, and revocation
 from ..token_logic.jwt_service import jwt_service
 
-# Role → Token table mapping for refresh tokens
+# Import role → token table mapping for refresh tokens
 from ...access_control.role_tables import TOKEN_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
-# Create module-specific logger
+# Create logger instance specific to this module
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Refresh Token Service Class ----------------------------
-# Service class responsible for handling refresh token operations
+# Service class responsible for refresh token operations
 class RefreshTokenService:
     """
     1. refresh_tokens - Refresh access and refresh tokens for a user and update token table.
@@ -42,56 +44,60 @@ class RefreshTokenService:
             1. dict: Contains new access_token and refresh_token or None on failure.
         """
         try:
-            # ---------------------------- Check Revocation ----------------------------
-            # Return None if token is already revoked
+            # Check if token is already revoked in Redis
             if await jwt_service.is_token_revoked(refresh_token):
+                # Log warning about revoked token usage
                 logger.warning("Attempt to use revoked refresh token")
+
+                # Return None since token cannot be used
                 return None
 
-            # ---------------------------- Verify Token ----------------------------
-            # Verify refresh token payload
+            # Verify refresh token and get payload
             payload = await jwt_service.verify_token(refresh_token)
-            # Return None if payload is invalid
+
+            # If payload is invalid, log warning and return None
             if not payload:
                 logger.warning("Invalid or expired refresh token")
                 return None
 
-            # Extract email and role table from payload
-            email, table = payload.get("email"), payload.get("table")
-            # Return None if email or table missing
+            # Extract email and table from payload
+            email = payload.get("email")
+            table = payload.get("table")
+
+            # Validate that email and table exist
             if not email or not table:
                 logger.warning("Malformed refresh token payload")
                 return None
 
-            # ---------------------------- Revoke Old Token ----------------------------
-            # Revoke old refresh token in Redis
+            # Revoke the old refresh token in Redis
             await jwt_service.revoke_refresh_token(refresh_token)
 
-            # ---------------------------- Generate New Tokens ----------------------------
-            # Create new access token
+            # Create new access token for the user
             new_access_token = await jwt_service.create_access_token(email, table)
-            # Create new refresh token
+
+            # Create new refresh token for the user
             new_refresh_token = await jwt_service.create_refresh_token(email, table)
 
-            # ---------------------------- Persist New Token ----------------------------
-            # Get token table corresponding to user's role
+            # Get the token table corresponding to the user's role
             token_table = TOKEN_TABLES.get(table)
-            # Log and return None if table mapping not found
+
+            # Log error if no token table mapping exists
             if not token_table:
                 logger.error(f"No token table mapping found for role: {table}")
                 return None
 
-            # Update refresh token in database
+            # Update refresh token in the database
             await token_table.update_refresh_token_by_access_token(db, refresh_token, new_refresh_token)
 
-            # ---------------------------- Return Tokens ----------------------------
             # Return dictionary containing new tokens
             return {"access_token": new_access_token, "refresh_token": new_refresh_token}
 
-        # ---------------------------- Exception Handling ----------------------------
+        # Catch unexpected exceptions
         except Exception:
-            # Log unexpected errors with traceback
+            # Log the full traceback for debugging
             logger.error("Unexpected error in refreshing tokens:\n%s", traceback.format_exc())
+
+            # Return None on error
             return None
 
     # ---------------------------- Revoke Refresh Token ----------------------------
@@ -111,31 +117,39 @@ class RefreshTokenService:
             1. bool: True if successfully revoked, False otherwise.
         """
         try:
-            # ---------------------------- Verify Token ----------------------------
+            # Verify token and get payload
             payload = await jwt_service.verify_token(refresh_token)
+
+            # Return False if payload is invalid
             if not payload:
                 return False
 
-            # Extract email and role table
-            email, table = payload.get("email"), payload.get("table")
+            # Extract email and table from payload
+            email = payload.get("email")
+            table = payload.get("table")
+
+            # Return False if email or table missing
             if not email or not table:
                 return False
 
-            # ---------------------------- Revoke in Redis ----------------------------
+            # Revoke token in Redis
             revoked = await jwt_service.revoke_refresh_token(refresh_token)
 
-            # ---------------------------- Update Token Table ----------------------------
+            # Get token table corresponding to role
             token_table = TOKEN_TABLES.get(table)
+
+            # Update token table in DB to mark token as inactive
             if token_table:
                 await token_table.update_refresh_token_by_access_token(db, refresh_token, new_refresh_token=None)
 
-            # Return whether revocation succeeded in Redis
+            # Return whether revocation in Redis succeeded
             return revoked
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log unexpected errors with traceback
             logger.error("Unexpected error in revoking refresh token:\n%s", traceback.format_exc())
+
+            # Return False on exception
             return False
 
     # ---------------------------- Revoke All Tokens for Email ----------------------------
@@ -156,50 +170,59 @@ class RefreshTokenService:
             1. int: Number of tokens successfully revoked.
         """
         try:
-            # ---------------------------- Verify Token ----------------------------
+            # Verify token and extract payload
             payload = await jwt_service.verify_token(refresh_token)
+
+            # Return 0 if payload invalid
             if not payload:
                 return 0
 
-            # Extract email and role table from payload
-            email, table = payload.get("email"), payload.get("table")
+            # Extract email and table
+            email = payload.get("email")
+            table = payload.get("table")
+
+            # Return 0 if email or table missing
             if not email or not table:
                 return 0
 
-            # ---------------------------- Fetch Token Table ----------------------------
+            # Get token table for role
             token_table = TOKEN_TABLES.get(table)
+
+            # Return 0 if no mapping exists
             if not token_table:
                 logger.error(f"No token table mapping found for role: {table}")
                 return 0
 
-            # ---------------------------- Fetch All Tokens ----------------------------
+            # Fetch all refresh tokens for the user
             all_tokens = await token_table.get_all_refresh_tokens(email=email, db=db)
+            
+            # Return 0 if no tokens found
             if not all_tokens:
                 return 0
 
-            # ---------------------------- Revoke Tokens in Redis ----------------------------
+            # Revoke all tokens in Redis
             revoked_count = await jwt_service.revoke_all_refresh_tokens_for_user(
                 email=email, table=table, all_tokens=all_tokens
             )
 
-            # ---------------------------- Mark Tokens Inactive in DB ----------------------------
+            # Mark all tokens inactive in DB
             for token in all_tokens:
                 await token_table.update_refresh_token_by_access_token(db, token, new_refresh_token=None)
 
-            # Return total revoked count
+            # Return total number of revoked tokens
             return revoked_count
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
-            # Log unexpected errors with traceback
+            # Log errors during mass revocation with traceback
             logger.error(
                 "Error revoking all tokens for email from token %s:\n%s",
                 refresh_token,
                 traceback.format_exc(),
             )
+            # Return 0 on exception
             return 0
 
 
 # ---------------------------- Service Instance ----------------------------
-# Singleton instance to be imported in other modules
+# Singleton instance of RefreshTokenService for importing elsewhere
 refresh_token_service = RefreshTokenService()

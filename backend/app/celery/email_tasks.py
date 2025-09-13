@@ -47,19 +47,21 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
         1. bool: True if email sent successfully, False otherwise.
     """
     try:
-        # ---------------------------- Compose Email ----------------------------
         # Create a new email message
         message = EmailMessage()
+
         # Set sender email
         message["From"] = settings.FROM_EMAIL
+
         # Set recipient email
         message["To"] = to_email
+
         # Set email subject
         message["Subject"] = subject
+
         # Set email body/content
         message.set_content(body)
 
-        # ---------------------------- Prepare OAuth2 Credentials ----------------------------
         # Create credentials object with refresh token
         creds = Credentials(
             token=None,
@@ -71,10 +73,10 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
 
         # Refresh token to get access token (blocking operation run in separate thread)
         await asyncio.to_thread(creds.refresh, None)
+
         # Extract access token after refresh
         access_token = creds.token
 
-        # ---------------------------- Send Email ----------------------------
         # Send email via Gmail SMTP using OAuth2 access token
         await aiosmtplib.send(
             message,
@@ -85,11 +87,10 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
             password=access_token,  # OAuth2 access token
         )
 
-        # ---------------------------- Log Success ----------------------------
+        # Log as email sent to "to_email"
         logger.info("Email sent to %s", to_email)
         return True
 
-    # ---------------------------- Exception Handling ----------------------------
     except Exception:
         # Log any exception with full stack trace
         logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())

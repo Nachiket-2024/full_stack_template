@@ -18,7 +18,6 @@ class Role1(Base):
     """
     __tablename__ = "role1"
 
-    # ---------------------------- Columns ----------------------------
     # Unique internal ID (primary key)
     id = Column(Integer, primary_key=True, index=True)
 

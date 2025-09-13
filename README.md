@@ -8,8 +8,8 @@ A scalable full-stack template with FastAPI backend and React frontend, designed
 
 - **Backend:** FastAPI, SQLAlchemy (async), Alembic migrations  
 - **Authentication:** Email + Password (with JWT access & refresh tokens), Google OAuth2 
-- **Frontend:** React + Vite, Tailwind CSS, Material UI  
-- **State Management:** Redux (main app state) and optional React Query (server-state caching)  
+- **Frontend:** React + Vite, Tailwind CSS  
+- **State Management:** Redux (main app state) 
 - **Database:** PostgreSQL (async)  
 - **Caching & Tasks:** Redis + Celery    
 - **Deployment:** Docker

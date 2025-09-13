@@ -5,47 +5,40 @@ from pydantic_settings import BaseSettings
 # ---------------------------- Settings Class ----------------------------
 # Load configuration from .env file and provide structured access
 class Settings(BaseSettings):
-    # ---------------------------- App Config ----------------------------
+
     BACKEND_BASE_URL: str                           # Backend URL for Auth redirection from frontend
     FRONTEND_BASE_URL: str                          # Frontend URL for redirection
 
-    # ---------------------------- Database Config ----------------------------
     DATABASE_URL: str                               # Async PostgreSQL connection URL
 
-    # ---------------------------- JWT Config ----------------------------
     SECRET_KEY: str                                 # Secret key for JWT encoding
     ACCESS_TOKEN_EXPIRE_MINUTES: int                # Access token expiration time in minutes
     REFRESH_TOKEN_EXPIRE_MINUTES: int               # Refresh token expiration time in minutes
     JWT_ALGORITHM: str                              # Algorithm for JWT encoding
     RESET_TOKEN_EXPIRE_MINUTES: int                 # Password reset token expiration time in minutes
 
-    # ---------------------------- OAuth2 / Gmail Config ----------------------------
-    GOOGLE_CLIENT_ID: str                            # OAuth2 Client ID for Gmail
-    GOOGLE_CLIENT_SECRET: str                        # OAuth2 Client Secret for Gmail
-    GOOGLE_REDIRECT_URI: str                         # OAuth2 redirect URI for Gmail login
+    GOOGLE_CLIENT_ID: str                           # OAuth2 Client ID for Gmail
+    GOOGLE_CLIENT_SECRET: str                       # OAuth2 Client Secret for Gmail
+    GOOGLE_REDIRECT_URI: str                        # OAuth2 redirect URI for Gmail login
 
-    # ---------------------------- Redis Config ----------------------------
     REDIS_URL: str                                  # Redis connection URL
     CACHE_DEFAULT_TTL: int                          # Default TTL for Redis cache keys in seconds
 
-    # ---------------------------- Celery Config ----------------------------
     CELERY_BROKER_URL: str                          # Celery broker URL for task queue
-    CELERY_RESULT_BACKEND: str                      # Celery backend to store results
+    CELERY_RESULT_BACKEND: str                      # Celery backend to store 
 
-    # ---------------------------- Email / SMTP Config ----------------------------
     FROM_EMAIL: str                                 # Email address used to send password reset emails
     GOOGLE_EMAIL_REFRESH_TOKEN: str                 # OAuth2 refresh token for sending emails
 
-    # ---------------------------- Rate Limiter Config ----------------------------
     LOGIN_LOCKOUT_TIME: int                         # Time in seconds to lockout after failed login attempts
     MAX_FAILED_LOGIN_ATTEMPTS: int                  # Max failed login attempts before lockout
     MAX_REQUESTS_PER_WINDOW: int                    # Max requests allowed per rate limit window
     REQUEST_WINDOW_SECONDS: int                     # Time window for rate limiting in seconds
 
-    # ---------------------------- Pydantic Config ----------------------------
     class Config:
         # Load environment variables from a .env file
         env_file = ".env"
+
         # Encoding for the .env file
         env_file_encoding = "utf-8"
 

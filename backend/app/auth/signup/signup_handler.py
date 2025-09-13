@@ -54,17 +54,14 @@ class SignupHandler:
             1. JSONResponse: Success or error message with HTTP status code.
         """
         try:
-            # ---------------------------- Input Validation ----------------------------
             # Ensure required fields are provided
             if not name or not email or not password:
                 # Return 400 if missing any required field
                 return JSONResponse(content={"error": "Name, email, and password are required"}, status_code=400)
 
-            # ---------------------------- Assign Role ----------------------------
             # Always assign default role (overwrites input role for now)
             role = DEFAULT_ROLE
 
-            # ---------------------------- Call Signup Service ----------------------------
             # Create user in the database
             user_created = await signup_service.signup(
                 name=name,               # User's full name
@@ -81,7 +78,6 @@ class SignupHandler:
                     status_code=400
                 )
 
-            # ---------------------------- Send Verification Email ----------------------------
             # Trigger sending of verification email
             email_sent = await account_verification_service.send_verification_email(email, role)
             
@@ -89,14 +85,12 @@ class SignupHandler:
             if not email_sent:
                 logger.warning("Verification email could not be sent to %s", email)
 
-            # ---------------------------- Return Success ----------------------------
             # Respond with success message and instructions
             return JSONResponse(
                 content={"message": "Signup successful. Please verify your email to activate your account."},
                 status_code=200
             )
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log full exception stack trace
             logger.error("Error during signup logic:\n%s", traceback.format_exc())

@@ -34,8 +34,10 @@ class AccountVerificationHandler:
     def __init__(self):
         # Service to decode and validate verification tokens
         self.account_verification_service = account_verification_service
+
         # Service to mark users as verified in database
         self.user_verification_service = user_verification_service
+
         # Service for brute-force protection during verification
         self.login_protection_service = login_protection_service
 
@@ -55,11 +57,9 @@ class AccountVerificationHandler:
             1. JSONResponse: Success or error message with HTTP status code.
         """
         try:
-            # ---------------------------- Verify Token ----------------------------
             # Decode and validate the verification token
             payload = await self.account_verification_service.verify_token(token)
 
-            # ---------------------------- Validate Payload ----------------------------
             # Ensure payload exists and contains required email field
             if not payload or "email" not in payload:
                 return JSONResponse(
@@ -67,15 +67,12 @@ class AccountVerificationHandler:
                     status_code=400
                 )
 
-            # ---------------------------- Extract Email ----------------------------
             # Get user email from token payload
             email = payload["email"]
 
-            # ---------------------------- Build Lock Key ----------------------------
             # Key for tracking failed attempts per email
             email_lock_key = f"login_lock:email:{email}"
 
-            # ---------------------------- Mark User Verified ----------------------------
             # Update database record to mark user as verified
             updated = await self.user_verification_service.mark_user_verified(email)
 
@@ -83,7 +80,6 @@ class AccountVerificationHandler:
             status = 200 if updated else 400
             content = {"message": f"Account verified successfully for {email}."} if updated else {"error": "User not found or already verified"}
 
-            # ---------------------------- Brute-force Protection ----------------------------
             # Record the verification attempt and enforce lockout if necessary
             allowed = await self.login_protection_service.check_and_record_action(email_lock_key, success=(status == 200))
 
@@ -93,11 +89,10 @@ class AccountVerificationHandler:
                     content={"error": "Too many failed attempts, account temporarily locked"},
                     status_code=429
                 )
-
-            # ---------------------------- Return Response ----------------------------
+            
+            # Return final success or error response
             return JSONResponse(content, status_code=status)
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log exception with full stack trace
             logger.error("Error during account verification:\n%s", traceback.format_exc())

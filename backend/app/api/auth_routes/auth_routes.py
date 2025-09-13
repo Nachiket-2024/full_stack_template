@@ -139,7 +139,7 @@ async def get_current_user(access_token: str = Cookie(None), db: AsyncSession = 
     Output:
         1. JSONResponse: Current user details or error if not authenticated.
     """
-    return await current_user_handler.get_current_user(access_token, db)
+    return await current_user_handler.get_current_user(access_token, db=db)
 
 # ---------------------------- Logout Endpoint ----------------------------
 @router.post("/logout")
@@ -158,7 +158,7 @@ async def logout(request: Request, db: AsyncSession = Depends(database.get_sessi
         1. JSONResponse: Response indicating logout success or failure.
     """
     refresh_token = request.cookies.get("refresh_token")
-    return await logout_handler.handle_logout(refresh_token, db)
+    return await logout_handler.handle_logout(refresh_token, db=db)
 
 # ---------------------------- Logout All Devices Endpoint ----------------------------
 @router.post("/logout/all")
@@ -167,7 +167,7 @@ async def logout_all(request: Request, db: AsyncSession = Depends(database.get_s
     """
     Input:
         1. request (Request): FastAPI request object containing cookies.
-        2. db (AsyncSession): Database session dependency.
+        2. db (AsyncSession): Database session for token revocation.
 
     Process:
         1. Extract refresh_token from cookies.
@@ -177,7 +177,8 @@ async def logout_all(request: Request, db: AsyncSession = Depends(database.get_s
         1. JSONResponse: Response indicating logout from all devices.
     """
     refresh_token = request.cookies.get("refresh_token")
-    return await logout_all_handler.handle_logout_all(refresh_token, db=db)
+    return await logout_all_handler.handle_logout_all(refresh_token, db)
+
 
 # ---------------------------- Password Reset Request ----------------------------
 @router.post("/password-reset/request")

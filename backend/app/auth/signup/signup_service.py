@@ -48,24 +48,20 @@ class SignupService:
             1. bool: True if user created successfully, False otherwise.
         """
         try:
-            # ---------------------------- Validate Password Strength ----------------------------
             # Return False if password does not meet security requirements
             if not await password_service.validate_password_strength(password):
                 logger.warning("Weak password during signup for email: %s", email)
                 return False
 
-            # ---------------------------- Check for Existing Users ----------------------------
             # Loop over all role tables to check if email already exists
             for crud in ROLE_TABLES.values():
                 if await crud.get_by_email(email, db=db):
                     logger.info("Signup attempt with existing email: %s", email)
                     return False
 
-            # ---------------------------- Hash Password ----------------------------
             # Generate secure hash of the password
             hashed_password = await password_service.hash_password(password)
 
-            # ---------------------------- Assign Role ----------------------------
             # Use provided role or fallback to default role
             role = role or DEFAULT_ROLE
 
@@ -74,7 +70,6 @@ class SignupService:
                 logger.warning("Invalid role during signup: %s", role)
                 return False
 
-            # ---------------------------- Prepare User Data ----------------------------
             # Construct dictionary for new user record
             user_data = {
                 "name": name,                     # User's full name
@@ -83,13 +78,12 @@ class SignupService:
                 "is_verified": False              # New users start as unverified
             }
 
-            # ---------------------------- Create User in DB ----------------------------
             # Use appropriate role table to insert user record
             await ROLE_TABLES[role].create(user_data, db=db)
+
             logger.info("User %s created with role %s", email, role)
             return True
 
-        # ---------------------------- Exception Handling ----------------------------
         except Exception:
             # Log full exception stack trace
             logger.error("Error during signup:\n%s", traceback.format_exc())
