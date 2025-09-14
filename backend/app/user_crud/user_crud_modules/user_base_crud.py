@@ -5,21 +5,19 @@ from sqlalchemy.future import select
 # Import AsyncSession for type hints and async database operations
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# ---------------------------- Base CRUD Class Definition ----------------------------
-class BaseCRUD:
+# ---------------------------- Base CRUD Operations ----------------------------
+class UserBaseCRUD:
     """
     1. get_by_id - Fetch a single record by primary key ID.
     2. get_all - Fetch all records of the model.
-    3. get_by_email - Fetch a record by email field.
-    4. create - Create a new record with provided data.
-    5. update - Update an existing record with provided data.
-    6. update_by_email - Fetch a record by email and update it.
-    7. delete - Delete a record from the database.
+    3. create - Create a new record with provided data.
+    4. update - Update an existing record with provided data.
+    5. delete - Delete a record from the database.
     """
 
     # ---------------------------- Initialization ----------------------------
     def __init__(self, model):
-        # Store SQLAlchemy ORM model
+        # Store SQLAlchemy ORM model for CRUD operations
         self.model = model
 
     # ---------------------------- Get Record by ID ----------------------------
@@ -60,25 +58,6 @@ class BaseCRUD:
         # Return all objects
         return result.scalars().all()
 
-    # ---------------------------- Get Record by Email ----------------------------
-    async def get_by_email(self, db: AsyncSession, email: str):
-        """
-        Input:
-            1. db (AsyncSession): Active database session.
-            2. email (str): Email to filter by.
-
-        Process:
-            1. Execute select query with email filter.
-
-        Output:
-            1. object | None: ORM instance or None if not found.
-        """
-        # Execute query by email
-        result = await db.execute(select(self.model).where(self.model.email == email))
-
-        # Return single object or None
-        return result.scalar_one_or_none()
-
     # ---------------------------- Create New Record ----------------------------
     async def create(self, db: AsyncSession, obj_data: dict):
         """
@@ -94,7 +73,7 @@ class BaseCRUD:
         Output:
             1. object: Newly created ORM instance.
         """
-        # Create ORM object
+        # Instantiate ORM object
         obj = self.model(**obj_data)
 
         # Add to session
@@ -103,7 +82,7 @@ class BaseCRUD:
         # Commit transaction
         await db.commit()
 
-        # Refresh with DB values
+        # Refresh object with DB values
         await db.refresh(obj)
 
         # Return new object
@@ -118,9 +97,9 @@ class BaseCRUD:
             3. update_data (dict): Fields and values to update.
 
         Process:
-            1. Check object exists.
+            1. Validate object exists.
             2. Update attributes.
-            3. Commit and refresh.
+            3. Commit and refresh object.
 
         Output:
             1. object | None: Updated object or None if not found.
@@ -129,46 +108,21 @@ class BaseCRUD:
         if not db_obj:
             return None
         
-        # Update fields
+        # Update fields dynamically
         for field, value in update_data.items():
             setattr(db_obj, field, value)
 
-        # Add updated object
+        # Add updated object to session
         db.add(db_obj)
 
         # Commit transaction
         await db.commit()
 
-        # Refresh object
+        # Refresh object with DB values
         await db.refresh(db_obj)
 
         # Return updated object
         return db_obj
-
-    # ---------------------------- Update by Email ----------------------------
-    async def update_by_email(self, db: AsyncSession, email: str, update_data: dict):
-        """
-        Input:
-            1. db (AsyncSession): Active database session.
-            2. email (str): Email to filter by.
-            3. update_data (dict): Fields and values to update.
-
-        Process:
-            1. Fetch record by email.
-            2. Update record with given data.
-
-        Output:
-            1. object | None: Updated object or None if not found.
-        """
-        # Get object by email
-        db_obj = await self.get_by_email(db, email)
-
-        # Return None if not found
-        if not db_obj:
-            return None
-        
-        # Update object
-        return await self.update(db, db_obj, update_data)
 
     # ---------------------------- Delete Record ----------------------------
     async def delete(self, db: AsyncSession, db_obj):
@@ -193,6 +147,6 @@ class BaseCRUD:
 
         # Commit transaction
         await db.commit()
-        
+
         # Return success
         return True

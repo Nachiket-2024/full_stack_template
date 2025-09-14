@@ -1,17 +1,19 @@
 # ---------------------------- External Imports ----------------------------
-# Logging modules for tracking events and debugging errors
+# Import logging module for capturing events and errors
 import logging
+
+# Import traceback for detailed error stack traces
 import traceback
 
-# FastAPI response class for sending JSON responses to clients
+# Import JSONResponse for returning structured JSON responses in FastAPI
 from fastapi.responses import JSONResponse
 
 # ---------------------------- Internal Imports ----------------------------
-# JWT service for handling token revocation and validation
-from ..token_logic.jwt_service import jwt_service
+# Import refresh token service for DB + Redis revocations
+from ..refresh_token_logic.refresh_token_service import refresh_token_service
 
 # ---------------------------- Logger Setup ----------------------------
-# Logger instance for capturing errors and debug information
+# Create a logger instance for this module
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Logout All Handler Class ----------------------------
@@ -20,11 +22,6 @@ class LogoutAllHandler:
     """
     1. handle_logout_all - Revoke all refresh tokens for the user and clear authentication cookies.
     """
-
-    # ---------------------------- Constructor ----------------------------
-    # Initialize LogoutAllHandler with required services
-    def __init__(self):
-        self.jwt_service = jwt_service
 
     # ---------------------------- Logout All Method ----------------------------
     # Async method to revoke all tokens for a user
@@ -36,7 +33,7 @@ class LogoutAllHandler:
 
         Process:
             1. Validate that refresh token is provided.
-            2. Revoke all refresh tokens for the user using JWT service.
+            2. Revoke all refresh tokens for the user using RefreshTokenService.
             3. Check number of tokens revoked and handle error if none.
             4. Clear access and refresh cookies.
             5. Return appropriate JSONResponse.
@@ -45,43 +42,51 @@ class LogoutAllHandler:
             1. JSONResponse: Success message with count of devices logged out or error message.
         """
         try:
-            # Return error if no refresh token is provided
+            # If refresh token is missing, return 400 Bad Request
             if not refresh_token:
+                # Return JSON error response
                 return JSONResponse(
                     content={"error": "No refresh token cookie found"},
                     status_code=400
                 )
 
-            # Revoke all refresh tokens associated with this user
-            revoked_count = await self.jwt_service.revoke_all_refresh_tokens_for_user(refresh_token, db=db)
+            # Call refresh_token_service to revoke all tokens for this user
+            revoked_count = await refresh_token_service.revoke_all_tokens_for_email(
+                refresh_token, db=db
+            )
 
-            # Return error if no tokens were revoked
+            # If no tokens were revoked, return error response
             if revoked_count == 0:
+                # Return JSON error response
                 return JSONResponse(
                     content={"error": "Invalid refresh token or no tokens to revoke"},
                     status_code=400
                 )
 
-            # Prepare response and delete access and refresh cookies
+            # Create success JSON response
             resp = JSONResponse(
                 content={"message": f"Logged out from {revoked_count} devices"},
                 status_code=200
             )
+
+            # Delete access token cookie
             resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
+
+            # Delete refresh token cookie
             resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
 
-            # Return the prepared response
+            # Return success response with cookies cleared
             return resp
 
-        # Catch all unexpected errors
+        # Handle unexpected errors gracefully
         except Exception:
-            # Log full traceback for debugging
+            # Log error with traceback for debugging
             logger.error("Error during logout-all logic:\n%s", traceback.format_exc())
-            
+
             # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 
 
 # ---------------------------- Instantiate LogoutAllHandler ----------------------------
-# Singleton instance for use in routes
+# Create singleton instance for reuse in routes
 logout_all_handler = LogoutAllHandler()
