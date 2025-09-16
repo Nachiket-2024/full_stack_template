@@ -48,7 +48,7 @@ class LoginService:
             3. Verify that the user account is verified.
             4. Check password correctness using password_service.
             5. Generate access and refresh tokens concurrently.
-            6. Update or create token record in TOKEN_TABLES.
+            6. Always insert a new token row into TOKEN_TABLES (append-only).
             7. Return structured token response.
 
         Output:
@@ -66,7 +66,7 @@ class LoginService:
 
             # Iterate over all role tables to find the user by email
             for table_name, crud in ROLE_TABLES.items():
-                user = await crud.get_by_email(db, email)  # returns correct model instance
+                user = await crud.get_by_email(db, email)
                 if user:
                     user_table_name = table_name
                     break
@@ -95,20 +95,13 @@ class LoginService:
             # Get token CRUD instance for the user's role/table
             token_crud = TOKEN_TABLES[user_table_name]
 
-            # Check if token already exists (by access token)
-            existing_token = await token_crud.get_by_access_token(db, access_token)
-
-            # Update refresh token if access token exists
-            if existing_token:
-                await token_crud.update_refresh_token_by_access_token(db, access_token, refresh_token)
-            else:
-                # Create new token record if none exists, including email for FK
-                token_data = {
-                    "email": email,  # FK mapping
-                    "access_token": access_token,
-                    "refresh_token": refresh_token
-                }
-                await token_crud.create(db, token_data)
+            # Always create a new token row (append-only, multi-device support)
+            token_data = {
+                "email": email,
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }
+            await token_crud.create(db, token_data)
 
             # Return structured token response
             return TokenPairResponseSchema(access_token=access_token, refresh_token=refresh_token)

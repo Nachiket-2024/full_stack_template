@@ -11,6 +11,7 @@ class TokenRefreshTokenCRUD:
     1. get_by_refresh_token - Fetch record by refresh token.
     2. update_by_refresh_token - Update record identified by refresh token.
     3. get_all_refresh_tokens - Fetch all refresh tokens for a given email.
+    4. deactivate_by_refresh_token - Mark token as inactive by setting is_active = False.
     """
 
     # ---------------------------- Constructor ----------------------------
@@ -103,3 +104,40 @@ class TokenRefreshTokenCRUD:
 
         # Return all matching objects as a list
         return result.scalars().all()
+
+    # ---------------------------- Deactivate by Refresh Token ----------------------------
+    async def deactivate_by_refresh_token(self, db: AsyncSession, refresh_token: str):
+        """
+        Input:
+            1. db (AsyncSession): Database session.
+            2. refresh_token (str): Token identifier.
+
+        Process:
+            1. Fetch record by refresh_token.
+            2. Set is_active = False if record is found.
+            3. Commit the transaction.
+
+        Output:
+            1. object | None: Updated record with is_active = False, or None if not found.
+        """
+        # Fetch record by refresh token
+        db_obj = await self.get_by_refresh_token(db, refresh_token)
+
+        # Return None if no record found
+        if not db_obj:
+            return None
+
+        # Set is_active flag to False
+        db_obj.is_active = False
+
+        # Add updated object to session
+        db.add(db_obj)
+
+        # Commit changes
+        await db.commit()
+
+        # Refresh object state
+        await db.refresh(db_obj)
+
+        # Return updated record
+        return db_obj

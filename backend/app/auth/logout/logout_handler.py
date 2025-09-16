@@ -10,6 +10,12 @@ from fastapi.responses import JSONResponse
 # Refresh token service to revoke tokens
 from ..refresh_token_logic.refresh_token_service import refresh_token_service
 
+# Token table mapping (role → CRUD)
+from ...access_control.role_tables import TOKEN_TABLES
+
+# JWT service for decoding token payload
+from ..token_logic.jwt_service import jwt_service
+
 # ---------------------------- Logger Setup ----------------------------
 # Configure module-specific logger
 logger = logging.getLogger(__name__)
@@ -18,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Handler class for managing user logout operations
 class LogoutHandler:
     """
-    1. handle_logout - Revoke refresh token, clear cookies, and return logout response.
+    1. handle_logout - Revoke refresh token, mark token inactive in DB, clear cookies, and return response.
     """
 
     # ---------------------------- Constructor ----------------------------
@@ -32,13 +38,15 @@ class LogoutHandler:
         """
         Input:
             1. refresh_token (str | None): Refresh token from user's cookie.
-            2. db: Database session for revoking the refresh token.
+            2. db: Database session for revoking and deactivating token.
 
         Process:
             1. Validate that refresh token is provided.
             2. Revoke the refresh token using refresh_token_service with db.
-            3. Clear access and refresh cookies if revocation succeeds.
-            4. Return appropriate JSONResponse.
+            3. Decode token payload to identify user role/table.
+            4. Update token record in DB (set is_active = False).
+            5. Clear access and refresh cookies if revocation succeeds.
+            6. Return appropriate JSONResponse.
 
         Output:
             1. JSONResponse: Success message if logout succeeds or error details otherwise.
@@ -60,6 +68,15 @@ class LogoutHandler:
                     content={"error": "Invalid refresh token or already revoked"},
                     status_code=400
                 )
+
+            # Decode token to extract payload for table identification
+            payload = await jwt_service.verify_token(refresh_token)
+            if payload:
+                table_name = payload.get("table")
+                token_crud = TOKEN_TABLES.get(table_name)
+                if token_crud:
+                    # Mark token inactive in DB
+                    await token_crud.deactivate_by_refresh_token(db, refresh_token)
 
             # Create response and delete access and refresh cookies
             resp = JSONResponse(
