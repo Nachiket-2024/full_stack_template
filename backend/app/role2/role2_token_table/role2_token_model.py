@@ -35,19 +35,5 @@ class Role2Token(Base):
     # Define optional field to store device/browser information
     device_info = Column(String, nullable=True)
 
-    # Define active status flag with default True
-    is_active = Column(Boolean, default=True, nullable=False)
-
     # Define creation timestamp with default value as current time
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-    # Define optional expiration timestamp for token
-    expires_at = Column(DateTime(timezone=True), nullable=True)
-
-    # Define auto-updated timestamp for modifications
-    updated_at = Column(
-        DateTime(timezone=True),
-        onupdate=func.now(),
-        server_default=func.now(),
-        nullable=False
-    )

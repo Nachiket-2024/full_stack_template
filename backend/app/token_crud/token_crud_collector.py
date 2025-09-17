@@ -43,7 +43,6 @@ class TokenCRUDCollector:
        11. get_by_refresh_token
        12. update_by_refresh_token
        13. get_all_refresh_tokens
-       14. deactivate_by_refresh_token
     """
 
     # ---------------------------- Constructor ----------------------------
@@ -114,10 +113,7 @@ class TokenCRUDCollector:
 
     async def get_all_refresh_tokens(self, db: AsyncSession, email: str):
         return await self.refresh.get_all_refresh_tokens(db, email)
-
-    async def deactivate_by_refresh_token(self, db: AsyncSession, refresh_token: str):
-        return await self.refresh.deactivate_by_refresh_token(db, refresh_token)
-
+    
 
 # ---------------------------- Exports ----------------------------
 __all__ = [

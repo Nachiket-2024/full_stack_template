@@ -31,9 +31,6 @@ class Role2TokenCreate(Role2TokenBase):
     # Define optional creation timestamp (defaults to DB-generated if not provided)
     created_at: datetime | None = None
 
-    # Define optional last updated timestamp (defaults to DB-generated if not provided)
-    updated_at: datetime | None = None
-
 # ---------------------------- Schema for Reading Tokens ----------------------------
 # Define schema for reading token records from the DB, inheriting from Role2TokenBase
 class Role2TokenRead(Role2TokenBase):
@@ -46,9 +43,6 @@ class Role2TokenRead(Role2TokenBase):
 
     # Define timestamp when token record was created
     created_at: datetime
-
-    # Define timestamp of last update to the token record
-    updated_at: datetime
 
     # Configure schema to allow loading from ORM objects
     class Config(ConfigDict):
