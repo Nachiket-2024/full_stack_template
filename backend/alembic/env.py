@@ -14,12 +14,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # ---------------------------- Internal Imports ----------------------------
 from app.database.base import Base  # Base metadata for all models
-from app.admin.admin_table.admin_model import Admin
-from app.admin.admin_token_table.admin_token_model import AdminToken
-from app.role1.role1_table.role1_model import Role1
-from app.role1.role1_token_table.role1_token_model import Role1Token
-from app.role2.role2_table.role2_model import Role2
-from app.role2.role2_token_table.role2_token_model import Role2Token
+from app.roles.admin.admin_model import Admin
+from app.roles.role1.role1_model import Role1
+from app.roles.role2.role2_model import Role2
 
 # ---------------------------- Load Environment ----------------------------
 load_dotenv()

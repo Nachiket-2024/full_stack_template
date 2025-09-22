@@ -10,13 +10,9 @@ from sqlalchemy.sql import func
 from ...database.base import Base
 
 # ---------------------------- Admin Model ----------------------------
-# Define Admin table for admin users
-class Admin(Base):
-    """
-    Admin table for storing user credentials and metadata.
-    Tokens are not stored here — see AdminToken table for multi-login support.
-    """
-    __tablename__ = "admin"
+# Define Role1 table for Role1 users
+class Role1(Base):
+    __tablename__ = "role1"
 
     # Unique internal ID (primary key)
     id = Column(Integer, primary_key=True, index=True)
