@@ -1,8 +1,8 @@
 # ---------------------------- External Imports ----------------------------
-# Import logging module for async logging and tracing
+# Logging for structured event and error logging
 import logging
 
-# Import traceback module to capture full stack traces
+# Capture full stack traces in case of exceptions
 import traceback
 
 # ---------------------------- Internal Imports ----------------------------
@@ -30,45 +30,45 @@ class RefreshTokenService:
             1. refresh_token (str): Existing refresh token to be rotated.
 
         Process:
-            1. Check if refresh token is already revoked in Redis.
-            2. Verify refresh token payload and extract user info.
+            1. Check if refresh token is revoked.
+            2. Verify token payload and extract user ID.
             3. Revoke old refresh token in Redis.
-            4. Generate new access and refresh tokens and store new refresh token in Redis.
+            4. Generate new access token.
+            5. Generate new refresh token.
+            6. Return dictionary containing new tokens.
 
         Output:
-            1. dict: Contains new access_token and refresh_token or None on failure.
+            1. dict | None: New tokens or None if failure.
         """
         try:
-            # -------1. Check if refresh token is already revoked in Redis-------
+            # Step 1: Check if refresh token is revoked
             if await jwt_service.is_token_revoked(refresh_token):
                 logger.warning("Attempt to use revoked refresh token")
                 return None
 
-            # -------2. Verify refresh token payload and extract user info--------
+            # Step 2: Verify token payload and extract user ID
             payload = await jwt_service.verify_token(refresh_token)
-
             if not payload:
-                logger.warning("Invalid or expired refresh token")
+                return None
+            user_id = payload.get("sub")
+            if not user_id:
                 return None
 
-            user_id = payload.get("user_id")
-            device_id = payload.get("device_id")
+            # Step 3: Revoke old refresh token in Redis
+            await jwt_service.revoke_token(refresh_token, user_id)
 
-            if not user_id or not device_id:
-                logger.warning("Malformed refresh token payload")
-                return None
+            # Step 4: Generate new access token
+            new_access_token = await jwt_service.create_access_token(user_id)
 
-            # -----------------3. Revoke old refresh token in Redis-----------------
-            await jwt_service.revoke_refresh_token(refresh_token)
+            # Step 5: Generate new refresh token
+            new_refresh_token = await jwt_service.create_refresh_token(user_id)
 
-            # --------4. Generate new access and refresh tokens and store---------
-            new_access_token = await jwt_service.create_access_token(user_id, device_id)
-            new_refresh_token = await jwt_service.create_refresh_token(user_id, device_id)
-
+            # Step 6: Return dictionary containing new tokens
             return {"access_token": new_access_token, "refresh_token": new_refresh_token}
 
         except Exception:
-            logger.error("Unexpected error in refreshing tokens:\n%s", traceback.format_exc())
+            # Log any unexpected exceptions with full stack trace
+            logger.error("Error refreshing token:\n%s", traceback.format_exc())
             return None
 
     # ---------------------------- Revoke Refresh Token ----------------------------
@@ -79,30 +79,31 @@ class RefreshTokenService:
             1. refresh_token (str): Refresh token to revoke.
 
         Process:
-            1. Verify token payload to extract user info.
-            2. Revoke token in Redis.
+            1. Verify token payload.
+            2. Extract user ID from payload.
+            3. Revoke refresh token in Redis.
 
         Output:
-            1. bool: True if successfully revoked, False otherwise.
+            1. bool: True if revoked, False otherwise.
         """
         try:
-            # -------1. Verify token payload to extract user info-------
+            # Step 1: Verify token payload
             payload = await jwt_service.verify_token(refresh_token)
-            
             if not payload:
                 return False
 
-            user_id = payload.get("user_id")
-            device_id = payload.get("device_id")
-
-            if not user_id or not device_id:
+            # Step 2: Extract user ID from payload
+            user_id = payload.get("sub")
+            if not user_id:
                 return False
 
-            # -----------------2. Revoke token in Redis-----------------
-            return await jwt_service.revoke_refresh_token(refresh_token)
+            # Step 3: Revoke refresh token in Redis
+            await jwt_service.revoke_token(refresh_token, user_id)
+            return True
 
         except Exception:
-            logger.error("Unexpected error in revoking refresh token:\n%s", traceback.format_exc())
+            # Log any unexpected exceptions with full stack trace
+            logger.error("Error revoking refresh token:\n%s", traceback.format_exc())
             return False
 
     # ---------------------------- Revoke All Tokens for User ----------------------------
@@ -110,33 +111,38 @@ class RefreshTokenService:
     async def revoke_all_tokens_for_user(user_id: str) -> int:
         """
         Input:
-            1. user_id (str): User identifier to revoke all tokens for.
+            1. user_id (str): User identifier.
 
         Process:
-            1. Fetch all active refresh tokens for the user from Redis.
-            2. Revoke all tokens in Redis.
+            1. Fetch all refresh tokens for the user.
+            2. Revoke each token in Redis.
+            3. Return count of revoked tokens.
 
         Output:
-            1. int: Number of tokens successfully revoked.
+            1. int: Number of tokens revoked.
         """
         try:
-            # -------1. Fetch all active refresh tokens for the user from Redis-------
-            all_tokens = await jwt_service.get_all_refresh_tokens_for_user(user_id)
-            if not all_tokens:
+            # Step 1: Fetch all refresh tokens for the user
+            tokens = await jwt_service.get_all_refresh_tokens_for_user(user_id)
+            if not tokens:
                 return 0
 
-            # -----------------2. Revoke all tokens in Redis-----------------
-            return await jwt_service.revoke_all_refresh_tokens_for_user(all_tokens)
+            revoked_count = 0
+
+            # Step 2: Revoke each token in Redis
+            for token in tokens:
+                if await jwt_service.revoke_token(token, user_id):
+                    revoked_count += 1
+
+            # Step 3: Return count of revoked tokens
+            return revoked_count
 
         except Exception:
-            logger.error(
-                "Error revoking all tokens for user %s:\n%s",
-                user_id,
-                traceback.format_exc(),
-            )
+            # Log any unexpected exceptions with full stack trace
+            logger.error("Error revoking all tokens for user %s:\n%s", user_id, traceback.format_exc())
             return 0
 
 
-# ---------------------------- Service Instance ----------------------------
-# Singleton instance of RefreshTokenService for importing elsewhere
+# ---------------------------- Singleton Instance ----------------------------
+# Create single global instance of RefreshTokenService for application usage
 refresh_token_service = RefreshTokenService()

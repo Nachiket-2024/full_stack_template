@@ -52,24 +52,24 @@ class PasswordResetRequestHandler:
             1. JSONResponse: Message indicating reset link sent or internal server error on failure.
         """
         try:
-            # Flag to track if a user exists for the given email
+            # Step 1: Flag to track if a user exists for the given email
             user_found = False
 
-            # Iterate over all role tables to find the user by email
+            # Step 1: Iterate over all role tables to find the user by email
             for role, crud in self.role_tables.items():
                 user = await crud.get_by_email(email)  # Query user in current role table
 
-                # If user exists, send reset email and stop further searching
+                # Step 2: If user exists, send password reset email via password_reset_service
                 if user:
                     user_found = True
                     await self.password_reset_service.send_reset_email(email, role)
                     break  # Stop loop once user is found
 
-            # Log request for non-existing emails without revealing sensitive info
+            # Step 3: Log requests for non-existing emails without revealing sensitive info
             if not user_found:
                 logger.info("Password reset requested for non-existing email: %s", email)
 
-            # Return a generic success response to prevent email enumeration
+            # Step 4: Return a generic success response to prevent email enumeration
             return JSONResponse(
                 content={"message": "If the email exists, a reset link has been sent."},
                 status_code=200
@@ -78,7 +78,7 @@ class PasswordResetRequestHandler:
         except Exception:
             # Log any exceptions with full stack trace
             logger.error("Error during password reset request logic:\n%s", traceback.format_exc())
-            
+
             # Return generic internal server error response
             return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
 

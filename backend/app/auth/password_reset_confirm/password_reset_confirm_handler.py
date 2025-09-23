@@ -50,56 +50,61 @@ class PasswordResetConfirmHandler:
             2. new_password (str): New password to set for the user.
 
         Process:
-            1. Decode and validate the JWT token.
-            2. Extract user email from token payload.
-            3. Reset the user's password using the password reset service.
-            4. Record the action in login protection service to prevent brute-force attacks.
-            5. Determine final response based on success and brute-force checks.
+            1. Decode the JWT token using the JWT service.
+            2. Validate that the token payload is not None.
+            3. Validate that the token contains the 'email' field.
+            4. Extract the email from the token payload.
+            5. Generate a key for tracking login attempts using the email.
+            6. Attempt to reset the user's password using the password reset service.
+            7. Determine HTTP status code based on success of password reset.
+            8. Prepare response content based on password reset outcome.
+            9. Record the action in login protection service.
+            10. Enforce lockout if too many failed attempts occurred.
+            11. Return the final JSON response to the client.
 
         Output:
             1. JSONResponse: Success or error message with appropriate HTTP status code.
         """
         try:
-            # Decode and validate the JWT token for password reset
+            # Step 1: Decode the JWT token using the JWT service
             payload = await self.jwt_service.verify_token(token)
 
-            # Return error if token is invalid or missing required email field
+            # Step 2: Validate that the token payload is not None
+            # Step 3: Validate that the token contains the 'email' field
             if not payload or "email" not in payload:
                 return JSONResponse({"error": "Invalid or expired token"}, status_code=400)
 
-            # Extract user email from token payload
+            # Step 4: Extract the email from the token payload
             email = payload["email"]
 
-            # Key for tracking login attempts and potential lockouts
+            # Step 5: Generate a key for tracking login attempts using the email
             email_lock_key = f"login_lock:email:{email}"
 
-            # Attempt to reset the user's password using the password reset service
+            # Step 6: Attempt to reset the user's password using the password reset service
             success = await self.password_reset_service.reset_password(token, new_password)
 
-            # Determine response based on success of password reset
-            if not success:
-                status = 400
-                content = {"error": "Invalid token or password"}
-            else:
-                status = 200
-                content = {"message": "Password has been reset successfully"}
+            # Step 7: Determine HTTP status code based on success of password reset
+            status = 200 if success else 400
 
-            # Record this action and enforce lockout if too many failed attempts
+            # Step 8: Prepare response content based on password reset outcome
+            content = {"message": "Password has been reset successfully"} if success else {"error": "Invalid token or password"}
+
+            # Step 9: Record the action in login protection service
             allowed = await self.login_protection_service.check_and_record_action(
                 email_lock_key, success=(status == 200)
             )
 
-            # Block further action if too many failed attempts occurred
+            # Step 10: Enforce lockout if too many failed attempts occurred
             if not allowed:
                 return JSONResponse({"error": "Too many failed attempts, temporarily locked"}, status_code=429)
 
-            # Return the final JSON response
+            # Step 11: Return the final JSON response to the client
             return JSONResponse(content, status_code=status)
 
         except Exception:
             # Log any exceptions with full stack trace
             logger.error("Error during password reset confirm logic:\n%s", traceback.format_exc())
-            
+
             # Return generic internal server error response
             return JSONResponse({"error": "Internal Server Error"}, status_code=500)
 

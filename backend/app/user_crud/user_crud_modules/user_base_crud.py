@@ -29,15 +29,15 @@ class UserBaseCRUD:
 
         Process:
             1. Execute a select query with model.id filter.
-            2. Return matching record.
+            2. Return the matching record.
 
         Output:
             1. object | None: ORM instance or None if not found.
         """
-        # Execute query by ID
+        # Step 1: Execute query by ID
         result = await db.execute(select(self.model).where(self.model.id == id))
 
-        # Return single object or None
+        # Step 2: Return single object or None
         return result.scalar_one_or_none()
 
     # ---------------------------- Get All Records ----------------------------
@@ -48,14 +48,15 @@ class UserBaseCRUD:
 
         Process:
             1. Execute a select query for all model records.
+            2. Return all objects.
 
         Output:
             1. list: List of ORM instances.
         """
-        # Execute query for all records
+        # Step 1: Execute query for all records
         result = await db.execute(select(self.model))
 
-        # Return all objects
+        # Step 2: Return all objects
         return result.scalars().all()
 
     # ---------------------------- Create New Record ----------------------------
@@ -66,26 +67,28 @@ class UserBaseCRUD:
             2. obj_data (dict): Data for new record.
 
         Process:
-            1. Instantiate ORM object.
-            2. Add to session and commit.
-            3. Refresh object with DB values.
+            1. Instantiate ORM object with provided data.
+            2. Add object to session.
+            3. Commit transaction to persist changes.
+            4. Refresh object to load DB-generated values.
+            5. Return newly created object.
 
         Output:
             1. object: Newly created ORM instance.
         """
-        # Instantiate ORM object
+        # Step 1: Instantiate ORM object
         obj = self.model(**obj_data)
 
-        # Add to session
+        # Step 2: Add to session
         db.add(obj)
 
-        # Commit transaction
+        # Step 3: Commit transaction
         await db.commit()
 
-        # Refresh object with DB values
+        # Step 4: Refresh object with DB values
         await db.refresh(obj)
 
-        # Return new object
+        # Step 5: Return new object
         return obj
 
     # ---------------------------- Update Record ----------------------------
@@ -97,31 +100,34 @@ class UserBaseCRUD:
             3. update_data (dict): Fields and values to update.
 
         Process:
-            1. Validate object exists.
-            2. Update attributes.
-            3. Commit and refresh object.
+            1. Return None if object does not exist.
+            2. Update object attributes dynamically.
+            3. Add updated object to session.
+            4. Commit transaction.
+            5. Refresh object with DB values.
+            6. Return updated object.
 
         Output:
             1. object | None: Updated object or None if not found.
         """
-        # Return None if object missing
+        # Step 1: Return None if object missing
         if not db_obj:
             return None
         
-        # Update fields dynamically
+        # Step 2: Update fields dynamically
         for field, value in update_data.items():
             setattr(db_obj, field, value)
 
-        # Add updated object to session
+        # Step 3: Add updated object to session
         db.add(db_obj)
 
-        # Commit transaction
+        # Step 4: Commit transaction
         await db.commit()
 
-        # Refresh object with DB values
+        # Step 5: Refresh object with DB values
         await db.refresh(db_obj)
 
-        # Return updated object
+        # Step 6: Return updated object
         return db_obj
 
     # ---------------------------- Delete Record ----------------------------
@@ -132,21 +138,23 @@ class UserBaseCRUD:
             2. db_obj (object): ORM object to delete.
 
         Process:
-            1. Validate object exists.
-            2. Delete and commit transaction.
+            1. Return False if object does not exist.
+            2. Delete object from session.
+            3. Commit transaction.
+            4. Return True if deletion succeeded.
 
         Output:
             1. bool: True if deleted, False if not found.
         """
-        # Return False if no object
+        # Step 1: Return False if no object
         if not db_obj:
             return False
         
-        # Delete object
+        # Step 2: Delete object
         await db.delete(db_obj)
 
-        # Commit transaction
+        # Step 3: Commit transaction
         await db.commit()
 
-        # Return success
+        # Step 4: Return success
         return True

@@ -43,39 +43,43 @@ class LoginHandler:
 
         Process:
             1. Validate that email and password are provided.
-            2. Authenticate user using login_service.
-            3. Apply login protection checks (rate-limiting, lockouts).
-            4. Set JWT tokens in HTTP-only cookies if authentication succeeds.
+            2. Return error if input validation fails.
+            3. Authenticate user using login_service.
+            4. Return error if authentication fails.
+            5. Apply login protection checks (rate-limiting, lockouts).
+            6. Return error if login is temporarily locked.
+            7. Set JWT tokens in HTTP-only cookies if authentication succeeds.
 
         Output:
             1. JSONResponse: User is either logged in with tokens set in cookies,
                              or receives an error message.
         """
         try:
-            # Return error if email or password is missing
+            # Step 1: Validate that email and password are provided
             if not email or not password:
+                # Step 2: Return error if input validation fails
                 return JSONResponse(
                     content={"error": "Email and password are required"},
                     status_code=400,
                 )
 
-            # Authenticate the user via login_service and get tokens
+            # Step 3: Authenticate user using login_service
             tokens = await login_service.login(email=email, password=password, db=db)
-            # Return error if authentication fails
+
+            # Step 4: Return error if authentication fails
             if not tokens:
                 return JSONResponse(
                     content={"error": "Invalid credentials or account locked"},
                     status_code=401,
                 )
 
-            # Generate key for tracking login attempts for this email
+            # Step 5: Apply login protection checks (rate-limiting, lockouts)
             email_lock_key = f"login_lock:email:{email}"
-
-            # Record the successful login attempt and verify if allowed
             allowed = await login_protection_service.check_and_record_action(
                 email_lock_key, success=True
             )
-            # Return error if too many failed attempts
+
+            # Step 6: Return error if login is temporarily locked
             if not allowed:
                 return JSONResponse(
                     content={
@@ -84,15 +88,14 @@ class LoginHandler:
                     status_code=429,
                 )
 
-            # Set authentication tokens in secure HTTP-only cookies
+            # Step 7: Set JWT tokens in HTTP-only cookies if authentication succeeds
             return token_cookie_handler.set_tokens_in_cookies(tokens)
 
-        # Catch all unexpected errors
         except Exception:
-            # Log full traceback for debugging
+            # Handle unexpected exceptions and log errors
             logger.error("Error during login:\n%s", traceback.format_exc())
-            
-            # Return generic internal server error response
+
+            # Return internal server error response on exception
             return JSONResponse(
                 content={"error": "Internal Server Error"}, status_code=500
             )

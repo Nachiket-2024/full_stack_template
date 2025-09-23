@@ -8,10 +8,10 @@ from email.message import EmailMessage
 # Logging module for tracking events and errors
 import logging
 
-# Module to capture full stack traces for debugging exceptions
+# Capture full stack traces for debugging exceptions
 import traceback
 
-# Asyncio for concurrent async operations
+# Asyncio for running blocking operations asynchronously
 import asyncio
 
 # OAuth2 credentials handling for Google APIs
@@ -39,30 +39,23 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
 
     Process:
         1. Compose email using EmailMessage class.
-        2. Prepare OAuth2 credentials and refresh to obtain access token.
-        3. Send email via Gmail SMTP using aiosmtplib.
-        4. Log success or capture any exceptions with full traceback.
+        2. Prepare OAuth2 credentials with refresh token.
+        3. Extract access token for SMTP authentication.
+        4. Send email via Gmail SMTP using aiosmtplib.
+        5. Return true if email sent successfully
 
     Output:
         1. bool: True if email sent successfully, False otherwise.
     """
     try:
-        # Create a new email message
+        # Step 1: Compose email using EmailMessage class
         message = EmailMessage()
+        message["From"] = settings.FROM_EMAIL    # Sender email
+        message["To"] = to_email                 # Recipient email
+        message["Subject"] = subject             # Email subject
+        message.set_content(body)                # Email body/content
 
-        # Set sender email
-        message["From"] = settings.FROM_EMAIL
-
-        # Set recipient email
-        message["To"] = to_email
-
-        # Set email subject
-        message["Subject"] = subject
-
-        # Set email body/content
-        message.set_content(body)
-
-        # Create credentials object with refresh token
+        # Step 2: Prepare OAuth2 credentials with refresh token
         creds = Credentials(
             token=None,
             refresh_token=settings.GOOGLE_EMAIL_REFRESH_TOKEN,
@@ -71,27 +64,29 @@ async def send_email_task(self, to_email: str, subject: str, body: str) -> bool:
             token_uri="https://oauth2.googleapis.com/token",
         )
 
-        # Refresh token to get access token (blocking operation run in separate thread)
+        # Refresh token in a separate thread to avoid blocking event loop
         await asyncio.to_thread(creds.refresh, None)
 
-        # Extract access token after refresh
+        # Step 3: Extract access token for SMTP authentication
         access_token = creds.token
 
-        # Send email via Gmail SMTP using OAuth2 access token
+        # Step 4: Send email via Gmail SMTP using aiosmtplib
         await aiosmtplib.send(
             message,
             hostname="smtp.gmail.com",
             port=587,
             start_tls=True,
             username=settings.FROM_EMAIL,
-            password=access_token,  # OAuth2 access token
+            password=access_token
         )
 
-        # Log as email sent to "to_email"
+        # Log successful email delivery
         logger.info("Email sent to %s", to_email)
+
+        # Step 5: Return true if email sent successfully
         return True
 
     except Exception:
-        # Log any exception with full stack trace
+        # Log full exception stack trace
         logger.error("Error sending email to %s:\n%s", to_email, traceback.format_exc())
         return False

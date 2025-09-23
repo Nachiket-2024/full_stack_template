@@ -36,6 +36,7 @@ class OAuth2LoginHandler:
     # ---------------------------- Constructor ----------------------------
     # Initialize handler with OAuth2 service instance
     def __init__(self):
+        # Assign OAuth2 service instance
         self.oauth2_service = oauth2_service
 
     # ---------------------------- OAuth2 Login Initiation ----------------------------
@@ -46,23 +47,27 @@ class OAuth2LoginHandler:
             1. None
 
         Process:
-            1. Build Google OAuth2 authorization URL with client_id, redirect_uri, scopes, access_type, and prompt.
-            2. Redirect user to Google login page.
+            1. Define Google OAuth2 authorization endpoint URL.
+            2. Define required OAuth2 scopes.
+            3. Define redirect URI for callback.
+            4. Construct full authorization URL with query parameters.
+            5. Redirect user to Google login page.
+            6. Redirect to frontend login page on error.
 
         Output:
             1. RedirectResponse: User redirected to Google login page or frontend login on error.
         """
         try:
-            # Google OAuth2 authorization endpoint
+            # Step 1: Define Google OAuth2 authorization endpoint URL
             google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
 
-            # Scopes required for authentication
+            # Step 2: Define required OAuth2 scopes
             scopes = "openid email profile"
 
-            # Redirect URI for OAuth2 callback
+            # Step 3: Define redirect URI for callback
             redirect_uri = f"{settings.BACKEND_BASE_URL}/auth/oauth2/callback/google"
 
-            # Construct full authorization URL
+            # Step 4: Construct full authorization URL with query parameters
             auth_url = (
                 f"{google_auth_url}?response_type=code"
                 f"&client_id={settings.GOOGLE_CLIENT_ID}"
@@ -72,14 +77,14 @@ class OAuth2LoginHandler:
                 f"&prompt=consent"
             )
 
-            # Redirect user to Google login page
+            # Step 5: Redirect user to Google login page
             return RedirectResponse(url=auth_url)
 
         except Exception:
-            # Log error with full traceback
+            # Handle exceptions and log errors
             logger.error("Error initiating OAuth2 login:\n%s", traceback.format_exc())
-            
-            # Redirect to frontend login page on error
+
+            # Step 6: Redirect to frontend login page on error
             return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
     # ---------------------------- OAuth2 Callback Handler ----------------------------
@@ -91,24 +96,26 @@ class OAuth2LoginHandler:
             2. db (AsyncSession): Database session.
 
         Process:
-            1. Build redirect_uri for callback.
+            1. Build redirect URI for OAuth2 callback.
             2. Exchange code for Google access tokens.
             3. Validate token exchange result.
             4. Fetch user info from Google.
             5. Validate user info.
-            6. Authenticate or create user and generate JWT tokens.
-            7. Validate JWT tokens.
-            8. Set JWT tokens in secure HTTP-only cookies.
-            9. Redirect user to dashboard.
+            6. Authenticate existing user or create a new user, then generate JWT tokens.
+            7. Validate generated JWT tokens.
+            8. Create redirect response to dashboard.
+            9. Set JWT tokens in secure HTTP-only cookies.
+            10. Return redirect response.
+            11. Redirect to frontend login page on error.
 
         Output:
             1. RedirectResponse: User redirected to dashboard with cookies set or frontend login on error.
         """
         try:
-            # Callback URL for OAuth2 redirect
+            # Step 1: Build redirect URI for OAuth2 callback
             redirect_uri = f"{settings.BACKEND_BASE_URL}/auth/oauth2/callback/google"
 
-            # Use OAuth2 service to exchange code for tokens
+            # Step 2: Exchange code for Google access tokens
             token_data = await self.oauth2_service.exchange_code_for_tokens(
                 code,
                 client_id=settings.GOOGLE_CLIENT_ID,
@@ -116,39 +123,40 @@ class OAuth2LoginHandler:
                 redirect_uri=redirect_uri
             )
 
-            # Validate token exchange
+            # Step 3: Validate token exchange result
             if not token_data or "access_token" not in token_data:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
             access_token_google = token_data["access_token"]
 
-            # Retrieve user info from Google using access token
+            # Step 4: Fetch user info from Google
             user_info = await self.oauth2_service.get_user_info(access_token_google)
 
-            # Validate user info
+            # Step 5: Validate user info
             if not user_info or "email" not in user_info:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
-            # Authenticate existing user or create new user, then generate JWT tokens
+            # Step 6: Authenticate existing user or create a new user, then generate JWT tokens
             jwt_tokens = await self.oauth2_service.login_or_create_user(db, user_info)
 
-            # Validate generated JWT tokens
+            # Step 7: Validate generated JWT tokens
             if not jwt_tokens or "access_token" not in jwt_tokens:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
-            # Create redirect response to dashboard
+            # Step 8: Create redirect response to dashboard
             response = RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/dashboard")
 
-            # Set JWT tokens in secure HTTP-only cookies
+            # Step 9: Set JWT tokens in secure HTTP-only cookies
             token_cookie_handler.set_tokens_in_cookies(response, jwt_tokens)
 
+            # Step 10: Return redirect response
             return response
 
         except Exception:
-            # Log full traceback for debugging
+            # Handle exceptions and log errors
             logger.error("Error handling OAuth2 callback:\n%s", traceback.format_exc())
 
-            # Redirect to frontend login page on error
+            # Step 11: Redirect to frontend login page on error
             return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
 

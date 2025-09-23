@@ -1,17 +1,19 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for tracking events and debugging
+# Logging for structured event and error logging
 import logging
+
+# Capture full stack traces in case of exceptions
 import traceback
 
 # FastAPI response class for sending JSON responses
 from fastapi.responses import JSONResponse
 
 # ---------------------------- Internal Imports ----------------------------
-# Refresh token service to revoke tokens
+# Refresh token service to handle revocation and management
 from ..refresh_token_logic.refresh_token_service import refresh_token_service
 
 # ---------------------------- Logger Setup ----------------------------
-# Configure module-specific logger
+# Configure logger specific to this module
 logger = logging.getLogger(__name__)
 
 # ---------------------------- Logout Handler Class ----------------------------
@@ -22,64 +24,76 @@ class LogoutHandler:
     """
 
     # ---------------------------- Constructor ----------------------------
-    # Initialize LogoutHandler with required services
+    # Initialize with a reference to the refresh token service
     def __init__(self):
+        # Step 1: Store reference to refresh token service for reuse
         self.refresh_token_service = refresh_token_service
 
-    # ---------------------------- Logout Method ----------------------------
-    # Async method to handle user logout
-    async def handle_logout(self, refresh_token: str | None, db) -> JSONResponse:
+    # ---------------------------- Handle Logout ----------------------------
+    # Async method to revoke refresh token and clear authentication cookies
+    async def handle_logout(self, refresh_token: str | None) -> JSONResponse:
         """
         Input:
             1. refresh_token (str | None): Refresh token from user's cookie.
-            2. db: Database session for revoking the refresh token.
 
         Process:
             1. Validate that refresh token is provided.
-            2. Revoke the refresh token using refresh_token_service with db.
-            3. Clear access and refresh cookies if revocation succeeds.
-            4. Return appropriate JSONResponse.
+            2. Return error if refresh token is missing.
+            3. Revoke the refresh token using refresh_token_service.
+            4. Handle failure if token revocation was unsuccessful.
+            5. Prepare JSONResponse for successful logout.
+            6. Delete access token cookie.
+            7. Delete refresh token cookie.
+            8. Return final response.
 
         Output:
             1. JSONResponse: Success message if logout succeeds or error details otherwise.
         """
         try:
-            # Return error if no refresh token is provided
+            # Step 1: Validate that refresh token is provided
             if not refresh_token:
+                # Step 2: Return error if refresh token is missing
                 return JSONResponse(
                     content={"error": "No refresh token cookie found"},
                     status_code=400
                 )
 
-            # Attempt to revoke the refresh token with db
-            success = await self.refresh_token_service.revoke_refresh_token(refresh_token, db)
-            
-            # Return error if revocation failed
+            # Step 3: Revoke the refresh token using refresh_token_service
+            success = await self.refresh_token_service.revoke_refresh_token(refresh_token)
+
+            # Step 4: Handle failure if token revocation was unsuccessful
             if not success:
                 return JSONResponse(
                     content={"error": "Invalid refresh token or already revoked"},
                     status_code=400
                 )
 
-            # Create response and delete access and refresh cookies
+            # Step 5: Prepare JSONResponse for successful logout
             resp = JSONResponse(
                 content={"message": "Logged out successfully"},
                 status_code=200
             )
+
+            # Step 6: Delete access token cookie
             resp.delete_cookie(key="access_token", httponly=True, secure=True, samesite="Strict")
+
+            # Step 7: Delete refresh token cookie
             resp.delete_cookie(key="refresh_token", httponly=True, secure=True, samesite="Strict")
 
+            # Step 8: Return final response
             return resp
 
-        # Catch all unexpected errors
         except Exception:
-            # Log full traceback for debugging
+            # Handle unexpected exceptions and log errors
             logger.error("Error during logout logic:\n%s", traceback.format_exc())
-            
-            # Return generic internal server error response
-            return JSONResponse(content={"error": "Internal Server Error"}, status_code=500)
+
+            # Return internal server error response on exception
+            return JSONResponse(
+                content={"error": "Internal Server Error"},
+                status_code=500
+            )
 
 
-# ---------------------------- Instantiate LogoutHandler ----------------------------
-# Singleton instance for route usage
+# ---------------------------- Singleton Instance ----------------------------
+# Singleton instance of LogoutHandler for route usage
 logout_handler = LogoutHandler()

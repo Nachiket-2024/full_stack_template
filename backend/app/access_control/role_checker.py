@@ -1,9 +1,9 @@
 # ---------------------------- External Imports ----------------------------
-# Import HTTPException, status codes, Header, and Depends for FastAPI dependencies
+# Import FastAPI dependencies for HTTP exceptions, status codes, header extraction, and dependency injection
 from fastapi import HTTPException, status, Header, Depends
 
 # ---------------------------- Internal Imports ----------------------------
-# Import the JWT service for token verification
+# Import JWT service to decode and verify tokens
 from ..auth.token_logic.jwt_service import jwt_service
 
 # ---------------------------- Role Checker Class ----------------------------
@@ -19,7 +19,7 @@ class RoleChecker:
 
     # ---------------------------- Initialization ----------------------------
     def __init__(self):
-        # No initialization logic needed
+        # No initialization logic required
         pass
 
     # ---------------------------- Extract Token Dependency ----------------------------
@@ -35,14 +35,14 @@ class RoleChecker:
         Output:
             1. str: Raw JWT token.
         """
-        # Validate that the header starts with Bearer
+        # Step 1: Validate header starts with 'Bearer '
         if not authorization.startswith("Bearer "):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authorization header must start with Bearer",
             )
-        
-        # Extract and return only the raw token
+
+        # Step 2: Extract token string after 'Bearer '
         return authorization.split(" ")[1]
 
     # ---------------------------- Get Role from Token ----------------------------
@@ -53,28 +53,30 @@ class RoleChecker:
 
         Process:
             1. Decode token using jwt_service.
-            2. Validate token and extract role.
+            2. Validate token and raise error if invalid or expired.
+            3. Extract role from payload and raise error if missing.
 
         Output:
             1. str: Role (table) from JWT payload.
         """
-        # Decode the token using jwt_service
+        # Step 1: Decode token using jwt_service
         payload = await jwt_service.verify_token(token)
 
-        # Raise error if token is invalid or expired
+        # Step 2: Validate token and raise error if invalid or expired
         if not payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
             )
 
-        # Extract role (table) from payload
+        # Step 3: Extract role from payload and raise error if missing
         role = payload.get("table")
         if not role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Role not found in token",
             )
+
         return role
 
     # ---------------------------- Require Specific Role ----------------------------
@@ -85,21 +87,22 @@ class RoleChecker:
             2. token (str): JWT token.
 
         Process:
-            1. Decode token and get role.
-            2. Compare with required_role.
+            1. Get role from token.
+            2. Compare role with required_role and raise error if mismatch.
 
         Output:
             1. bool: True if role matches, else raises HTTPException.
         """
-        # Get the role from token
+        # Step 1: Get role from token
         role = await self.get_role(token)
 
-        # Compare with required_role
+        # Step 2: Compare role with required_role and raise error if mismatch
         if role != required_role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"{required_role} privileges required",
             )
+
         return True
 
     # ---------------------------- Require Permission ----------------------------
@@ -110,28 +113,27 @@ class RoleChecker:
             2. token (str): JWT token.
 
         Process:
-            1. Decode token and get role.
+            1. Get role from token.
             2. Retrieve allowed permissions for role.
-            3. Validate permission.
+            3. Validate permission and raise error if not allowed.
 
         Output:
             1. bool: True if permission allowed, else raises HTTPException.
         """
-        # Extract role from token
+        # Step 1: Get role from token
         role = await self.get_role(token)
 
-        # Import role_permissions here to avoid circular imports
+        # Step 2: Retrieve allowed permissions for role
         from ..access_control.role_permissions import role_permissions
-
-        # Get permissions allowed for the role
         allowed_permissions = role_permissions.get(role, [])
 
-        # Validate the requested permission
+        # Step 3: Validate permission and raise error if not allowed
         if permission not in allowed_permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Permission '{permission}' required for role '{role}'",
             )
+
         return True
 
     # ---------------------------- Get Full Payload ----------------------------
@@ -142,43 +144,51 @@ class RoleChecker:
 
         Process:
             1. Decode token using jwt_service.
-            2. Validate token.
+            2. Validate token and raise error if invalid or expired.
 
         Output:
             1. dict: Decoded JWT payload.
         """
-        # Decode the token
+        # Step 1: Decode token using jwt_service
         payload = await jwt_service.verify_token(token)
 
-        # Validate token
+        # Step 2: Validate token and raise error if invalid or expired
         if not payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
             )
+
         return payload
 
     # ---------------------------- Dependency Injector for Routes ----------------------------
     def require_permission_dependency(self, permission: str):
         """
-        FastAPI dependency that:
-            1. Extracts token automatically.
-            2. Checks permission.
-            3. Returns role and email for route.
-        """
-        # Define dependency wrapper
-        async def wrapper(token: str = Depends(self._get_token)):
+        Input:
+            1. permission (str): The permission required to access the route.
 
-            # Ensure permission is valid
+        Process:
+            1. Define a dependency wrapper function to be used by FastAPI.
+            2. Validate the permission against the token.
+            3. Retrieve the JWT payload associated with the token.
+            4. Return role/table and email from the payload inside the wrapper.
+            5. Return the wrapper function to be used as a dependency in routes.
+
+        Output:
+            1. async function: FastAPI dependency returning 'table' and 'email' from the payload.
+        """
+        # Step 1: Define a dependency wrapper function to be used by FastAPI
+        async def wrapper(token: str = Depends(self._get_token)):
+            # Step 2: Validate the permission against the token
             await self.require_permission(permission, token)
 
-            # Extract payload
+            # Step 3: Retrieve the JWT payload associated with the token
             payload = await self.get_payload(token)
-            
-            # Return role and email
+
+            # Step 4: Return role/table and email from the payload inside the wrapper
             return payload.get("table"), payload.get("email")
 
-        # Return dependency wrapper
+        # Step 5: Return the wrapper to be used as a dependency in routes
         return wrapper
 
 

@@ -2,7 +2,7 @@
 # Import SQLAlchemy async engine creator and AsyncSession type
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
-# Import sessionmaker to create session factory for async sessions
+# Import sessionmaker to create a session factory for async sessions
 from sqlalchemy.orm import sessionmaker
 
 # ---------------------------- Settings Import ----------------------------
@@ -26,22 +26,22 @@ class Database:
 
         Process:
             1. Store database URL.
-            2. Create async SQLAlchemy engine.
-            3. Configure session factory with AsyncSession.
+            2. Instantiate SQLAlchemy async engine for database connectivity.
+            3. Configure session factory for producing AsyncSession objects.
 
         Output:
             1. None
         """
-        # Store Database URL
+        # Step 1: Store Database URL
         self.database_url = database_url
 
-        # Instantiate SQLAlchemy async engine for database connectivity
+        # Step 2: Instantiate SQLAlchemy async engine for database connectivity
         self.engine = create_async_engine(
             self.database_url,
-            echo=False  # Enable or disable SQL query logging for debugging
+            echo=False  # Enable SQL query logging for debugging if needed
         )
 
-        # Configure session factory for producing AsyncSession objects
+        # Step 3: Configure session factory for producing AsyncSession objects
         self.async_session = sessionmaker(
             bind=self.engine,          # Bind sessions to this engine
             class_=AsyncSession,       # Use AsyncSession for async operations
@@ -56,17 +56,18 @@ class Database:
             1. None
 
         Process:
-            1. Open async session using session factory.
-            2. Yield session for FastAPI dependency injection.
-            3. Ensure session is properly closed after use.
+            1. Use async context manager to ensure session closure.
+            2. Yield session to be injected into routes.
+            3. Session automatically closed after context exit.
 
         Output:
             1. AsyncSession: Provides an active async database session.
         """
-        # Use async context manager to ensure session closure
+        # Step 1: Use async context manager to ensure session closure
         async with self.async_session() as session:
-            # Yield session to be injected into routes
+            # Step 2: Yield session to be injected into routes
             yield session
+            # Step 3: Session automatically closed after context exit
 
 
 # ---------------------------- Database Instance ----------------------------

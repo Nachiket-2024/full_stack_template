@@ -32,12 +32,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             1. app (ASGIApp): The Starlette ASGI application instance.
         
         Process:
-            1. Call the parent BaseHTTPMiddleware constructor with the app.
+            1. Call the parent BaseHTTPMiddleware constructor with the app to initialize middleware.
 
         Output:
             1. None
         """
-        # Call parent constructor to initialize middleware with ASGI app
+        # Step 1: Call parent constructor to initialize middleware with ASGI app
         super().__init__(app)  
 
     # ---------------------------- Dispatch Method ----------------------------
@@ -49,11 +49,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             2. call_next: Callable to forward request to the next middleware/endpoint.
 
         Process:
-            1. Log the incoming request method and URL.
-            2. Process the request and capture response, handle exceptions.
-            3. Log status code for standard responses.
-            4. Wrap streaming responses to allow logging of body chunks.
-            5. Log streaming response status code.
+            1. Process the request by calling next middleware or endpoint, handle exceptions.
+            2. Wrap streaming responses to preserve the streaming body.
+            3. Return the final response object to the client.
 
         Output:
             1. Response object (JSONResponse or StreamingResponse) to return to client.
@@ -62,7 +60,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         logger.info(f"Incoming request: {request.method} {request.url}")
 
         try:
-            # Call the next middleware or endpoint to process the request
+            # Step 1: Process the request by calling next middleware or endpoint, handle exceptions
             response = await call_next(request)
 
         except Exception as e:
@@ -81,15 +79,15 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 f"Response: {response.status_code} for {request.method} {request.url}"
             )
 
-        # Handle streaming responses
+        # Step 2: Handle streaming responses
         if isinstance(response, StreamingResponse):
 
-            # Async generator to wrap streaming body
+            # Step 2a: Async generator to wrap streaming body
             async def streaming_body():
                 async for chunk in response.body_iterator:
                     yield chunk  # Yield each chunk to preserve streaming
 
-            # Recreate StreamingResponse with same status and headers
+            # Step 2b: Recreate StreamingResponse with same status and headers
             response = StreamingResponse(
                 streaming_body(),  # Async generator as body
                 status_code=response.status_code,  # Preserve status code
@@ -99,5 +97,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # Log the streaming response status code
             logger.info(f"Streaming response with status code: {response.status_code}")
 
-        # Return the final response object to the client
-        return response  
+        # Step 3: Return the final response object to the client
+        return response

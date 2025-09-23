@@ -26,14 +26,15 @@ class UserEmailCRUD:
 
         Process:
             1. Execute select query with email filter.
+            2. Return the matching record or None.
 
         Output:
             1. object | None: ORM instance or None if not found.
         """
-        # Execute query by email
+        # Step 1: Execute query by email
         result = await db.execute(select(self.model).where(self.model.email == email))
 
-        # Return single object or None
+        # Step 2: Return single object or None
         return result.scalar_one_or_none()
 
     # ---------------------------- Update Record by Email ----------------------------
@@ -46,30 +47,35 @@ class UserEmailCRUD:
 
         Process:
             1. Fetch record by email.
-            2. Update record with given data.
+            2. Return None if no record is found.
+            3. Update object fields dynamically with provided data.
+            4. Add updated object to session.
+            5. Commit transaction to persist changes.
+            6. Refresh object with DB values.
+            7. Return the updated object.
 
         Output:
             1. object | None: Updated object or None if not found.
         """
-        # Fetch object by email
+        # Step 1: Fetch object by email
         db_obj = await self.get_by_email(db, email)
 
-        # Return None if not found
+        # Step 2: Return None if not found
         if not db_obj:
             return None
         
-        # Update object fields
+        # Step 3: Update object fields dynamically
         for field, value in update_data.items():
             setattr(db_obj, field, value)
 
-        # Add updated object to session
+        # Step 4: Add updated object to session
         db.add(db_obj)
 
-        # Commit transaction
+        # Step 5: Commit transaction
         await db.commit()
 
-        # Refresh object
+        # Step 6: Refresh object
         await db.refresh(db_obj)
 
-        # Return updated object
+        # Step 7: Return updated object
         return db_obj

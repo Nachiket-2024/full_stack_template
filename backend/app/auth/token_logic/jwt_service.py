@@ -1,205 +1,204 @@
 # ---------------------------- External Imports ----------------------------
-# Datetime utilities with timezone awareness
+# Import datetime utilities with timezone awareness
 from datetime import datetime, timedelta, timezone
 
-# JWT encoding and decoding library
+# Import asyncio for running blocking operations in a thread pool
+import asyncio
+
+# Import JWT encoding and decoding library
 import jwt
 
+# Logging for structured event and error logging
+import logging
+
+# Capture full stack traces in case of exceptions
+import traceback
+
 # ---------------------------- Internal Imports ----------------------------
-# Application settings including SECRET_KEY and token expiration times
+# Import application settings including SECRET_KEY and token expiration times
 from ...core.settings import settings
 
-# Async Redis client used for token revocation / blacklisting
+# Import async Redis client used for token revocation / blacklisting
 from ...redis.client import redis_client
 
+# ---------------------------- Logger Setup ----------------------------
+# Create logger instance specific to this module
+logger = logging.getLogger(__name__)
+
 # ---------------------------- JWT Service Class ----------------------------
-# Service to handle JWT access and refresh tokens using Redis only
+# Define service class for creating, verifying, revoking, and managing JWT tokens
 class JWTService:
     """
-    1. create_access_token - Generate a short-lived JWT access token.
-    2. create_refresh_token - Generate a long-lived JWT refresh token.
-    3. verify_token - Verify a token and return its payload.
-    4. revoke_refresh_token - Revoke a refresh token in Redis.
-    5. revoke_all_refresh_tokens_for_user - Revoke all tokens for a user in Redis.
-    6. is_token_revoked - Check if a token is revoked in Redis.
+    1. create_access_token - Generate short-lived access token asynchronously.
+    2. create_refresh_token - Generate refresh token and store in Redis asynchronously.
+    3. verify_token - Decode and validate token, check revocation.
+    4. revoke_token - Revoke token and optionally remove from user set.
+    5. is_token_revoked - Check if token is revoked in Redis.
+    6. get_all_refresh_tokens_for_user - Fetch all refresh tokens of a user.
     """
 
     # ---------------------------- Create Access Token ----------------------------
-    @staticmethod
-    async def create_access_token(user_id: str, device_id: str) -> str:
+    async def create_access_token(self, user_id: str) -> str:
         """
         Input:
-            1. user_id (str): User identifier.
-            2. device_id (str): Device identifier for token context.
+            1. user_id (str): Unique identifier of user.
 
         Process:
-            1. Compute expiration timestamp for access token.
-            2. Prepare JWT payload with user_id, device_id, and exp.
-            3. Encode payload with secret key and algorithm.
+            1. Compute expiry timestamp for access token.
+            2. Create token payload with user_id and expiration.
+            3. Encode payload asynchronously using secret key.
 
         Output:
             1. str: Encoded JWT access token.
         """
-        # -------1. Compute expiration timestamp for access token-------
+        # Step 1: Compute expiry timestamp for access token
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-        # -------2. Prepare JWT payload with user_id, device_id, and exp-------
-        payload: dict[str, str | float] = {"user_id": user_id, "device_id": device_id, "exp": expire.timestamp()}
+        # Step 2: Create token payload with user_id and expiration
+        payload = {"sub": user_id, "exp": expire}
 
-        # -------3. Encode payload with secret key and algorithm-------
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+        # Step 3: Encode payload asynchronously using secret key
+        return await asyncio.to_thread(jwt.encode, payload, settings.SECRET_KEY, "HS256")
 
     # ---------------------------- Create Refresh Token ----------------------------
-    @staticmethod
-    async def create_refresh_token(user_id: str, device_id: str) -> str:
+    async def create_refresh_token(self, user_id: str) -> str:
         """
         Input:
-            1. user_id (str): User identifier.
-            2. device_id (str): Device identifier for token context.
+            1. user_id (str): Unique identifier of user.
 
         Process:
-            1. Compute expiration timestamp for refresh token.
-            2. Construct JWT payload with user_id, device_id, and exp.
-            3. Encode payload with secret key and algorithm.
+            1. Compute expiry timestamp for refresh token.
+            2. Create token payload with user_id and expiration.
+            3. Encode payload asynchronously into JWT token.
+            4. Store refresh token in Redis set for user.
+            5. Return refresh token.
 
         Output:
             1. str: Encoded JWT refresh token.
         """
-        # -------1. Compute expiration timestamp for refresh token-------
+        # Step 1: Compute expiry timestamp for refresh token
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
 
-        # -------2. Construct JWT payload with user_id, device_id, and exp-------
-        payload: dict[str, str | float] = {"user_id": user_id, "device_id": device_id, "exp": expire.timestamp()}
+        # Step 2: Create token payload with user_id and expiration
+        payload = {"sub": user_id, "exp": expire}
 
-        # -------3. Encode payload with secret key and algorithm-------
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+        # Step 3: Encode payload asynchronously into JWT token
+        token = await asyncio.to_thread(jwt.encode, payload, settings.SECRET_KEY, "HS256")
+
+        # Step 4: Store refresh token in Redis set for user
+        await redis_client.sadd(f"user:{user_id}:refresh_tokens", token)
+
+        # Step 5: Return refresh token
+        return token
 
     # ---------------------------- Verify Token ----------------------------
-    @staticmethod
-    async def verify_token(token: str) -> dict | None:
+    async def verify_token(self, token: str) -> dict | None:
         """
         Input:
-            1. token (str): JWT token to verify.
+            1. token (str): Encoded JWT token.
 
         Process:
-            1. Decode token using secret key and algorithm.
-            2. Catch expired or invalid token errors.
+            1. Decode token asynchronously using secret key.
+            2. Check if token is revoked in Redis.
+            3. Return payload if valid.
 
         Output:
-            1. dict | None: Decoded payload or None if invalid/expired.
+            1. dict | None: Decoded payload or None if invalid/revoked.
         """
         try:
-            # -------1. Decode token using secret key and algorithm-------
-            return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        
+            # Step 1: Decode token asynchronously using secret key
+            payload = await asyncio.to_thread(jwt.decode, token, settings.SECRET_KEY, algorithms=["HS256"])
+
+            # Step 2: Check if token is revoked in Redis
+            if await self.is_token_revoked(token):
+                return None
+
+            # Step 3: Return payload if valid
+            return payload
+
         except jwt.ExpiredSignatureError:
-            # -------2. Catch expired token error-------
+            # Token expired
             return None
         
         except jwt.InvalidTokenError:
-            # -------2. Catch invalid token error-------
+            # Token invalid
             return None
-
-    # ---------------------------- Revoke Refresh Token ----------------------------
-    @staticmethod
-    async def revoke_refresh_token(token: str) -> bool:
-        """
-        Input:
-            1. token (str): Refresh token to revoke.
-
-        Process:
-            1. Decode token without verifying expiration.
-            2. Compute TTL for Redis key from exp.
-            3. Store token in Redis with TTL.
-
-        Output:
-            1. bool: True if successfully revoked, False otherwise.
-        """
-        try:
-            # -------1. Decode token without verifying expiration-------
-            payload = jwt.decode(token, 
-                                 settings.SECRET_KEY, 
-                                 algorithms=[settings.JWT_ALGORITHM], 
-                                 options={"verify_exp": False}
-                                )
-            
-            exp_timestamp = payload.get("exp")
-            if not exp_timestamp:
-                return False
-
-            # -------2. Compute TTL for Redis key from exp-------
-            ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
-
-            if ttl <= 0:
-                return False
-
-            # -------3. Store token in Redis with TTL-------
-            await redis_client.set(f"revoked:{token}", "1", ex=ttl)
-            return True
-        
-        except jwt.InvalidTokenError:
-            return False
         
         except Exception:
-            return False
+            # Handle unexpected exceptions and log errors
+            logger.error("JWT verification error:\n%s", traceback.format_exc())
+            return None
 
-    # ---------------------------- Revoke All Tokens for User ----------------------------
-    @staticmethod
-    async def revoke_all_refresh_tokens_for_user(all_tokens: list[str]) -> int:
+    # ---------------------------- Revoke Token ----------------------------
+    async def revoke_token(self, token: str, user_id: str | None = None) -> None:
         """
         Input:
-            1. all_tokens (list[str]): List of refresh tokens for a user.
+            1. token (str): Encoded JWT token.
+            2. user_id (str | None): User identifier (optional).
 
         Process:
-            1. Loop through all tokens and decode each without expiration check.
-            2. Compute TTL and store in Redis if valid.
-            3. Count total revoked tokens.
+            1. Decode token asynchronously to get expiry timestamp.
+            2. Calculate TTL until token expiry.
+            3. Store revoked token in Redis with TTL.
+            4. Remove from user refresh token set if user_id provided.
 
         Output:
-            1. int: Number of tokens successfully revoked.
+            1. None
         """
-        revoked_count = 0
+        try:
+            # Step 1: Decode token asynchronously to get expiry timestamp
+            payload = await asyncio.to_thread(jwt.decode, token, settings.SECRET_KEY, algorithms=["HS256"])
+            exp = payload.get("exp")
 
-        for token in all_tokens:
-            try:
-                # -------1. Decode each token without expiration check-------
-                payload = jwt.decode(token, 
-                                     settings.SECRET_KEY, 
-                                     algorithms=[settings.JWT_ALGORITHM], 
-                                     options={"verify_exp": False}
-                                    )
-                exp_timestamp = payload.get("exp")
+            # Step 2: Calculate TTL until token expiry
+            ttl = max(0, int(exp - datetime.now(timezone.utc).timestamp()))
 
-                if exp_timestamp:
-                    # -------2. Compute TTL and store in Redis if valid-------
-                    ttl = int(exp_timestamp - datetime.now(timezone.utc).timestamp())
+            # Step 3: Store revoked token in Redis with TTL
+            await redis_client.setex(f"revoked:{token}", ttl, "true")
 
-                    if ttl > 0:
-                        await redis_client.set(f"revoked:{token}", "1", ex=ttl)
+            # Step 4: Remove from user refresh token set if user_id provided
+            if user_id:
+                await redis_client.srem(f"user:{user_id}:refresh_tokens", token)
 
-                        # -------3. Count total revoked tokens-------
-                        revoked_count += 1
-            except Exception:
-                continue
-        return revoked_count
+        except Exception:
+            # Fail silently but log warning
+            logger.warning("Failed to revoke token: %s", token)
 
     # ---------------------------- Check Token Revocation ----------------------------
-    @staticmethod
-    async def is_token_revoked(token: str) -> bool:
+    async def is_token_revoked(self, token: str) -> bool:
         """
         Input:
-            1. token (str): Refresh token to check revocation status.
+            1. token (str): Encoded JWT token.
 
         Process:
-            1. Query Redis to see if token is blacklisted.
+            1. Query Redis for revoked token key.
 
         Output:
-            1. bool: True if token is revoked, False otherwise.
+            1. bool: True if revoked, False otherwise.
         """
-        # -------1. Query Redis to see if token is blacklisted-------
-        return await redis_client.get(f"revoked:{token}") is not None
+        # Step 1: Query Redis for revoked token key and return True if revoked key exists in Redis
+        return await redis_client.exists(f"revoked:{token}") == 1
+
+    # ---------------------------- Get All Refresh Tokens ----------------------------
+    async def get_all_refresh_tokens_for_user(self, user_id: str) -> list[str]:
+        """
+        Input:
+            1. user_id (str): Unique identifier of user.
+
+        Process:
+            1. Fetch refresh tokens from Redis set for user.
+            2. Decode tokens from bytes to UTF-8.
+
+        Output:
+            1. list[str]: List of refresh tokens.
+        """
+        # Step 1: Fetch refresh tokens from Redis set for user
+        tokens = await redis_client.smembers(f"user:{user_id}:refresh_tokens")
+
+        # Step 2: Decode tokens from bytes to UTF-8
+        return [t.decode("utf-8") for t in tokens] if tokens else []
 
 
-# ---------------------------- Service Instance ----------------------------
-# Singleton instance for JWT operations
+# ---------------------------- Singleton Instance ----------------------------
+# Create single global instance of JWTService for application usage
 jwt_service = JWTService()

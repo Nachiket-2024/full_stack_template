@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 # Service class to attach access and refresh tokens as secure HTTP-only cookies to existing responses
 class TokenCookieHandler:
     """
-    1. set_tokens_in_cookies - Attaches access and refresh tokens as secure HTTP-only cookies to a response.
+    1. set_tokens_in_cookies - Attach access and refresh tokens as secure HTTP-only cookies to a response.
     """
 
     # ---------------------------- Set Tokens in Cookies ----------------------------
@@ -17,14 +17,20 @@ class TokenCookieHandler:
             2. tokens (dict[str, str]): Dictionary containing 'access_token' and 'refresh_token'.
 
         Process:
-            1. Attach access token cookie with 1-hour expiry and security flags to the response.
-            2. Attach refresh token cookie with 30-day expiry and security flags to the response.
+            1. Validate that 'access_token' and 'refresh_token' exist in the tokens dictionary.
+            2. Attach access token as HTTP-only, secure, SameSite=Strict cookie with 1-hour expiry.
+            3. Attach refresh token as HTTP-only, secure, SameSite=Strict cookie with 30-day expiry.
+            4. Return the modified response object.
 
         Output:
-            1. JSONResponse: Same response object with cookies added.
+            1. JSONResponse: Same response object with access and refresh cookies set.
         """
 
-        # Set access token cookie with HTTP-only, secure, and SameSite=Strict
+        # Step 1: Validate that 'access_token' and 'refresh_token' exist in the tokens dictionary
+        if "access_token" not in tokens or "refresh_token" not in tokens:
+            raise ValueError("Tokens dictionary must contain 'access_token' and 'refresh_token' keys")
+
+        # Step 2: Attach access token as HTTP-only, secure, SameSite=Strict cookie with 1-hour expiry
         response.set_cookie(
             key="access_token",                     # Cookie key name
             value=tokens["access_token"],           # Assign access token value
@@ -34,7 +40,7 @@ class TokenCookieHandler:
             max_age=3600                            # Expiry time in seconds (1 hour)
         )
 
-        # Set refresh token cookie with HTTP-only, secure, and SameSite=Strict
+        # Step 3: Attach refresh token as HTTP-only, secure, SameSite=Strict cookie with 30-day expiry
         response.set_cookie(
             key="refresh_token",                    # Cookie key name
             value=tokens["refresh_token"],          # Assign refresh token value
@@ -44,10 +50,10 @@ class TokenCookieHandler:
             max_age=2592000                         # Expiry time in seconds (30 days)
         )
 
-        # Return the modified response with cookies set
+        # Step 4: Return the modified response object
         return response
 
 
 # ---------------------------- Singleton Instance ----------------------------
-# Single global instance of TokenCookieHandler for route usage
+# Single global instance of TokenCookieHandler for consistent cookie handling across routes
 token_cookie_handler = TokenCookieHandler()

@@ -31,23 +31,24 @@ class UserVerificationService:
         Process:
             1. Iterate over all role tables to locate the user.
             2. Check if user exists and is not already verified.
-            3. Update 'is_verified' field to True in the database.
+            3. Update 'is_verified' field to True in the database for that user.
+            4. Log the verification action for auditing.
 
         Output:
             1. bool: True if verification succeeded, False otherwise.
         """
         try:
-            # Loop through each role table to find the user
+            # Step 1: Iterate over all role tables to locate the user
             for role_name, crud in ROLE_TABLES.items():
                 # Fetch user record from table using email
                 user = await crud.get_by_email(email)
 
-                # Proceed only if user exists and is not yet verified
+                # Step 2: Check if user exists and is not already verified
                 if user and not getattr(user, "is_verified", False):
-                    # Mark the user as verified in the database
+                    # Step 3: Update 'is_verified' field to True in the database for that user
                     await crud.update_by_email(email, {"is_verified": True})
 
-                    # Log the verification action for auditing
+                    # Step 4: Log the verification action for auditing
                     logger.info("User %s marked as verified in table %s", email, role_name)
 
                     # Return True indicating successful verification
@@ -61,7 +62,6 @@ class UserVerificationService:
             # Log the full traceback for debugging purposes
             logger.error("Error marking user verified:\n%s", traceback.format_exc())
 
-            # Return False indicating failure
             return False
 
 

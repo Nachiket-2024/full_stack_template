@@ -48,49 +48,54 @@ class AccountVerificationHandler:
             1. token (str): Verification token received via email.
 
         Process:
-            1. Verify the token and decode payload.
-            2. Extract user email from payload.
-            3. Mark user as verified in the database.
-            4. Record action with login protection and enforce lockout if necessary.
+            1. Decode and validate the verification token using account_verification_service.
+            2. Check if token payload exists and contains "email".
+            3. Extract the user email from payload.
+            4. Generate a Redis key for tracking failed verification attempts.
+            5. Attempt to mark the user as verified in the database via user_verification_service.
+            6. Set response status and content based on whether verification succeeded.
+            7. Record the action in login_protection_service and check for lockout.
+            8. Return 429 if too many failed attempts occurred.
+            9. Return final JSONResponse with success or error message.
 
         Output:
             1. JSONResponse: Success or error message with HTTP status code.
         """
         try:
-            # Decode and validate the verification token
+            # Step 1: Decode and validate the verification token using account_verification_service
             payload = await self.account_verification_service.verify_token(token)
 
-            # Ensure payload exists and contains required email field
+            # Step 2: Check if token payload exists and contains "email"
             if not payload or "email" not in payload:
                 return JSONResponse(
                     content={"error": "Invalid, expired, or already used verification token"},
                     status_code=400
                 )
 
-            # Get user email from token payload
+            # Step 3: Extract the user email from payload
             email = payload["email"]
 
-            # Key for tracking failed attempts per email
+            # Step 4: Generate a Redis key for tracking failed verification attempts
             email_lock_key = f"login_lock:email:{email}"
 
-            # Update database record to mark user as verified
+            # Step 5: Attempt to mark the user as verified in the database via user_verification_service
             updated = await self.user_verification_service.mark_user_verified(email)
 
-            # Determine response content based on update outcome
+            # Step 6: Set response status and content based on whether verification succeeded
             status = 200 if updated else 400
             content = {"message": f"Account verified successfully for {email}."} if updated else {"error": "User not found or already verified"}
 
-            # Record the verification attempt and enforce lockout if necessary
+            # Step 7: Record the action in login_protection_service and check for lockout
             allowed = await self.login_protection_service.check_and_record_action(email_lock_key, success=(status == 200))
 
-            # Deny further action if too many failed attempts
+            # Step 8: Return 429 if too many failed attempts occurred
             if not allowed:
                 return JSONResponse(
                     content={"error": "Too many failed attempts, account temporarily locked"},
                     status_code=429
                 )
-            
-            # Return final success or error response
+
+            # Step 9: Return final JSONResponse with success or error message
             return JSONResponse(content, status_code=status)
 
         except Exception:

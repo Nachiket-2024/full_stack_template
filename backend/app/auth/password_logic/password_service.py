@@ -45,12 +45,12 @@ class PasswordService:
             1. password (str): Plain password string to be hashed.
 
         Process:
-            1. Use pwd_context to hash the password using Argon2.
+            1. Hash the password using pwd_context with Argon2.
 
         Output:
             1. str: Hashed password string.
         """
-        # Hash the password using Argon2
+        # Step 1: Hash the password using pwd_context with Argon2
         return pwd_context.hash(password)
 
     # ---------------------------- Verify Password ----------------------------
@@ -63,12 +63,12 @@ class PasswordService:
             2. hashed_password (str): Hashed password to compare against.
 
         Process:
-            1. Use pwd_context to verify the plain password against the hash.
+            1. Verify the plain password against the hashed password using pwd_context.
 
         Output:
             1. bool: True if passwords match, False otherwise.
         """
-        # Verify plain password against hashed password
+        # Step 1: Verify the plain password against the hashed password using pwd_context
         return pwd_context.verify(plain_password, hashed_password)
 
     # ---------------------------- Validate Password Strength ----------------------------
@@ -83,23 +83,24 @@ class PasswordService:
             1. Check if length is at least 8 characters.
             2. Ensure it contains at least one digit.
             3. Ensure it contains at least one special character.
+            4. Return True if it passes all checks.
 
         Output:
             1. bool: True if password passes all checks, False otherwise.
         """
-        # Minimum length 8 characters
+        # Step 1: Check if length is at least 8 characters
         if len(password) < 8:
             return False
         
-        # Must contain at least one digit
+        # Step 2: Ensure it contains at least one digit
         if not re.search(r"\d", password):
             return False
         
-        # Must contain at least one special character
+        # Step 3: Ensure it contains at least one special character
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
             return False
         
-        # Password passed all checks
+        # Step 4: Return True if it passes all checks
         return True
 
     # ---------------------------- Create Reset Token ----------------------------
@@ -118,33 +119,34 @@ class PasswordService:
         Process:
             1. Assign default role if role is None.
             2. Validate role exists in ROLE_TABLES.
-            3. Calculate expiration timestamp.
-            4. Create payload with email, role, and exp.
+            3. Calculate expiration timestamp in UTC.
+            4. Create payload with email, role, and expiration.
             5. Encode JWT using SECRET_KEY and JWT_ALGORITHM.
 
         Output:
             1. str: Encoded JWT token string.
         """
-        # Use default role if none provided
+        # Step 1: Assign default role if role is None
         if role is None:
             role = DEFAULT_ROLE
 
-        # Ensure the role exists
+        # Step 2: Validate role exists in ROLE_TABLES
         if role not in ROLE_TABLES:
             raise ValueError(f"Invalid role for reset token: {role}")
 
-        # Calculate expiration timestamp in UTC
+        # Step 3: Calculate expiration timestamp in UTC
         expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
 
-        # Prepare JWT payload
+        # Step 4: Create payload with email, role, and expiration
         payload: dict[str, str | float] = {
             "email": email,
             "role": role,
             "exp": expire.timestamp()
         }
 
-        # Encode payload as JWT
+        # Step 5: Encode JWT using SECRET_KEY and JWT_ALGORITHM
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
         return token
 
     # ---------------------------- Verify Reset Token ----------------------------
@@ -158,19 +160,20 @@ class PasswordService:
         Process:
             1. Decode JWT using SECRET_KEY and JWT_ALGORITHM.
             2. Validate that role in payload exists in ROLE_TABLES.
+            3. Return payload if valid
 
         Output:
             1. dict | None: Payload dict if valid, None if invalid or expired.
         """
         try:
-            # Decode JWT using secret and algorithm
+            # Step 1: Decode JWT using SECRET_KEY and JWT_ALGORITHM
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
-            # Validate role in payload
+            # Step 2: Validate that role in payload exists in ROLE_TABLES
             if payload.get("role") not in ROLE_TABLES:
                 return None
             
-            # Return valid payload
+            # Step 3: Return payload if valid
             return payload
         
         except jwt.ExpiredSignatureError:

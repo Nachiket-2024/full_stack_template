@@ -25,6 +25,7 @@ class LoginProtectionService:
     3. reset_failed_attempts - Clear failed attempts after successful login.
     4. check_and_record_action - Record action outcome and enforce lockout if necessary.
     """
+
     # Maximum allowed failed login attempts before lockout
     MAX_FAILED_LOGIN_ATTEMPTS: int = settings.MAX_FAILED_LOGIN_ATTEMPTS
 
@@ -39,26 +40,24 @@ class LoginProtectionService:
             1. key (str): Redis key for tracking failed login attempts.
 
         Process:
-            1. Get current failure count from Redis.
-            2. If none, set key with initial count and expiration.
+            1. Retrieve current failure count from Redis.
+            2. If no existing count, initialize key with 1 and expiration.
             3. Otherwise, increment existing failure count.
 
         Output:
             1. None
         """
         try:
-            # Retrieve current failure count from Redis
+            # Step 1: Retrieve current failure count from Redis
             count = await redis_client.get(key)
 
-            # Check if this is the first failure
+            # Step 2: If no existing count, initialize key with 1 and expiration
             if count is None:
-                # Set Redis key to 1 and apply expiration for lockout
                 await redis_client.set(key, 1, ex=LoginProtectionService.LOGIN_LOCKOUT_TIME)
             else:
-                # Increment existing failure count
+                # Step 3: Otherwise, increment existing failure count
                 await redis_client.incr(key)
 
-        # Catch exceptions from Redis operations
         except Exception:
             # Log the exception with full traceback
             logger.error("Error recording failed login attempt:\n%s", traceback.format_exc())
@@ -71,31 +70,27 @@ class LoginProtectionService:
             1. key (str): Redis key for tracking failed login attempts.
 
         Process:
-            1. Get current failure count from Redis.
+            1. Retrieve current failure count from Redis.
             2. Compare count with maximum allowed failed attempts.
 
         Output:
             1. bool: True if user is locked, False otherwise.
         """
         try:
-            # Retrieve current failure count from Redis
+            # Step 1: Retrieve current failure count from Redis
             count = await redis_client.get(key)
 
-            # Check if count exceeds or equals maximum allowed
+            # Step 2: Compare count with maximum allowed failed attempts
             if count is not None and int(count) >= LoginProtectionService.MAX_FAILED_LOGIN_ATTEMPTS:
-                # User is locked out
-                return True
+                return True  # User is locked
 
-            # User is not locked
-            return False
+            return False  # User is not locked
 
-        # Catch exceptions from Redis operations
         except Exception:
             # Log exception with full traceback
             logger.error("Error checking login lock status:\n%s", traceback.format_exc())
-
-            # Default to unlocked on error
-            return False
+            
+            return False  # Default to unlocked on error
 
     # ---------------------------- Reset Failed Attempts ----------------------------
     @staticmethod
@@ -111,7 +106,7 @@ class LoginProtectionService:
             1. None
         """
         try:
-            # Delete the Redis key to reset failed attempts
+            # Step 1: Delete key from Redis to reset failure count
             await redis_client.delete(key)
 
         except Exception:
@@ -130,24 +125,24 @@ class LoginProtectionService:
             1. Check if user is currently locked out.
             2. Reset failed attempts if action succeeded.
             3. Record failed attempt if action failed.
+            4. Return final allowed status based on lockout and action outcome.
 
         Output:
             1. bool: True if action allowed, False if locked out.
         """
-        # Check if user is locked before performing action
+        # Step 1: Check if user is currently locked out
         if await LoginProtectionService.is_locked(key):
-            # Deny action if locked
-            return False
+            return False  # Deny action if locked
 
-        # If action succeeded, reset failed attempts
+        # Step 2: Reset failed attempts if action succeeded
         if success:
             await LoginProtectionService.reset_failed_attempts(key)
-            
+
         else:
-            # Record a failed attempt if action failed
+            # Step 3: Record a failed attempt if action failed
             await LoginProtectionService.record_failed_attempt(key)
 
-        # Allow action if not locked
+        # Step 4: Return final allowed status based on lockout and action outcome
         return True
 
 

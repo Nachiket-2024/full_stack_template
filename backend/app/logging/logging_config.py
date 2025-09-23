@@ -29,30 +29,31 @@ def get_logger(name: str = "base_logger") -> logging.Logger:
     
     Process:
         1. Get or create a logger instance with the specified name.
-        2. Set logging level to DEBUG for capturing all logs.
-        3. Check if logger already has handlers to avoid duplicates.
-        4. Create JSON formatter with standard fields.
+        2. Set the logger level to DEBUG to capture all log levels.
+        3. Avoid duplicate handlers if logger already has handlers.
+        4. Create JSON formatter for structured logging.
         5. Create a timed rotating file handler for access logs.
-        6. Set handler level and formatter.
-        7. Add handler to logger.
+        6. Set the handler level and attach formatter.
+        7. Add handler to the logger.
+        8. Return the fully configured logger.
     
     Output:
-        1. logging.Logger: Configured logger instance.
+        1. logging.Logger: Fully configured logger instance.
     """
-    # Get or create logger instance
+    # Step 1: Get or create a logger instance with the specified name
     logger = logging.getLogger(name)
 
-    # Set logger to capture all debug and above level logs
+    # Step 2: Set the logger level to DEBUG to capture all log levels
     logger.setLevel(logging.DEBUG)
 
-    # Avoid adding duplicate handlers if already present
+    # Step 3: Avoid duplicate handlers if logger already has handlers
     if not logger.handlers:
-        # Create JSON formatter for structured logging
+        # Step 4: Create JSON formatter for structured logging
         formatter = jsonlogger.JsonFormatter(
             '%(asctime)s %(levelname)s %(name)s %(message)s'
         )
 
-        # Create a timed rotating file handler for daily log rotation
+        # Step 5: Create a timed rotating file handler for access logs
         access_handler = TimedRotatingFileHandler(
             ACCESS_LOG_PATH,  # Path to log file
             when="midnight",  # Rotate logs at midnight
@@ -60,14 +61,12 @@ def get_logger(name: str = "base_logger") -> logging.Logger:
             backupCount=0     # No backup limit
         )
 
-        # Set logging level for this handler
+        # Step 6: Set the handler level and attach formatter
         access_handler.setLevel(logging.INFO)
-
-        # Attach JSON formatter to handler
         access_handler.setFormatter(formatter)
 
-        # Add handler to logger instance
+        # Step 7: Add handler to the logger
         logger.addHandler(access_handler)
 
-    # Return the fully configured logger
+    # Step 8: Return the fully configured logger
     return logger

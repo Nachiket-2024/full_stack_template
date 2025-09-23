@@ -49,83 +49,76 @@ class CurrentUserHandler:
             1. dict: Contains user info ('name', 'email', 'table') if successful.
         """
         try:
-            # ensure token is provided
+            # Step 1: Check if access token is provided
             if not access_token:
-                # raise HTTP 401 if no token
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="No access token provided"
                 )
 
-            # decode and verify token payload
+            # Step 2: Verify the access token using JWT service
             payload = await jwt_service.verify_token(access_token)
 
-            # raise HTTP 401 if invalid or expired
+            # Raise error if invalid or expired token
             if not payload:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid or expired token"
                 )
 
-            # extract user email and role table from payload
+            # Step 3: Extract user email and table (role) from token payload
             email = payload.get("email")
             table = payload.get("table")
 
-            # raise HTTP 401 if payload missing required fields
+            # Step 4: Validate email and table values
             if not email or not table:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token payload"
                 )
 
-            # retrieve role-specific CRUD instance
+            # Step 5: Get the appropriate CRUD instance for the user's role/table
             crud_instance = ROLE_TABLES.get(table)
 
-            # raise HTTP 401 if no valid role/table found
+            # Step 5 (continued): Raise error if no valid role/table found
             if not crud_instance:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="User table/role not found"
                 )
 
-            # query database for user record
+            # Step 6: Query the database for the user by email
             user = await crud_instance.get_by_email(db, email)
 
-            # raise HTTP 401 if user not found in DB
+            # Step 6 (continued): Raise error if user not found
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="User not found"
                 )
 
-            # return dictionary with basic user information
+            # Step 7: Return basic user information if found, else raise exception
             return {
                 "name": getattr(user, "name", "Unknown"),
                 "email": getattr(user, "email", None),
                 "table": table
             }
 
-        # handle database errors
+        # Handle database errors
         except SQLAlchemyError:
-            # log DB error with traceback
             logger.error("Database error fetching current user:\n%s", traceback.format_exc())
-
-            # raise HTTP 500 for DB issues
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database error"
             )
 
-        # re-raise known HTTPExceptions
+        # Re-raise known HTTPExceptions
         except HTTPException:
             raise
 
-        # handle unexpected errors
+        # Handle unexpected errors
         except Exception:
-            # log unexpected error with traceback
             logger.error("Error fetching current user:\n%s", traceback.format_exc())
-
-            # raise HTTP 500 for generic internal server error
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error"

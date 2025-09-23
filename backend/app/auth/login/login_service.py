@@ -10,7 +10,7 @@ import asyncio
 
 # ---------------------------- Internal Imports ----------------------------
 # Role tables for user CRUD operations
-from ...access_control.role_tables import ROLE_TABLES, TOKEN_TABLES
+from ...access_control.role_tables import ROLE_TABLES
 
 # Password service for verifying password hashes
 from ..password_logic.password_service import password_service
@@ -33,22 +33,21 @@ class LoginService:
     """
 
     # ---------------------------- Static Async Login Method ----------------------------
-    # Static async method for user login
     @staticmethod
     async def login(email: str, password: str, db=None) -> TokenPairResponseSchema | None:
         """
         Input:
             1. email (str): User's email address.
             2. password (str): User's password.
-            3. db: Optional database session for querying user and token records.
+            3. db: Optional database session for querying user records.
 
         Process:
             1. Validate that email and password are provided.
             2. Iterate through ROLE_TABLES to find the user by email.
-            3. Verify that the user account is verified.
-            4. Check password correctness using password_service.
-            5. Generate access and refresh tokens concurrently.
-            6. Always insert a new token row into TOKEN_TABLES (append-only).
+            3. Handle case where user is not found.
+            4. Ensure user account is verified.
+            5. Check password correctness using password_service.
+            6. Generate access and refresh tokens concurrently.
             7. Return structured token response.
 
         Output:
@@ -56,59 +55,45 @@ class LoginService:
                                         otherwise returns None.
         """
         try:
-            # Return None if email or password is missing
+            # Step 1: Validate that email and password are provided
             if not email or not password:
                 return None
 
-            # Initialize variables
+            # Step 2: Iterate through ROLE_TABLES to find the user by email
             user = None
             user_table_name = None
-
-            # Iterate over all role tables to find the user by email
             for table_name, crud in ROLE_TABLES.items():
                 user = await crud.get_by_email(db, email)
                 if user:
                     user_table_name = table_name
                     break
 
-            # Log and return None if user is not found
+            # Step 3: Handle case where user is not found
             if not user:
                 logger.info("Login attempt with non-existing email: %s", email)
                 return None
 
-            # Ensure user account is verified before login
+            # Step 4: Ensure user account is verified
             if not user.is_verified:
                 logger.info("Login blocked for unverified account: %s", email)
                 return None
 
-            # Check if the provided password matches the stored hash
+            # Step 5: Check password correctness using password_service
             if not await password_service.verify_password(password, user.hashed_password):
                 logger.warning("Incorrect password for email: %s", email)
                 return None
 
-            # Concurrently create access and refresh tokens
+            # Step 6: Generate access and refresh tokens concurrently
             access_token, refresh_token = await asyncio.gather(
-                jwt_service.create_access_token(email, user_table_name),
-                jwt_service.create_refresh_token(email, user_table_name)
+                jwt_service.create_access_token(user_id=email),
+                jwt_service.create_refresh_token(user_id=email)
             )
 
-            # Get token CRUD instance for the user's role/table
-            token_crud = TOKEN_TABLES[user_table_name]
-
-            # Always create a new token row (append-only, multi-device support)
-            token_data = {
-                "email": email,
-                "access_token": access_token,
-                "refresh_token": refresh_token
-            }
-            await token_crud.create(db, token_data)
-
-            # Return structured token response
+            # Step 7: Return structured token response
             return TokenPairResponseSchema(access_token=access_token, refresh_token=refresh_token)
 
-        # Catch all unexpected errors
         except Exception:
-            # Log full exception stack trace
+            # Handle unexpected exceptions and log errors
             logger.error("Error during login:\n%s", traceback.format_exc())
             return None
 
