@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 # Define service class for creating, verifying, revoking, and managing JWT tokens
 class JWTService:
     """
-    1. create_access_token - Generate short-lived access token asynchronously.
-    2. create_refresh_token - Generate refresh token and store in Redis asynchronously.
+    1. create_access_token - Generate short-lived access token with email and role.
+    2. create_refresh_token - Generate refresh token with email and role, store in Redis.
     3. verify_token - Decode and validate token, check revocation.
     4. revoke_token - Revoke token and optionally remove from user set.
     5. is_token_revoked - Check if token is revoked in Redis.
@@ -38,14 +38,15 @@ class JWTService:
     """
 
     # ---------------------------- Create Access Token ----------------------------
-    async def create_access_token(self, user_id: str) -> str:
+    async def create_access_token(self, email: str, role: str) -> str:
         """
         Input:
-            1. user_id (str): Unique identifier of user.
+            1. email (str): Email address of the user.
+            2. role (str): Role assigned to the user.
 
         Process:
             1. Compute expiry timestamp for access token.
-            2. Create token payload with user_id and expiration.
+            2. Create token payload with email, role, and expiration.
             3. Encode payload asynchronously using secret key.
 
         Output:
@@ -54,21 +55,22 @@ class JWTService:
         # Step 1: Compute expiry timestamp for access token
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
-        # Step 2: Create token payload with user_id and expiration
-        payload = {"sub": user_id, "exp": expire}
+        # Step 2: Create token payload with email, role, and expiration
+        payload = {"email": email, "role": role, "exp": expire}
 
         # Step 3: Encode payload asynchronously using secret key
-        return await asyncio.to_thread(jwt.encode, payload, settings.SECRET_KEY, "HS256")
+        return await asyncio.to_thread(jwt.encode, payload, settings.SECRET_KEY, settings.JWT_ALGORITHM)
 
     # ---------------------------- Create Refresh Token ----------------------------
-    async def create_refresh_token(self, user_id: str) -> str:
+    async def create_refresh_token(self, email: str, role: str) -> str:
         """
         Input:
-            1. user_id (str): Unique identifier of user.
+            1. email (str): Email address of the user.
+            2. role (str): Role assigned to the user.
 
         Process:
             1. Compute expiry timestamp for refresh token.
-            2. Create token payload with user_id and expiration.
+            2. Create token payload with email, role, and expiration.
             3. Encode payload asynchronously into JWT token.
             4. Store refresh token in Redis set for user.
             5. Return refresh token.
@@ -79,14 +81,14 @@ class JWTService:
         # Step 1: Compute expiry timestamp for refresh token
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
 
-        # Step 2: Create token payload with user_id and expiration
-        payload = {"sub": user_id, "exp": expire}
+        # Step 2: Create token payload with email, role, and expiration
+        payload = {"email": email, "role": role, "exp": expire}
 
         # Step 3: Encode payload asynchronously into JWT token
-        token = await asyncio.to_thread(jwt.encode, payload, settings.SECRET_KEY, "HS256")
+        token = await asyncio.to_thread(jwt.encode, payload, settings.SECRET_KEY, settings.JWT_ALGORITHM)
 
         # Step 4: Store refresh token in Redis set for user
-        await redis_client.sadd(f"user:{user_id}:refresh_tokens", token)
+        await redis_client.sadd(f"user:{email}:refresh_tokens", token)
 
         # Step 5: Return refresh token
         return token
@@ -107,7 +109,7 @@ class JWTService:
         """
         try:
             # Step 1: Decode token asynchronously using secret key
-            payload = await asyncio.to_thread(jwt.decode, token, settings.SECRET_KEY, algorithms=["HS256"])
+            payload = await asyncio.to_thread(jwt.decode, token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
 
             # Step 2: Check if token is revoked in Redis
             if await self.is_token_revoked(token):
@@ -119,35 +121,35 @@ class JWTService:
         except jwt.ExpiredSignatureError:
             # Token expired
             return None
-        
+
         except jwt.InvalidTokenError:
             # Token invalid
             return None
-        
+
         except Exception:
             # Handle unexpected exceptions and log errors
             logger.error("JWT verification error:\n%s", traceback.format_exc())
             return None
 
     # ---------------------------- Revoke Token ----------------------------
-    async def revoke_token(self, token: str, user_id: str | None = None) -> None:
+    async def revoke_token(self, token: str, email: str | None = None) -> None:
         """
         Input:
             1. token (str): Encoded JWT token.
-            2. user_id (str | None): User identifier (optional).
+            2. email (str | None): Email identifier (optional).
 
         Process:
             1. Decode token asynchronously to get expiry timestamp.
             2. Calculate TTL until token expiry.
             3. Store revoked token in Redis with TTL.
-            4. Remove from user refresh token set if user_id provided.
+            4. Remove from user refresh token set if email provided.
 
         Output:
             1. None
         """
         try:
             # Step 1: Decode token asynchronously to get expiry timestamp
-            payload = await asyncio.to_thread(jwt.decode, token, settings.SECRET_KEY, algorithms=["HS256"])
+            payload = await asyncio.to_thread(jwt.decode, token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
             exp = payload.get("exp")
 
             # Step 2: Calculate TTL until token expiry
@@ -156,9 +158,9 @@ class JWTService:
             # Step 3: Store revoked token in Redis with TTL
             await redis_client.setex(f"revoked:{token}", ttl, "true")
 
-            # Step 4: Remove from user refresh token set if user_id provided
-            if user_id:
-                await redis_client.srem(f"user:{user_id}:refresh_tokens", token)
+            # Step 4: Remove from user refresh token set if email provided
+            if email:
+                await redis_client.srem(f"user:{email}:refresh_tokens", token)
 
         except Exception:
             # Fail silently but log warning
@@ -180,10 +182,10 @@ class JWTService:
         return await redis_client.exists(f"revoked:{token}") == 1
 
     # ---------------------------- Get All Refresh Tokens ----------------------------
-    async def get_all_refresh_tokens_for_user(self, user_id: str) -> list[str]:
+    async def get_all_refresh_tokens_for_user(self, email: str) -> list[str]:
         """
         Input:
-            1. user_id (str): Unique identifier of user.
+            1. email (str): Email address of the user.
 
         Process:
             1. Fetch refresh tokens from Redis set for user.
@@ -193,7 +195,7 @@ class JWTService:
             1. list[str]: List of refresh tokens.
         """
         # Step 1: Fetch refresh tokens from Redis set for user
-        tokens = await redis_client.smembers(f"user:{user_id}:refresh_tokens")
+        tokens = await redis_client.smembers(f"user:{email}:refresh_tokens")
 
         # Step 2: Decode tokens from bytes to UTF-8
         return [t.decode("utf-8") for t in tokens] if tokens else []

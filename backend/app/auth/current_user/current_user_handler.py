@@ -15,7 +15,7 @@ from fastapi import HTTPException, status
 # JWT service to decode and verify access tokens
 from ..token_logic.jwt_service import jwt_service
 
-# Role tables for querying user based on role
+# Role mapping for querying user based on role
 from ...access_control.role_tables import ROLE_TABLES
 
 # ---------------------------- Logger Setup ----------------------------
@@ -39,14 +39,14 @@ class CurrentUserHandler:
         Process:
             1. Check if access token is provided.
             2. Verify the access token using JWT service.
-            3. Extract user email and table (role) from token payload.
-            4. Validate email and table values.
-            5. Get the appropriate CRUD instance for the user's role/table.
+            3. Extract user email and role from token payload.
+            4. Validate email and role values.
+            5. Get the appropriate CRUD instance for the user's role.
             6. Query the database for the user by email.
             7. Return basic user information if found, else raise exception.
 
         Output:
-            1. dict: Contains user info ('name', 'email', 'table') if successful.
+            1. dict: Contains user info ('name', 'email', 'role') if successful.
         """
         try:
             # Step 1: Check if access token is provided
@@ -66,25 +66,25 @@ class CurrentUserHandler:
                     detail="Invalid or expired token"
                 )
 
-            # Step 3: Extract user email and table (role) from token payload
+            # Step 3: Extract user email and role from token payload
             email = payload.get("email")
-            table = payload.get("table")
+            role = payload.get("role")
 
-            # Step 4: Validate email and table values
-            if not email or not table:
+            # Step 4: Validate email and role values
+            if not email or not role:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token payload"
                 )
 
-            # Step 5: Get the appropriate CRUD instance for the user's role/table
-            crud_instance = ROLE_TABLES.get(table)
+            # Step 5: Get the appropriate CRUD instance for the user's role
+            crud_instance = ROLE_TABLES.get(role)
 
-            # Step 5 (continued): Raise error if no valid role/table found
+            # Step 5 (continued): Raise error if no valid role found
             if not crud_instance:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User table/role not found"
+                    detail="User role not recognized"
                 )
 
             # Step 6: Query the database for the user by email
@@ -101,7 +101,7 @@ class CurrentUserHandler:
             return {
                 "name": getattr(user, "name", "Unknown"),
                 "email": getattr(user, "email", None),
-                "table": table
+                "role": role
             }
 
         # Handle database errors
