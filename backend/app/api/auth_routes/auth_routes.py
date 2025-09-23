@@ -144,7 +144,7 @@ async def get_current_user(access_token: str = Cookie(None), db: AsyncSession = 
 # ---------------------------- Logout Endpoint ----------------------------
 @router.post("/logout")
 @rate_limiter_service.rate_limited("logout")
-async def logout(request: Request, db: AsyncSession = Depends(database.get_session)):
+async def logout(request: Request):
     """
     Input:
         1. request (Request): FastAPI request object containing cookies.
@@ -158,12 +158,12 @@ async def logout(request: Request, db: AsyncSession = Depends(database.get_sessi
         1. JSONResponse: Response indicating logout success or failure.
     """
     refresh_token = request.cookies.get("refresh_token")
-    return await logout_handler.handle_logout(refresh_token, db=db)
+    return await logout_handler.handle_logout(refresh_token)
 
 # ---------------------------- Logout All Devices Endpoint ----------------------------
 @router.post("/logout/all")
 @rate_limiter_service.rate_limited("logout_all")
-async def logout_all(request: Request, db: AsyncSession = Depends(database.get_session)):
+async def logout_all(request: Request):
     """
     Input:
         1. request (Request): FastAPI request object containing cookies.
@@ -177,8 +177,7 @@ async def logout_all(request: Request, db: AsyncSession = Depends(database.get_s
         1. JSONResponse: Response indicating logout from all devices.
     """
     refresh_token = request.cookies.get("refresh_token")
-    return await logout_all_handler.handle_logout_all(refresh_token, db)
-
+    return await logout_all_handler.handle_logout_all(refresh_token)
 
 # ---------------------------- Password Reset Request ----------------------------
 @router.post("/password-reset/request")

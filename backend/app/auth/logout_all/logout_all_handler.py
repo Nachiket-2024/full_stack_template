@@ -41,7 +41,7 @@ class LogoutAllHandler:
 
         Process:
             1. Validate that refresh token is provided.
-            2. Verify refresh token and extract user ID.
+            2. Verify refresh token and extract user email.
             3. Revoke all refresh tokens for the user.
             4. Return error if no tokens were revoked.
             5. Clear authentication cookies on successful logout.
@@ -59,21 +59,21 @@ class LogoutAllHandler:
                     status_code=400
                 )
 
-            # Step 2: Verify refresh token and extract user ID
+            # Step 2: Verify refresh token and extract user email
             payload = await jwt_service.verify_token(refresh_token)
 
             # Step 3: Return error if refresh token is invalid
-            if not payload or "sub" not in payload:
+            if not payload or "email" not in payload:
                 return JSONResponse(
                     content={"error": "Invalid refresh token"},
                     status_code=400
                 )
 
-            # Step 4: Extract user ID from token payload
-            user_id = payload["sub"]
+            # Step 4: Extract user email from token payload
+            email = payload["email"]
 
             # Step 5: Revoke all refresh tokens for the user
-            revoked_count = await refresh_token_service.revoke_all_tokens_for_user(user_id)
+            revoked_count = await refresh_token_service.revoke_all_tokens_for_user(email)
 
             # Step 6: Return error if no tokens were revoked
             if revoked_count == 0:

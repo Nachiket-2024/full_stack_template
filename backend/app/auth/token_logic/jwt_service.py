@@ -132,7 +132,7 @@ class JWTService:
             return None
 
     # ---------------------------- Revoke Token ----------------------------
-    async def revoke_token(self, token: str, email: str | None = None) -> None:
+    async def revoke_token(self, token: str, email: str | None = None) -> bool:
         """
         Input:
             1. token (str): Encoded JWT token.
@@ -143,9 +143,10 @@ class JWTService:
             2. Calculate TTL until token expiry.
             3. Store revoked token in Redis with TTL.
             4. Remove from user refresh token set if email provided.
+            5. Return True on success, False on failure.
 
         Output:
-            1. None
+            1. bool: True if revoked, False otherwise.
         """
         try:
             # Step 1: Decode token asynchronously to get expiry timestamp
@@ -162,9 +163,12 @@ class JWTService:
             if email:
                 await redis_client.srem(f"user:{email}:refresh_tokens", token)
 
+            return True  # Step 5: Return True on success
+
         except Exception:
             # Fail silently but log warning
-            logger.warning("Failed to revoke token: %s", token)
+            logger.warning("Failed to revoke token: %s\n%s", token, traceback.format_exc())
+            return False
 
     # ---------------------------- Check Token Revocation ----------------------------
     async def is_token_revoked(self, token: str) -> bool:
@@ -189,7 +193,7 @@ class JWTService:
 
         Process:
             1. Fetch refresh tokens from Redis set for user.
-            2. Decode tokens from bytes to UTF-8.
+            2. Return tokens as a list (already strings).
 
         Output:
             1. list[str]: List of refresh tokens.
@@ -197,8 +201,8 @@ class JWTService:
         # Step 1: Fetch refresh tokens from Redis set for user
         tokens = await redis_client.smembers(f"user:{email}:refresh_tokens")
 
-        # Step 2: Decode tokens from bytes to UTF-8
-        return [t.decode("utf-8") for t in tokens] if tokens else []
+        # Step 2: Return tokens as a list (already strings)
+        return list(tokens) if tokens else []
 
 
 # ---------------------------- Singleton Instance ----------------------------
