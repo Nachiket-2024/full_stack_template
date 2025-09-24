@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for tracking events, warnings, and errors
-import logging
-
 # Capture full stack traces for detailed exception debugging
 import traceback
 
@@ -21,9 +18,12 @@ from ..verify_account.account_verification_service import account_verification_s
 # Default role from centralized role tables
 from ...access_control.role_tables import DEFAULT_ROLE
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Configure module-specific logger
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Signup Handler Class ----------------------------
 # Class encapsulating user signup logic

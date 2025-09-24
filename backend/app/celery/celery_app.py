@@ -2,16 +2,16 @@
 # Celery for asynchronous task queue management
 from celery import Celery
 
-# Logging module for tracking events and errors
-import logging
-
 # ---------------------------- Internal Imports ----------------------------
 # Load Celery broker and backend URLs from application settings
 from ..core.settings import settings
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ..logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Create a module-specific logger instance
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Celery App Initialization ----------------------------
 # Instantiate Celery with app name, broker, and backend

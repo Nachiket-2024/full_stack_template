@@ -2,9 +2,6 @@
 # Datetime utilities for timestamps and timezone-aware operations
 from datetime import datetime, timedelta, timezone
 
-# Logging module for tracking events and errors
-import logging
-
 # Capture full exception stack traces for debugging
 import traceback
 
@@ -24,13 +21,16 @@ from ...redis.client import redis_client
 # JWT service for encoding/decoding and validation
 from ...auth.token_logic.jwt_service import jwt_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Type Hint Celery Task ----------------------------
 # This tells the IDE that send_email_task has Celery Task methods like apply_async
 send_email_task: Task = _send_email_task
 
 # ---------------------------- Logger Setup ----------------------------
-# Configure module-specific logger
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Account Verification Service Class ----------------------------
 # Service for managing account verification emails and single-use tokens

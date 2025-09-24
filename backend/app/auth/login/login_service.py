@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for structured event and error logging
-import logging
-
 # Capture full stack traces in case of exceptions
 import traceback
 
@@ -21,9 +18,12 @@ from ..token_logic.jwt_service import jwt_service
 # Schema for structured JWT token responses
 from ..refresh_token_logic.refresh_token_schema import TokenPairResponseSchema
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Configure logger specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Login Service ----------------------------
 # Service class to handle login functionality
@@ -63,7 +63,7 @@ class LoginService:
             user = None
             user_table_name = None
             for table_name, crud in ROLE_TABLES.items():
-                user = await crud.get_by_email(db, email)
+                user = await crud.get_by_email(email, db)
                 if user:
                     user_table_name = table_name
                     break

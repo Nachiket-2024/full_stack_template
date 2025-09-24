@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for structured event and error logging
-import logging
-
 # Capture full stack traces in case of exceptions
 import traceback
 
@@ -12,9 +9,12 @@ from fastapi.responses import JSONResponse
 # Refresh token service to handle revocation and management
 from ..refresh_token_logic.refresh_token_service import refresh_token_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Configure logger specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Logout Handler Class ----------------------------
 # Handler class for managing user logout operations

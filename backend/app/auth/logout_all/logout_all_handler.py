@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for structured event and error logging
-import logging
-
 # Capture full stack traces in case of exceptions
 import traceback
 
@@ -15,9 +12,12 @@ from ..refresh_token_logic.refresh_token_service import refresh_token_service
 # JWT service for verifying tokens
 from ..token_logic.jwt_service import jwt_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Create a logger instance specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Logout All Handler Class ----------------------------
 # Handler class for revoking all refresh tokens and clearing authentication cookies

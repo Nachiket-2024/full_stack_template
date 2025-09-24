@@ -5,9 +5,6 @@ import aiosmtplib
 # Email message class for constructing emails
 from email.message import EmailMessage
 
-# Logging module for tracking events and errors
-import logging
-
 # Capture full stack traces for debugging exceptions
 import traceback
 
@@ -24,9 +21,12 @@ from celery import shared_task
 # Load settings like email credentials and OAuth tokens
 from ..core.settings import settings
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ..logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Async Email Sending Task ----------------------------
 @shared_task(bind=True, name="send_email_task")

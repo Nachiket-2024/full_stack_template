@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for tracking events, warnings, and errors during signup
-import logging
-
 # Capture full exception stack traces for debugging
 import traceback
 
@@ -15,9 +12,12 @@ from ...access_control.role_tables import ROLE_TABLES
 # Password service for hashing passwords
 from ..password_logic.password_service import password_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Configure module-specific logger for structured logging
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Signup Service Class ----------------------------
 # Service class to handle user signup logic

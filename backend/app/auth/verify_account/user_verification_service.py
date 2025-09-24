@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# For logging events, warnings, and errors
-import logging
-
 # Capture full exception stack traces for debugging
 import traceback
 
@@ -9,9 +6,12 @@ import traceback
 # Role tables for looking up users and updating verification status
 from ...access_control.role_tables import ROLE_TABLES
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------- User Verification Service Class ----------------------------
 # Service to handle marking users as verified

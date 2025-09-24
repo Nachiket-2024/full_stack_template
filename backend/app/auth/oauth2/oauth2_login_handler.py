@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Import logging module for tracking errors and events
-import logging
-
 # Import traceback module to capture full stack traces for debugging exceptions
 import traceback
 
@@ -21,9 +18,12 @@ from .oauth2_service import oauth2_service
 # Import cookie handler to centralize token cookie management
 from ..token_logic.token_cookie_handler import token_cookie_handler
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------- OAuth Handler Class ----------------------------
 # Define handler class to manage Google OAuth2 login flow

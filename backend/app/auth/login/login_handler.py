@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# For logging events, errors, and debugging information
-import logging
-
 # For printing detailed exception traces in case of errors
 import traceback
 
@@ -21,9 +18,12 @@ from ..security.login_protection_service import login_protection_service
 # Cookie utility for setting tokens
 from ..token_logic.token_cookie_handler import token_cookie_handler
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Create a logger instance specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Login Handler Class ----------------------------
 # Handler class for managing user login operations

@@ -8,9 +8,6 @@ import asyncio
 # Import JWT encoding and decoding library
 import jwt
 
-# Logging for structured event and error logging
-import logging
-
 # Capture full stack traces in case of exceptions
 import traceback
 
@@ -21,9 +18,12 @@ from ...core.settings import settings
 # Import async Redis client used for token revocation / blacklisting
 from ...redis.client import redis_client
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Create logger instance specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- JWT Service Class ----------------------------
 # Define service class for creating, verifying, revoking, and managing JWT tokens

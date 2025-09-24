@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for tracking events, warnings, and errors
-import logging
-
 # Capture full stack traces for detailed exception debugging
 import traceback
 
@@ -18,9 +15,12 @@ from .user_verification_service import user_verification_service
 # Service for login protection (rate limiting, lockouts)
 from ..security.login_protection_service import login_protection_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Initialize a logger specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Account Verification Handler Class ----------------------------
 # Class responsible for handling account verification requests

@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging module for tracking events and errors
-import logging
-
 # Module to capture detailed exception stack traces
 import traceback
 
@@ -12,9 +9,12 @@ from ...redis.client import redis_client
 # Load configuration values like max attempts and lockout time
 from ...core.settings import settings
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Initialize a logger specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Login Protection Service Class ----------------------------
 # Service class to protect against brute-force login attempts

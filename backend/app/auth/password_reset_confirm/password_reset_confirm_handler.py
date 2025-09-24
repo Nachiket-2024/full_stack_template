@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging module for recording events, errors, and debugging information
-import logging
-
 # Module to capture and print detailed exception traces
 import traceback
 
@@ -18,9 +15,12 @@ from ..password_logic.password_reset_service import password_reset_service
 # Service for login protection such as rate limiting and account lockouts
 from ..security.login_protection_service import login_protection_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Initialize a logger specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Password Reset Confirm Handler Class ----------------------------
 # Class responsible for handling password reset confirmation logic

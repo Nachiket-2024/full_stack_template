@@ -2,9 +2,6 @@
 # Import FastAPI's router, request body parsing, and request object
 from fastapi import APIRouter, Body, Request
 
-# Import Python's built-in logging module for error/info logs
-import logging
-
 # ---------------------------- Internal Imports ----------------------------
 # Schemas for validating refresh token requests and shaping token pair responses
 from ...auth.refresh_token_logic.refresh_token_schema import (
@@ -15,9 +12,12 @@ from ...auth.refresh_token_logic.refresh_token_schema import (
 # Import refresh token handler for processing logic
 from ...auth.refresh_token_logic.refresh_token_handler import refresh_token_handler
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Initialize logger for this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Router ----------------------------
 # Define FastAPI router for refresh token endpoints

@@ -2,9 +2,6 @@
 # Import FastAPI exceptions and request parsing
 from fastapi import HTTPException, Request, Body
 
-# Import Python built-in logging
-import logging
-
 # Import traceback for detailed error reporting
 import traceback
 
@@ -24,9 +21,12 @@ from ...auth.refresh_token_logic.refresh_token_schema import RefreshTokenSchema
 # Import cookie utility for setting tokens
 from ...auth.token_logic.token_cookie_handler import token_cookie_handler
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------- Refresh Token Handler Class ----------------------------
 # Handler class responsible for refresh token operations

@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging module for tracking errors and events
-import logging
-
 # Module to capture full stack traces for debugging exceptions
 import traceback
 
@@ -18,9 +15,12 @@ from ..token_logic.jwt_service import jwt_service
 # Role mapping for querying user based on role
 from ...access_control.role_tables import ROLE_TABLES
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Create a logger instance specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Current User Handler Class ----------------------------
 # Handles fetching the currently authenticated user

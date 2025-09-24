@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging module for tracking events, warnings, and debugging
-import logging
-
 # Module to capture detailed exception stack traces
 import traceback
 
@@ -15,9 +12,12 @@ from ..password_logic.password_reset_service import password_reset_service
 # Role tables for finding users across different roles in the system
 from ...access_control.role_tables import ROLE_TABLES
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Initialize a logger specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Password Reset Request Handler Class ----------------------------
 # Class responsible for handling password reset request flow

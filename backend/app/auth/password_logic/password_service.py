@@ -8,9 +8,6 @@ from datetime import datetime, timedelta, timezone
 # JWT library for encoding and decoding JSON Web Tokens
 import jwt
 
-# Regular expression module for validating password strength
-import re
-
 # ---------------------------- Internal Imports ----------------------------
 # Application settings including SECRET_KEY and JWT configurations
 from ...core.settings import settings

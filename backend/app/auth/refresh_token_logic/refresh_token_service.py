@@ -1,7 +1,4 @@
 # ---------------------------- External Imports ----------------------------
-# Logging for structured event and error logging
-import logging
-
 # Capture full stack traces in case of exceptions
 import traceback
 
@@ -9,9 +6,12 @@ import traceback
 # Import JWT service for token creation, verification, and revocation
 from ..token_logic.jwt_service import jwt_service
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
-# Create logger instance specific to this module
-logger = logging.getLogger(__name__)
+# Create a logger instance for this module
+logger = get_logger(__name__)
 
 # ---------------------------- Refresh Token Service Class ----------------------------
 # Service class responsible for refresh token operations using Redis only
