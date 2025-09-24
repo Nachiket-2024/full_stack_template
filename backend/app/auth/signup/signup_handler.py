@@ -18,6 +18,9 @@ from .signup_service import signup_service
 # Account verification service that handles email verification & Redis token management
 from ..verify_account.account_verification_service import account_verification_service
 
+# Default role from centralized role tables
+from ...access_control.role_tables import DEFAULT_ROLE
+
 # ---------------------------- Logger Setup ----------------------------
 # Configure module-specific logger
 logger = logging.getLogger(__name__)
@@ -41,11 +44,10 @@ class SignupHandler:
 
         Process:
             1. Validate required input fields (name, email, password).
-            2. Call signup service to create the user in the database.
+            2. Call signup service to create the user in the database with default role.
             3. Check if user creation was successful; return error if not.
-            4. Send verification email using account verification service.
-            5. Log warning if email sending fails.
-            6. Return success JSONResponse if all steps succeed.
+            4. Send verification email using account verification service with default role.
+            5. Return success JSONResponse if all steps succeed.
 
         Output:
             1. JSONResponse: Success or error message with appropriate HTTP status code.
@@ -58,11 +60,12 @@ class SignupHandler:
                     status_code=400
                 )
 
-            # Step 2: Call signup service to create the user in the database
+            # Step 2: Call signup service to create the user in the database with default role
             user_created = await signup_service.signup(
                 name=name,
                 email=email,
                 password=password,
+                role=DEFAULT_ROLE,  # default role imported from role_tables.py
                 db=db
             )
 
@@ -73,14 +76,13 @@ class SignupHandler:
                     status_code=400
                 )
 
-            # Step 4: Send verification email using account verification service
-            email_sent = await account_verification_service.send_verification_email(email)
+            # Step 4: Send verification email using account verification service with default role
+            email_sent = await account_verification_service.send_verification_email(
+                email,
+                role=DEFAULT_ROLE  # default role used for token
+            )
 
-            # Step 5: Log warning if email sending fails
-            if not email_sent:
-                logger.warning("Verification email could not be sent to %s", email)
-
-            # Step 6: Return success JSONResponse if all steps succeed
+            # Step 5: Return success JSONResponse if all steps succeed
             return JSONResponse(
                 content={"message": "Signup successful. Please verify your email to activate your account."},
                 status_code=200
@@ -95,7 +97,7 @@ class SignupHandler:
                 content={"error": "Internal Server Error"},
                 status_code=500
             )
-
+        
 
 # ---------------------------- Instantiate SignupHandler ----------------------------
 # Singleton instance to handle signup requests

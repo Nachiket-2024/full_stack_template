@@ -1,7 +1,7 @@
 // ---------------------------- External Imports ----------------------------
 // Import React library for JSX/TSX syntax
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 // ---------------------------- Internal Imports ----------------------------
 // Import normal login form component
@@ -35,6 +35,14 @@ const LoginPage: React.FC = () => {
 
             {/* Render OAuth2 login button with onSuccess callback */}
             <OAuth2Button onSuccess={handleLoginSuccess} />
+
+            {/* Link to signup page */}
+            <p style={{ marginTop: "20px" }}>
+                Don’t have an account?{" "}
+                <Link to="/signup" style={{ color: "blue", textDecoration: "underline" }}>
+                    Sign Up
+                </Link>
+            </p>
         </div>
     );
 };

@@ -88,7 +88,7 @@ class CurrentUserHandler:
                 )
 
             # Step 6: Query the database for the user by email
-            user = await crud_instance.get_by_email(db, email)
+            user = await crud_instance.get_by_email(email, db)
 
             # Step 6 (continued): Raise error if user not found
             if not user:

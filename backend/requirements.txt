@@ -18,6 +18,7 @@ passlib[bcrypt]             # Password hashing with bcrypt algorithm
 pyjwt                       # JSON Web Token encoding and decoding
 oauthlib                    # OAuth2 protocol support for authentication
 requests-oauthlib           # OAuth2 client integration for making auth requests
+argon2_cffi                 # Argon2 password hashing with CFFI support
 
 # ---------------------------- Google OAuth2 ----------------------------
 google-auth                 # Core Google authentication library

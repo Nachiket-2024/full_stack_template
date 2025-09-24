@@ -41,34 +41,34 @@ class UserCRUDCollector:
         Output:
             1. None
         """
-        # Instantiate UserBaseCRUD with model
+        # Step 1: Instantiate UserBaseCRUD with model.
         self.base = UserBaseCRUD(model)
-
-        # Instantiate UserEmailCRUD with model
+        
+        # Step 2: Instantiate UserEmailCRUD with model.
         self.email = UserEmailCRUD(model)
 
     # ---------------------------- Base Forwarders ----------------------------
-    async def get_by_id(self, db: AsyncSession, id: int):
-        return await self.base.get_by_id(db, id)
+    async def get_by_id(self, id: int, db: AsyncSession):
+        return await self.base.get_by_id(id, db)
 
     async def get_all(self, db: AsyncSession):
         return await self.base.get_all(db)
 
-    async def create(self, db: AsyncSession, obj_data: dict):
-        return await self.base.create(db, obj_data)
+    async def create(self, obj_data: dict, db: AsyncSession):
+        return await self.base.create(obj_data, db)
 
-    async def update(self, db: AsyncSession, db_obj, update_data: dict):
-        return await self.base.update(db, db_obj, update_data)
+    async def update(self, db_obj, update_data: dict, db: AsyncSession):
+        return await self.base.update(db_obj, update_data, db)
 
-    async def delete(self, db: AsyncSession, db_obj):
-        return await self.base.delete(db, db_obj)
+    async def delete(self, db_obj, db: AsyncSession):
+        return await self.base.delete(db_obj, db)
 
     # ---------------------------- Email Forwarders ----------------------------
-    async def get_by_email(self, db: AsyncSession, email: str):
-        return await self.email.get_by_email(db, email)
+    async def get_by_email(self, email: str, db: AsyncSession):
+        return await self.email.get_by_email(email, db)
 
-    async def update_by_email(self, db: AsyncSession, email: str, update_data: dict):
-        return await self.email.update_by_email(db, email, update_data)
+    async def update_by_email(self, email: str, update_data: dict, db: AsyncSession):
+        return await self.email.update_by_email(email, update_data, db)
 
 
 # ---------------------------- Exports ----------------------------

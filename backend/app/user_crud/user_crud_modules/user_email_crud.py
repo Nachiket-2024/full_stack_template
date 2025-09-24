@@ -18,11 +18,11 @@ class UserEmailCRUD:
         self.model = model
 
     # ---------------------------- Get Record by Email ----------------------------
-    async def get_by_email(self, db: AsyncSession, email: str):
+    async def get_by_email(self, email: str, db: AsyncSession):
         """
         Input:
-            1. db (AsyncSession): Active database session.
-            2. email (str): Email to filter by.
+            1. email (str): Email to filter by.
+            2. db (AsyncSession): Active database session.
 
         Process:
             1. Execute select query with email filter.
@@ -31,19 +31,19 @@ class UserEmailCRUD:
         Output:
             1. object | None: ORM instance or None if not found.
         """
-        # Step 1: Execute query by email
+        # Step 1: Execute select query with email filter
         result = await db.execute(select(self.model).where(self.model.email == email))
 
-        # Step 2: Return single object or None
+        # Step 2: Return the matching record or None
         return result.scalar_one_or_none()
 
     # ---------------------------- Update Record by Email ----------------------------
-    async def update_by_email(self, db: AsyncSession, email: str, update_data: dict):
+    async def update_by_email(self, email: str, update_data: dict, db: AsyncSession):
         """
         Input:
-            1. db (AsyncSession): Active database session.
-            2. email (str): Email to filter by.
-            3. update_data (dict): Fields and values to update.
+            1. email (str): Email to filter by.
+            2. update_data (dict): Fields and values to update.
+            3. db (AsyncSession): Active database session.
 
         Process:
             1. Fetch record by email.
@@ -58,24 +58,24 @@ class UserEmailCRUD:
             1. object | None: Updated object or None if not found.
         """
         # Step 1: Fetch object by email
-        db_obj = await self.get_by_email(db, email)
+        db_obj = await self.get_by_email(email, db)
 
-        # Step 2: Return None if not found
+        # Step 2: Return None if no record is found
         if not db_obj:
             return None
-        
-        # Step 3: Update object fields dynamically
+
+        # Step 3: Update object fields dynamically with provided data
         for field, value in update_data.items():
             setattr(db_obj, field, value)
 
         # Step 4: Add updated object to session
         db.add(db_obj)
 
-        # Step 5: Commit transaction
+        # Step 5: Commit transaction to persist changes
         await db.commit()
 
-        # Step 6: Refresh object
+        # Step 6: Refresh object with DB values
         await db.refresh(db_obj)
 
-        # Step 7: Return updated object
+        # Step 7: Return the updated object
         return db_obj

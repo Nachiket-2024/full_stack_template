@@ -2,9 +2,6 @@
 # Import async HTTP client for Google API requests
 import httpx
 
-# Import logging module for tracking errors and events
-import logging
-
 # Import traceback module to capture full stack traces for debugging exceptions
 import traceback
 
@@ -24,9 +21,12 @@ from ...access_control.role_tables import ROLE_TABLES, DEFAULT_ROLE
 # Import singleton Redis client
 from ...redis.client import redis_client
 
+# Import centralized logger factory to create structured, module-specific loggers
+from ...logging.logging_config import get_logger
+
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------- OAuth2 Service ----------------------------
 class OAuth2Service:
@@ -137,7 +137,7 @@ class OAuth2Service:
             # Step 2: Search existing users in all role tables
             user, user_role, crud_instance = None, None, None
             for role, crud in ROLE_TABLES.items():
-                user = await crud.get_by_email(db, email)
+                user = await crud.get_by_email(email, db)
                 if user:
                     user_role, crud_instance = role, crud
                     break
@@ -147,7 +147,7 @@ class OAuth2Service:
                 user_role = DEFAULT_ROLE
                 crud_instance = ROLE_TABLES[user_role]
                 user_data = {"name": name, "email": email, "is_verified": True}
-                user = await crud_instance.create(db, user_data)
+                user = await crud_instance.create(user_data, db)
 
             # Step 4: Generate access and refresh JWT tokens concurrently
             access_token, refresh_token = await asyncio.gather(

@@ -31,9 +31,8 @@ class PasswordService:
     """
     1. hash_password: Hash a plain password.
     2. verify_password: Compare plain and hashed passwords.
-    3. validate_password_strength: Check password complexity.
-    4. create_reset_token: Generate JWT for password reset.
-    5. verify_reset_token: Decode and validate reset JWT.
+    3. create_reset_token: Generate JWT for password reset.
+    4. verify_reset_token: Decode and validate reset JWT.
     """
 
     # ---------------------------- Hash Password ----------------------------
@@ -70,38 +69,6 @@ class PasswordService:
         """
         # Step 1: Verify the plain password against the hashed password using pwd_context
         return pwd_context.verify(plain_password, hashed_password)
-
-    # ---------------------------- Validate Password Strength ----------------------------
-    # Static method to validate password complexity requirements
-    @staticmethod
-    async def validate_password_strength(password: str) -> bool:
-        """
-        Input:
-            1. password (str): Password string to validate.
-
-        Process:
-            1. Check if length is at least 8 characters.
-            2. Ensure it contains at least one digit.
-            3. Ensure it contains at least one special character.
-            4. Return True if it passes all checks.
-
-        Output:
-            1. bool: True if password passes all checks, False otherwise.
-        """
-        # Step 1: Check if length is at least 8 characters
-        if len(password) < 8:
-            return False
-        
-        # Step 2: Ensure it contains at least one digit
-        if not re.search(r"\d", password):
-            return False
-        
-        # Step 3: Ensure it contains at least one special character
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-            return False
-        
-        # Step 4: Return True if it passes all checks
-        return True
 
     # ---------------------------- Create Reset Token ----------------------------
     # Static method to create a JWT for password reset
