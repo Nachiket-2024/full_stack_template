@@ -65,7 +65,7 @@ class OAuth2LoginHandler:
             scopes = "openid email profile"
 
             # Step 3: Define redirect URI for callback
-            redirect_uri = f"{settings.BACKEND_BASE_URL}/auth/oauth2/callback/google"
+            redirect_uri = settings.GOOGLE_REDIRECT_URI
 
             # Step 4: Construct full authorization URL with query parameters
             auth_url = (
@@ -113,7 +113,7 @@ class OAuth2LoginHandler:
         """
         try:
             # Step 1: Build redirect URI for OAuth2 callback
-            redirect_uri = f"{settings.BACKEND_BASE_URL}/auth/oauth2/callback/google"
+            redirect_uri = settings.GOOGLE_REDIRECT_URI
 
             # Step 2: Exchange code for Google access tokens
             token_data = await self.oauth2_service.exchange_code_for_tokens(

@@ -71,7 +71,14 @@ class OAuth2Service:
                 resp.raise_for_status()  # Step 2a: Raise exception for non-success status codes
 
                 # Step 3: Parse and return JSON response containing tokens
-                return resp.json()
+                token_data = resp.json()
+            
+                # REMOVE OR COMMENT THIS OUT AFTER FIRST RUN
+                #if "refresh_token" in token_data:
+                    #print("COPY THIS REFRESH TOKEN INTO YOUR .env")
+                    #print("Refresh Token:", token_data["refresh_token"])
+
+                return token_data
 
         except Exception:
             logger.error("Error exchanging code for tokens:\n%s", traceback.format_exc())

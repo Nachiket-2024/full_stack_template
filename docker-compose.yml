@@ -1,0 +1,114 @@
+# ---------------------------- Services ----------------------------
+services:
+
+  # ---------------------------- PostgreSQL Service ----------------------------
+  postgres:
+    image: postgres:15                               # Use PostgreSQL 15
+    container_name: postgres
+    restart: always
+    env_file:
+      - ./.env                                      # Load DB creds from .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}               # From .env
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}       # From .env
+      POSTGRES_DB: ${POSTGRES_DB}                   # From .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data      # Persistent DB storage
+    ports:
+      - "5432:5432"                                 # Expose Postgres port
+    healthcheck:                                     # Ensure DB is fully ready before dependents start
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------- Redis Service ----------------------------
+  redis:
+    image: redis:7                                   # Use Redis 7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"                                 # Expose Redis port
+
+  # ---------------------------- Backend Service ----------------------------
+  backend:
+    build:
+      context: .                                    # Root of repo
+      dockerfile: docker/backend.Dockerfile         # Custom backend Dockerfile
+    container_name: backend
+    working_dir: /app                               # Ensure Python imports work
+    env_file:
+      - ./.env                                      # Load DATABASE_URL and other vars
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: ${DATABASE_URL}                 # From .env
+    depends_on:                                     # Backend depends on DB + Redis
+      postgres:
+        condition: service_healthy                  # Wait until DB is healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app                              # Mount backend source
+    ports:
+      - "8000:8000"                                 # Expose FastAPI port
+
+  # ---------------------------- Frontend Service ----------------------------
+  frontend:
+    build:
+      context: .                                    # Root of repo
+      dockerfile: docker/frontend.Dockerfile        # Custom frontend Dockerfile
+    container_name: frontend
+    working_dir: /app
+    environment:
+      - CHOKIDAR_USEPOLLING=true                    # Needed for Vite file watching in Docker
+    ports:
+      - "5173:5173"                                 # Expose Vite dev server port
+    volumes:
+      - ./frontend:/app                             # Mount frontend source
+      - /app/node_modules                           # prevents host from overwriting container deps
+    depends_on:
+      - backend                                     # Wait until backend starts
+
+  # ---------------------------- Celery Worker ----------------------------
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: celery_worker
+    working_dir: /app
+    env_file:
+      - ./.env                                      # Load broker/DB from .env
+    command: sh -c "celery -A app.celery.celery_app.celery_app worker --loglevel=info"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}      # From .env
+      - PYTHONPATH=/app                             # Ensure /app is importable
+    depends_on:
+      postgres:
+        condition: service_healthy                  # Wait for DB ready
+      redis:
+        condition: service_started                  # Wait for Redis
+    volumes:
+      - ./backend:/app                              # Mount backend source
+
+  # ---------------------------- Alembic Migration ----------------------------
+  alembic:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: alembic
+    working_dir: /app
+    env_file:
+      - ./.env                                      # Load DATABASE_URL from .env
+    command: alembic upgrade head                   # Run migrations automatically
+    environment:
+      - DATABASE_URL=${DATABASE_URL}                # From .env
+      - PYTHONPATH=/app                             # Ensure /app is importable
+    depends_on:
+      postgres:
+        condition: service_healthy                  # Run only after DB is fully initialized
+    volumes:
+      - ./backend:/app                              # Mount backend source
+
+# ---------------------------- Volumes ----------------------------
+volumes:
+  postgres_data:                                     # Persistent volume for PostgreSQL

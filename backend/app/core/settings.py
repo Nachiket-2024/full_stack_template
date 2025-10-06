@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     FRONTEND_BASE_URL: str                          # Frontend URL for redirection
 
     DATABASE_URL: str                               # Async PostgreSQL connection URL
+    POSTGRES_USER: str                              # PostgreSQL username
+    POSTGRES_PASSWORD: str                          # PostgreSQL password
+    POSTGRES_DB: str                                # PostgreSQL DB name
 
     SECRET_KEY: str                                 # Secret key for JWT encoding
     ACCESS_TOKEN_EXPIRE_MINUTES: int                # Access token expiration time in minutes

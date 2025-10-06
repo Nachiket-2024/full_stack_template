@@ -32,7 +32,6 @@ celery_app.conf.update(
     accept_content=["json"],          # Accept only JSON content
     timezone="UTC",                   # Set timezone to UTC
     enable_utc=True,                  # Enable UTC timezone usage
-    worker_pool="asyncio",            # Use asyncio pool for non-blocking tasks
 )
 
 # Log successful Celery app initialization
