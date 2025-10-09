@@ -19,16 +19,30 @@ import '../tailwind.css';
 import { store } from './store/store.ts';
 
 // ---------------------------- Render App ----------------------------
-// Get the root HTML element where the React app will be mounted
-const rootElement = document.getElementById('root') as HTMLElement;
+/**
+ * Input:
+ *   1. rootElement: HTML element with id 'root'
+ *   2. App component
+ *   3. Redux store
+ * Process:
+ *   1. Get the root HTML element where the app will be mounted
+ *   2. Create a React DOM root using ReactDOM.createRoot
+ *   3. Render the App component wrapped in:
+ *       a. React.StrictMode for development checks
+ *       b. Redux Provider for store access
+ * Output:
+ *   1. React application mounted in the DOM
+ */
+const rootElement = document.getElementById('root') as HTMLElement; // Step 1: Get root HTML element
 
-// Create a React DOM root and render the App inside it
+// Step 2: Create a React DOM root using ReactDOM.createRoot
 ReactDOM.createRoot(rootElement).render(
-  // Wrap in StrictMode to catch potential problems during development
+  // Step 3: Render the application
   <React.StrictMode>
-    {/* Wrap the App with Provider so Redux store is accessible to all components */}
+    {/* Step 3b: Wrap App with Redux Provider */}
     <Provider store={store}>
+      {/* Step 3c: Render the root App component */}
       <App />
     </Provider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

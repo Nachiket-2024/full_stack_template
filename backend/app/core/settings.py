@@ -27,11 +27,8 @@ class Settings(BaseSettings):
     REDIS_URL: str                                  # Redis connection URL
     CACHE_DEFAULT_TTL: int                          # Default TTL for Redis cache keys in seconds
 
-    CELERY_BROKER_URL: str                          # Celery broker URL for task queue
-    CELERY_RESULT_BACKEND: str                      # Celery backend to store 
-
     FROM_EMAIL: str                                 # Email address used to send password reset emails
-    GOOGLE_EMAIL_REFRESH_TOKEN: str                 # OAuth2 refresh token for sending emails
+    GMAIL_APP_PASSWORD: str                         # Gmail App password for sending email from above account
 
     LOGIN_LOCKOUT_TIME: int                         # Time in seconds to lockout after failed login attempts
     MAX_FAILED_LOGIN_ATTEMPTS: int                  # Max failed login attempts before lockout

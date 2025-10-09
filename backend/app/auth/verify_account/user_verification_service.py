@@ -23,16 +23,18 @@ class UserVerificationService:
     # ---------------------------- Mark User Verified ----------------------------
     # Static method to mark a user as verified in the database
     @staticmethod
-    async def mark_user_verified(email: str) -> bool:
+    async def mark_user_verified(email: str, db) -> bool:
         """
         Input:
             1. email (str): Email of the user to verify.
+            2. db (AsyncSession): Database session for operations.
 
         Process:
             1. Iterate over all role tables to locate the user.
-            2. Check if user exists and is not already verified.
-            3. Update 'is_verified' field to True in the database for that user.
-            4. Log the verification action for auditing.
+            2. Fetch user using CRUD with db session.
+            3. Check if user exists and is not already verified.
+            4. Update 'is_verified' field to True in the database for that user.
+            5. Return True indicating successful verification ,else false.
 
         Output:
             1. bool: True if verification succeeded, False otherwise.
@@ -40,18 +42,18 @@ class UserVerificationService:
         try:
             # Step 1: Iterate over all role tables to locate the user
             for role_name, crud in ROLE_TABLES.items():
-                # Fetch user record from table using email
-                user = await crud.get_by_email(email)
+                # Step 2: Fetch user record from table using db session
+                user = await crud.get_by_email(email, db)
 
-                # Step 2: Check if user exists and is not already verified
+                # Step 3: Check if user exists and is not already verified
                 if user and not getattr(user, "is_verified", False):
-                    # Step 3: Update 'is_verified' field to True in the database for that user
-                    await crud.update_by_email(email, {"is_verified": True})
+                    # Step 4: Update 'is_verified' field to True
+                    await crud.update_by_email(email, {"is_verified": True}, db)
 
-                    # Step 4: Log the verification action for auditing
+                    # Log the verification action for auditing
                     logger.info("User %s marked as verified in table %s", email, role_name)
 
-                    # Return True indicating successful verification
+                    # Step 5: Return True indicating successful verification ,else false
                     return True
 
             # Return False if user was not found or already verified
@@ -61,7 +63,6 @@ class UserVerificationService:
         except Exception:
             # Log the full traceback for debugging purposes
             logger.error("Error marking user verified:\n%s", traceback.format_exc())
-
             return False
 
 

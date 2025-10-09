@@ -28,9 +28,12 @@ google-auth-httplib2        # HTTP transport support for Google APIs
 # ---------------------------- HTTP Client ----------------------------
 httpx                       # Async HTTP client for making API requests
 
-# ---------------------------- Redis & Celery ----------------------------
+# ---------------------------- Redis ----- ----------------------------
 redis                       # Async Redis client for caching and queues
-celery                      # Distributed task queue for background job processing
+
+# ---------------------------- Task Queue / Async Jobs ----------------------------
+taskiq[reload]              # Async task queue framework compatible with FastAPI
+taskiq-redis                # Redis broker support for Taskiq
 
 # ---------------------------- Email ----------------------------
 aiosmtplib                  # Async SMTP client for sending emails

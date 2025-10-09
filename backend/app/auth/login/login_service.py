@@ -16,7 +16,7 @@ from ..password_logic.password_service import password_service
 from ..token_logic.jwt_service import jwt_service
 
 # Schema for structured JWT token responses
-from ..refresh_token_logic.refresh_token_schema import TokenPairResponseSchema
+from ..token_logic.token_schema import TokenPairResponseSchema
 
 # Import centralized logger factory to create structured, module-specific loggers
 from ...logging.logging_config import get_logger
@@ -85,8 +85,8 @@ class LoginService:
 
             # Step 6: Generate access and refresh tokens concurrently
             access_token, refresh_token = await asyncio.gather(
-                jwt_service.create_access_token(user_id=email),
-                jwt_service.create_refresh_token(user_id=email)
+                jwt_service.create_access_token(email=email ,role=user_table_name),
+                jwt_service.create_refresh_token(email=email, role=user_table_name)
             )
 
             # Step 7: Return structured token response

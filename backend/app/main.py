@@ -45,6 +45,19 @@ logger = get_logger("main")
 # Create a FastAPI application instance
 app = FastAPI()
 
+# ---------------------------- Trace Source Middleware ----------------------------
+# Middleware to log which frontend function calls /auth/me
+from fastapi import Request
+
+@app.middleware("http")
+async def log_auth_source(request: Request, call_next):
+    if request.url.path == "/auth/me":
+        src = request.query_params.get("src", "unknown")
+        # Use your configured app logger
+        logger.info(f" /auth/me called from: {src}")
+    response = await call_next(request)
+    return response
+
 # ---------------------------- Middleware Configuration ----------------------------
 # Add CORS middleware to allow requests from the frontend at port 5173
 app.add_middleware(

@@ -1,35 +1,28 @@
 // ---------------------------- External Imports ----------------------------
-// Import React and useEffect hook
-import React, { useEffect } from "react";
+// Import React for creating functional components
+import React from "react";
 
 // Import Redux hooks for dispatching actions and selecting state
 import { useDispatch, useSelector } from "react-redux";
 
-// Type-only import for typed useSelector hook
+// Type-only import for strongly-typed selector
 import type { TypedUseSelectorHook } from "react-redux";
 
 // ---------------------------- Internal Imports ----------------------------
-// Type-only imports for store types
+// Type-only imports for Redux store types
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import slice actions to manage OAuth2 state
-import {
-    clearUserSession,
-    setUserSession,
-    setOAuth2Error,
-    setOAuth2Loading,
-} from "./oauth2_slice";
+// Import action to clear OAuth2 user session
+import { clearUserSession } from "./oauth2_slice";
 
-// Import app settings (API base URL)
+// Import app settings for API base URL
 import settings from "../../core/settings";
-
-// Import API function to fetch current user session
-import { getCurrentUserApi } from "../../api/auth_api";
 
 // ---------------------------- Props Interface ----------------------------
 // Props for OAuth2LoginButton component
 interface OAuth2ButtonProps {
-    onSuccess?: () => void; // Callback after successful login
+    // Optional callback after successful login
+    onSuccess?: () => void;
 }
 
 // ---------------------------- Typed Selector Hook ----------------------------
@@ -37,42 +30,56 @@ interface OAuth2ButtonProps {
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- OAuth2LoginButton Component ----------------------------
-// Component to handle OAuth2 login (Google)
+// Component: Handles OAuth2 login (Google)
+// ---------------------------------------------------------------------------
+// Methods:
+//   1. handleLogin()  → Redirect user to OAuth2 login endpoint
+//   2. handleClear()  → Clear current OAuth2 session from Redux
+// ---------------------------------------------------------------------------
 const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
     // ---------------------------- Redux ----------------------------
+    // Typed dispatch function
     const dispatch = useDispatch<AppDispatch>();
+
+    // Access OAuth2 slice for UI feedback
     const { loading, error, isAuthenticated, user } = useAppSelector(
         (state) => state.oauth2
     );
 
-    // ---------------------------- Effect: verify session after redirect ----------------------------
-    useEffect(() => {
-        const verifySession = async () => {
-            try {
-                dispatch(setOAuth2Loading());
-                const response = await getCurrentUserApi(); // cookie sent automatically
-                if (response.data) {
-                    dispatch(setUserSession(response.data));
-                    if (onSuccess) onSuccess();
-                }
-            } catch (err: any) {
-                dispatch(setOAuth2Error("Failed to verify session"));
-            }
-        };
+    // Access global currentUser slice (for cross-check)
+    const { isAuthenticated: globalAuth } = useAppSelector(
+        (state) => state.currentUser
+    );
 
-        // Run only once on mount (handles post-OAuth2 redirect)
-        verifySession();
-    }, [dispatch, onSuccess]);
-
-    // ---------------------------- Event Handlers ----------------------------
+    // ---------------------------- Methods ----------------------------
+    /**
+     * handleLogin
+     * ----------------------------
+     * Input: None
+     * Process:
+     *   1. Redirect user to backend OAuth2 login URL.
+     * Output: Redirects browser, does not return.
+     */
     const handleLogin = () => {
-        // Redirect user to backend OAuth2 login URL
+        // Step 1: Redirect to backend for Google OAuth2 login
         window.location.href = `${settings.apiBaseUrl}/auth/oauth2/login/google`;
     };
 
+    /**
+     * handleClear
+     * ----------------------------
+     * Input: None
+     * Process:
+     *   1. Clear user session state from Redux.
+     *   2. Optionally trigger onSuccess callback.
+     * Output: Redux state reset, callback executed if provided.
+     */
     const handleClear = () => {
-        // Clear user session in Redux store
+        // Step 1: Dispatch Redux action to clear local session
         dispatch(clearUserSession());
+
+        // Step 2: Call callback if provided
+        if (onSuccess) onSuccess();
     };
 
     // ---------------------------- Render ----------------------------
@@ -87,7 +94,7 @@ const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
             {error && <p style={{ color: "red" }}>{error}</p>}
 
             {/* Display success message if login succeeded */}
-            {isAuthenticated && user && (
+            {(isAuthenticated || globalAuth) && user && (
                 <p style={{ color: "green" }}>
                     Welcome, {user.email}! (role: {user.role})
                 </p>
@@ -100,4 +107,5 @@ const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
 };
 
 // ---------------------------- Export ----------------------------
+// Export OAuth2LoginButton component as default
 export default OAuth2LoginButton;

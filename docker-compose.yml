@@ -69,24 +69,24 @@ services:
     depends_on:
       - backend                                     # Wait until backend starts
 
-  # ---------------------------- Celery Worker ----------------------------
-  celery_worker:
+  # ---------------------------- Taskiq Worker ----------------------------
+  taskiq_worker:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
-    container_name: celery_worker
+    container_name: taskiq_worker
     working_dir: /app
     env_file:
-      - ./.env                                      # Load broker/DB from .env
-    command: sh -c "celery -A app.celery.celery_app.celery_app worker --loglevel=info"
+      - ./.env                                      # Load broker/DB creds
+    command: sh -c "taskiq worker app.taskiq_tasks.email_tasks:broker --reload"
     environment:
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}      # From .env
-      - PYTHONPATH=/app                             # Ensure /app is importable
+      - REDIS_URL=${REDIS_URL}                      # Used by Taskiq broker
+      - PYTHONPATH=/app                             # Ensure imports resolve correctly
     depends_on:
       postgres:
-        condition: service_healthy                  # Wait for DB ready
+        condition: service_healthy
       redis:
-        condition: service_started                  # Wait for Redis
+        condition: service_started
     volumes:
       - ./backend:/app                              # Mount backend source
 

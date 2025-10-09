@@ -12,8 +12,8 @@ export const loginApi = (payload: { email: string; password: string }) =>
     api.post("/auth/login", payload);
 
 // GET /auth/me (fetch current authenticated user via cookie)
-export const getCurrentUserApi = () =>
-    api.get("/auth/me");
+export const getCurrentUserApi = (src: string = "unknown") =>
+    api.get("/auth/me", { params: { src } });
 
 // GET /auth/oauth2/login/google
 export const oauth2LoginGoogleApi = () =>

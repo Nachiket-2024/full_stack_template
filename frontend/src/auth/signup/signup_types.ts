@@ -1,14 +1,14 @@
 // ---------------------------- Signup Request Type ----------------------------
-// Shape of the request body for /auth/signup
+// Defines the shape of the request payload sent to /auth/signup
 export interface SignupRequest {
-    name: string;
-    email: string;
-    password: string;
+    name: string;     // Full name of the user
+    email: string;    // User email address for signup
+    password: string; // Password chosen by the user
 }
 
 // ---------------------------- Signup Response Type ----------------------------
-// Shape of the response from /auth/signup
+// Defines the shape of the response returned from /auth/signup
 export interface SignupResponse {
-    message: string;          // Success message
-    user_id?: string;         // Optional ID of the newly created user
+    message: string;  // Success message indicating signup was successful
+    user_id?: string; // Optional: ID of the newly created user
 }

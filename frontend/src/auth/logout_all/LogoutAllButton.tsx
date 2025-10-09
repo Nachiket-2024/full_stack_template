@@ -1,67 +1,73 @@
 // ---------------------------- External Imports ----------------------------
-// Import React to use JSX/TSX syntax in component
+// Import React for JSX/TSX syntax and side effects
 import React, { useEffect } from "react";
 
-// Import hooks from react-redux for accessing and dispatching Redux state
+// Import Redux hooks for dispatching actions and accessing state
 import { useDispatch, useSelector } from "react-redux";
 
-// Import type-only TypedUseSelectorHook for strongly-typed selector
+// Type-only import for strongly-typed useSelector
 import type { TypedUseSelectorHook } from "react-redux";
 
-// Import React Router navigate hook for redirect
+// Import React Router hook for navigation
 import { useNavigate } from "react-router-dom";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import type-only RootState and AppDispatch from Redux store for typing hooks
+// Type-only imports for store typing
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import async thunk and action to clear logout-all state from logout-all slice
+// Import async thunk and action to clear logout-all state
 import { logoutAllDevices, clearLogoutAllState } from "./logout_all_slice";
 
-// Import presentational component to separate UI from container logic
+// Import presentational button component
 import LogoutAllButtonComponent from "./LogoutAllButtonComponent";
 
 // ---------------------------- Typed Selector Hook ----------------------------
-// Create a typed useSelector hook for TypeScript support
+// Create typed useSelector hook for TypeScript support
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- LogoutAllButton Container ----------------------------
-// Container component to connect Redux state and handlers to styled button
+// Container component connecting Redux state and handlers to UI
 const LogoutAllButton: React.FC = () => {
     // ---------------------------- Redux ----------------------------
+    // Typed dispatch function
     const dispatch = useDispatch<AppDispatch>();
+
+    // Extract loading, error, successMessage from logoutAll slice
     const { loading, error, successMessage } = useAppSelector(
         (state) => state.logoutAll
     );
 
     // ---------------------------- Router ----------------------------
+    // Hook to navigate programmatically
     const navigate = useNavigate();
 
     // ---------------------------- Event Handlers ----------------------------
+    // Handle logout-all button click
     const handleLogoutAll = () => {
-        dispatch(logoutAllDevices());
+        dispatch(logoutAllDevices()); // Dispatch logout-all thunk
     };
 
     // ---------------------------- Side Effect ----------------------------
-    // Redirect to login when logout-all succeeds
+    // Redirect user to login page when logout-all succeeds
     useEffect(() => {
         if (successMessage) {
-            navigate("/login");
-            dispatch(clearLogoutAllState()); // Reset state after redirect
+            navigate("/login");                  // Navigate to login page
+            dispatch(clearLogoutAllState());     // Reset state after redirect
         }
     }, [successMessage, navigate, dispatch]);
 
     // ---------------------------- Render ----------------------------
+    // Render styled LogoutAllButtonComponent with props
     return (
         <LogoutAllButtonComponent
-            loading={loading}
-            error={error}
-            successMessage={successMessage}
-            onLogoutAll={handleLogoutAll}
+            loading={loading}               // Pass loading state
+            error={error}                   // Pass error message
+            successMessage={successMessage} // Pass success message
+            onLogoutAll={handleLogoutAll}   // Pass logout-all handler
         />
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export LogoutAllButton container as default
+// Export LogoutAllButton container component
 export default LogoutAllButton;

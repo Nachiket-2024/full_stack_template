@@ -1,27 +1,27 @@
 // ---------------------------- External Imports ----------------------------
-// Import React library for JSX/TSX syntax
+// React core for component creation
 import React from "react";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import the Redux-connected password reset confirmation form component
+// Import the Redux-connected form component for confirming password reset
 import PasswordResetConfirmForm from "./PasswordResetConfirmForm";
 
-// ---------------------------- Component Definition ----------------------------
-// Page component for password reset confirmation
+// ---------------------------- PasswordResetConfirmPage Component ----------------------------
+// Page component that wraps and displays the password reset confirmation form
 const PasswordResetConfirmPage: React.FC = () => {
-    // ---------------------------- JSX Return ----------------------------
+    // ---------------------------- Render ----------------------------
     return (
-        // Wrapper div for consistent page styling
+        // Step 1: Wrapper container for consistent page styling
         <div className="auth-page-container">
-            {/* Page heading */}
+            {/* Step 2: Page heading */}
             <h1>Reset Password</h1>
 
-            {/* Render the password reset confirmation form */}
+            {/* Step 3: Render the password reset confirmation form component */}
             <PasswordResetConfirmForm />
         </div>
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export PasswordResetConfirmPage as default
+// Export PasswordResetConfirmPage component for use in routing
 export default PasswordResetConfirmPage;

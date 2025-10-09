@@ -18,6 +18,9 @@ from ..security.login_protection_service import login_protection_service
 # Cookie utility for setting tokens
 from ..token_logic.token_cookie_handler import token_cookie_handler
 
+# Pydantic schema representing a pair of JWT tokens (access + refresh)
+from ..token_logic.token_schema import TokenPairResponseSchema
+
 # Import centralized logger factory to create structured, module-specific loggers
 from ...logging.logging_config import get_logger
 
@@ -29,7 +32,8 @@ logger = get_logger(__name__)
 # Handler class for managing user login operations
 class LoginHandler:
     """
-    1. handle_login - Validates input, authenticates user, applies login protection, and sets JWT cookies.
+    1. handle_login - Validates input, authenticates user, applies login protection, 
+       and sets JWT cookies.
     """
 
     # ---------------------------- Handle Login ----------------------------
@@ -64,7 +68,10 @@ class LoginHandler:
                 )
 
             # Step 3: Authenticate user using login_service
-            tokens = await login_service.login(email=email, password=password, db=db)
+            # Returns a TokenPairResponseSchema instance if successful
+            tokens: TokenPairResponseSchema = await login_service.login(
+                email=email, password=password, db=db
+            )
 
             # Step 4: Return error if authentication fails
             if not tokens:
@@ -89,7 +96,9 @@ class LoginHandler:
                 )
 
             # Step 7: Set JWT tokens in HTTP-only cookies if authentication succeeds
-            return token_cookie_handler.set_tokens_in_cookies(tokens)
+            response = JSONResponse(content={"message": "Login successful"})
+            # Pass the schema directly to cookie handler
+            return token_cookie_handler.set_tokens_in_cookies(response, tokens)
 
         except Exception:
             # Handle unexpected exceptions and log errors

@@ -215,10 +215,11 @@ async def password_reset_confirm(payload: PasswordResetConfirmSchema):
 # ---------------------------- Account Verification Endpoint ----------------------------
 @router.get("/verify-account")
 @rate_limiter_service.rate_limited("verify_account")
-async def verify_account(token: str):
+async def verify_account(token: str, db: AsyncSession = Depends(database.get_session)):
     """
     Input:
         1. token (str): Verification token from URL query.
+        2. db (AsyncSession): Database session dependency.
 
     Process:
         1. Call account_verification_handler to mark user as verified.
@@ -226,4 +227,4 @@ async def verify_account(token: str):
     Output:
         1. JSONResponse: Response indicating account verification success or failure.
     """
-    return await account_verification_handler.handle_account_verification(token)
+    return await account_verification_handler.handle_account_verification(token, db=db)

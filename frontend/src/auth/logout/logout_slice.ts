@@ -1,8 +1,8 @@
 // ---------------------------- External Imports ----------------------------
-// Import createSlice and createAsyncThunk from Redux Toolkit for slice creation and async actions
+// Import Redux Toolkit helpers for creating slices and async thunks
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-// Import type-only PayloadAction for typing actions in Redux state
+// Import type-only PayloadAction for typing Redux actions
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
@@ -13,76 +13,105 @@ import { logoutApi } from "../../api/auth_api";
 import type { LogoutResponse } from "./logout_types";
 
 // ---------------------------- State Type ----------------------------
-// Define Redux state structure for single-device logout
+// Redux state for single-device logout functionality
 interface LogoutState {
-    loading: boolean;              // Indicates if logout request is in progress
-    error: string | null;          // Stores error message if request fails
-    successMessage: string | null; // Stores success message after logout completes
+    loading: boolean;              // Step 1: Indicates if logout request is in progress
+    error: string | null;          // Step 2: Stores error message if request fails
+    successMessage: string | null; // Step 3: Stores success message after logout completes
 }
 
 // ---------------------------- Initial State ----------------------------
-// Set initial values for single-device logout state
 const initialState: LogoutState = {
-    loading: false,                // Not loading initially
-    error: null,                   // No error initially
-    successMessage: null,          // No success message initially
+    loading: false,                // Step 1
+    error: null,                   // Step 2
+    successMessage: null,          // Step 3
 };
 
 // ---------------------------- Async Thunks ----------------------------
-// Define an async thunk to logout a single device
+/**
+ * logoutUser
+ * Input: None
+ * Process:
+ *   1. Call API to logout current device (handles cookies)
+ *   2. Return API response data if successful
+ *   3. Reject with meaningful error message if API fails
+ * Output: Redux async thunk with success/error payload
+ */
 export const logoutUser = createAsyncThunk<
-    LogoutResponse,                // Type of successful response
-    void,                          // No argument needed for this thunk
-    { rejectValue: string }        // Type of error value if rejected
+    LogoutResponse,                // Return type on success
+    void,                          // Argument type: none needed
+    { rejectValue: string }        // Error type if rejected
 >(
     "logout/logoutUser",
     async (_, thunkAPI) => {
         try {
-            // Call API to logout; backend reads cookies automatically
+            // Step 1: Call API
             const response = await logoutApi();
-            return response.data; // Return API response data on success
+
+            // Step 2: Return API data
+            return response.data;
         } catch (error: any) {
-            // Return a reject value with error message if API call fails
-            return thunkAPI.rejectWithValue(error.response?.data?.error || "Logout failed");
+            // Step 3: Reject with meaningful error
+            return thunkAPI.rejectWithValue(
+                error.response?.data?.error || "Logout failed"
+            );
         }
     }
 );
 
 // ---------------------------- Slice ----------------------------
-// Create Redux slice for single-device logout feature
+/**
+ * logoutSlice
+ * Manages single-device logout state
+ * Methods:
+ *   1. clearLogoutState - Reset slice to initial state
+ */
 const logoutSlice = createSlice({
-    name: "logout",                 // Name of the slice
-    initialState,                   // Initial state defined above
+    name: "logout",               // Step 1: Slice name
+    initialState,                 // Step 2: Initial state
     reducers: {
-        // Reducer to reset logout state to initial values
+        /**
+         * clearLogoutState
+         * Input: None
+         * Process:
+         *   1. Reset loading
+         *   2. Clear error
+         *   3. Clear success message
+         * Output: Redux state reset to initial values
+         */
         clearLogoutState: (state) => {
-            state.loading = false;        // Reset loading
-            state.error = null;           // Clear error
-            state.successMessage = null;  // Clear success message
+            state.loading = false;        // Step 1
+            state.error = null;           // Step 2
+            state.successMessage = null;  // Step 3
         },
     },
     extraReducers: (builder) => {
-        // Handle different states of the async thunk
         builder
+            // Pending: set loading true, clear messages
             .addCase(logoutUser.pending, (state) => {
-                state.loading = true;      // Set loading while request is pending
-                state.error = null;        // Clear previous errors
-                state.successMessage = null;// Clear previous success message
+                state.loading = true;         // Step 1
+                state.error = null;           // Step 2
+                state.successMessage = null;  // Step 3
             })
-            .addCase(logoutUser.fulfilled, (state, action: PayloadAction<LogoutResponse>) => {
-                state.loading = false;                 // Stop loading
-                state.successMessage = action.payload.message; // Store success message
-            })
+            // Fulfilled: stop loading, store success message
+            .addCase(
+                logoutUser.fulfilled,
+                (state, action: PayloadAction<LogoutResponse>) => {
+                    state.loading = false;                     // Step 1
+                    state.successMessage = action.payload.message; // Step 2
+                }
+            )
+            // Rejected: stop loading, store error message
             .addCase(logoutUser.rejected, (state, action) => {
-                state.loading = false;                 // Stop loading
-                state.error = action.payload || "Logout failed"; // Store error message
+                state.loading = false;                    // Step 1
+                state.error = action.payload || "Logout failed"; // Step 2
             });
     },
 });
 
 // ---------------------------- Exports ----------------------------
-// Export the action to clear state
+// Export action to reset logout state
 export const { clearLogoutState } = logoutSlice.actions;
 
-// Export the reducer as default for store integration
+// Export reducer for store integration
 export default logoutSlice.reducer;

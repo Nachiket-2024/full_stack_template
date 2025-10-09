@@ -5,6 +5,9 @@ import traceback
 # FastAPI JSONResponse for sending structured HTTP responses
 from fastapi.responses import JSONResponse
 
+# Import AsyncSession for type hints in method signatures
+from sqlalchemy.ext.asyncio import AsyncSession
+
 # ---------------------------- Internal Imports ----------------------------
 # Service to verify account tokens
 from .account_verification_service import account_verification_service
@@ -42,10 +45,11 @@ class AccountVerificationHandler:
         self.login_protection_service = login_protection_service
 
     # ---------------------------- Handle Account Verification ----------------------------
-    async def handle_account_verification(self, token: str) -> JSONResponse:
+    async def handle_account_verification(self, token: str, db: AsyncSession) -> JSONResponse:
         """
         Input:
             1. token (str): Verification token received via email.
+            2. db (AsyncSession): Database session for database operations.
 
         Process:
             1. Decode and validate the verification token using account_verification_service.
@@ -79,7 +83,7 @@ class AccountVerificationHandler:
             email_lock_key = f"login_lock:email:{email}"
 
             # Step 5: Attempt to mark the user as verified in the database via user_verification_service
-            updated = await self.user_verification_service.mark_user_verified(email)
+            updated = await self.user_verification_service.mark_user_verified(email, db)
 
             # Step 6: Set response status and content based on whether verification succeeded
             status = 200 if updated else 400

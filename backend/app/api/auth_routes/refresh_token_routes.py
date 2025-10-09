@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Request
 
 # ---------------------------- Internal Imports ----------------------------
 # Schemas for validating refresh token requests and shaping token pair responses
-from ...auth.refresh_token_logic.refresh_token_schema import (
+from ...auth.token_logic.token_schema import (
     RefreshTokenSchema,        # Schema for incoming refresh token request
     TokenPairResponseSchema,   # Schema for returning both access + refresh tokens
 )

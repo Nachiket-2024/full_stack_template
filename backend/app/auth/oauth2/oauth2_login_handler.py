@@ -18,6 +18,9 @@ from .oauth2_service import oauth2_service
 # Import cookie handler to centralize token cookie management
 from ..token_logic.token_cookie_handler import token_cookie_handler
 
+# Pydantic schema representing a pair of JWT tokens (access + refresh)
+from ..token_logic.token_schema import TokenPairResponseSchema
+
 # Import centralized logger factory to create structured, module-specific loggers
 from ...logging.logging_config import get_logger
 
@@ -104,7 +107,7 @@ class OAuth2LoginHandler:
             6. Authenticate existing user or create a new user, then generate JWT tokens.
             7. Validate generated JWT tokens.
             8. Create redirect response to dashboard.
-            9. Set JWT tokens in secure HTTP-only cookies.
+            9. Set JWT tokens in secure HTTP-only cookies using TokenPairResponseSchema.
             10. Return redirect response.
             11. Redirect to frontend login page on error.
 
@@ -137,10 +140,10 @@ class OAuth2LoginHandler:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
             # Step 6: Authenticate existing user or create a new user, then generate JWT tokens
-            jwt_tokens = await self.oauth2_service.login_or_create_user(db, user_info)
+            jwt_tokens: TokenPairResponseSchema = await self.oauth2_service.login_or_create_user(db, user_info)
 
             # Step 7: Validate generated JWT tokens
-            if not jwt_tokens or "access_token" not in jwt_tokens:
+            if not jwt_tokens or not jwt_tokens.access_token:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
             # Step 8: Create redirect response to dashboard

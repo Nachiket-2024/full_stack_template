@@ -1,10 +1,12 @@
 // ---------------------------- External Imports ----------------------------
 // Import React library for JSX/TSX syntax
 import React from "react";
+
+// Import React Router hooks for navigation and linking
 import { useNavigate, Link } from "react-router-dom";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import normal login form component
+// Import standard login form component
 import LoginForm from "./LoginForm";
 
 // Import OAuth2 login button component
@@ -16,18 +18,19 @@ const LoginPage: React.FC = () => {
     // Hook to programmatically navigate after login
     const navigate = useNavigate();
 
-    // Callback function to redirect to dashboard after successful login
+    // Callback function to redirect user to dashboard after successful login
     const handleLoginSuccess = () => {
         navigate("/dashboard", { replace: true });
     };
 
+    // ---------------------------- Render ----------------------------
     return (
         // Container for the authentication page
         <div className="auth-page-container">
             {/* Page title */}
             <h1>Login</h1>
 
-            {/* Render normal login form with onSuccess callback */}
+            {/* Render standard login form with onSuccess callback */}
             <LoginForm onSuccess={handleLoginSuccess} />
 
             {/* Separator between normal login and OAuth2 login */}
@@ -48,5 +51,5 @@ const LoginPage: React.FC = () => {
 };
 
 // ---------------------------- Export ----------------------------
-// Export LoginPage as default
+// Export LoginPage component for use in routing
 export default LoginPage;

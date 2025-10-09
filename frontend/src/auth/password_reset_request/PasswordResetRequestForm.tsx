@@ -1,47 +1,62 @@
 // ---------------------------- External Imports ----------------------------
-// Import React and useState hook for component state
+// React core and useState hook for managing local component state
 import React, { useState } from "react";
 
-// Import Redux hooks for dispatching actions and selecting state
+// Redux hooks for dispatching actions and selecting state
 import { useDispatch, useSelector } from "react-redux";
 
-// Type-only import for typed useSelector hook
+// Type-only import for typed selector hook
 import type { TypedUseSelectorHook } from "react-redux";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import type-only RootState and AppDispatch from Redux store
+// Type-only RootState and AppDispatch for typed Redux hooks
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import actions from password reset request slice
+// Import async thunk and clear state action for password reset requests
 import { requestPasswordReset, clearPasswordResetRequestState } from "./password_reset_request_slice";
 
 // ---------------------------- Typed Selector Hook ----------------------------
-// Create typed useSelector hook for TypeScript support
+// Create a strongly typed useSelector hook for TypeScript support
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- PasswordResetRequestForm Component ----------------------------
-// Component to handle password reset request
+// Handles the password reset request form for users
 const PasswordResetRequestForm: React.FC = () => {
     // ---------------------------- Local State ----------------------------
-    // State for email input
+    // Step 1: Store email input from the user
     const [email, setEmail] = useState("");
 
     // ---------------------------- Redux ----------------------------
-    // Get typed dispatch function
+    // Step 2: Get typed dispatch function
     const dispatch = useDispatch<AppDispatch>();
-    // Get password reset request state from Redux store
+    // Step 3: Extract Redux state for password reset request
     const { loading, error, successMessage } = useAppSelector(
         (state) => state.passwordResetRequest
     );
 
     // ---------------------------- Event Handlers ----------------------------
-    // Handle form submission to request password reset
+    /**
+     * handleSubmit
+     * ----------------------------
+     * Input: Form submit event
+     * Process:
+     *   1. Prevent default form submission behavior.
+     *   2. Dispatch async thunk to request password reset with the provided email.
+     * Output: Redux state updated with loading/error/successMessage.
+     */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         dispatch(requestPasswordReset({ email }));
     };
 
-    // Clear form state and messages
+    /**
+     * handleClear
+     * ----------------------------
+     * Input: None
+     * Process:
+     *   1. Dispatch Redux action to reset password reset request state.
+     * Output: Redux state reset to initial values.
+     */
     const handleClear = () => {
         dispatch(clearPasswordResetRequestState());
     };
@@ -49,12 +64,12 @@ const PasswordResetRequestForm: React.FC = () => {
     // ---------------------------- Render ----------------------------
     return (
         <div>
-            {/* Form title */}
+            {/* Step 4: Form title */}
             <h2>Password Reset Request</h2>
 
-            {/* Password reset request form */}
+            {/* Step 5: Form for entering email */}
             <form onSubmit={handleSubmit}>
-                {/* Email input */}
+                {/* Step 5a: Email input */}
                 <input
                     type="email"
                     value={email}
@@ -63,24 +78,24 @@ const PasswordResetRequestForm: React.FC = () => {
                     required
                 />
 
-                {/* Submit button */}
+                {/* Step 5b: Submit button */}
                 <button type="submit" disabled={loading}>
                     {loading ? "Requesting..." : "Request Password Reset"}
                 </button>
             </form>
 
-            {/* Display error message if request failed */}
+            {/* Step 6: Display error if request failed */}
             {error && <p style={{ color: "red" }}>{error}</p>}
 
-            {/* Display success message if request succeeded */}
+            {/* Step 7: Display success message if request succeeded */}
             {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
 
-            {/* Clear button to reset form and messages */}
+            {/* Step 8: Clear button to reset form and messages */}
             <button onClick={handleClear}>Clear</button>
         </div>
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export PasswordResetRequestForm as default
+// Export PasswordResetRequestForm component for use in page
 export default PasswordResetRequestForm;

@@ -1,27 +1,27 @@
 // ---------------------------- External Imports ----------------------------
-// Import React for JSX/TSX syntax
+// React core for component creation
 import React from "react";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import the form component that handles sending the reset email
+// Import the Redux-connected form component for requesting a password reset
 import PasswordResetRequestForm from "./PasswordResetRequestForm";
 
-// ---------------------------- Component Definition ----------------------------
-// Page component for requesting a password reset
+// ---------------------------- PasswordResetRequestPage Component ----------------------------
+// Page component that wraps and displays the password reset request form
 const PasswordResetRequestPage: React.FC = () => {
-    // ---------------------------- JSX Return ----------------------------
+    // ---------------------------- Render ----------------------------
     return (
-        // Wrapper div for consistent page styling
+        // Step 1: Wrapper container for consistent page styling
         <div className="auth-page-container">
-            {/* Page heading */}
+            {/* Step 2: Page heading */}
             <h1>Password Reset Request</h1>
 
-            {/* Render the password reset request form */}
+            {/* Step 3: Render the password reset request form component */}
             <PasswordResetRequestForm />
         </div>
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export PasswordResetRequestPage as default
+// Export PasswordResetRequestPage component for use in routing
 export default PasswordResetRequestPage;

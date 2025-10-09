@@ -1,19 +1,13 @@
 # ---------------------------- External Imports ----------------------------
-# Datetime utilities for timestamps and timezone-aware operations
-from datetime import datetime, timedelta, timezone
-
 # Capture full exception stack traces for debugging
 import traceback
-
-# For type hinting Celery tasks
-from celery import Task
 
 # ---------------------------- Internal Imports ----------------------------
 # Application settings including frontend URL and token expirations
 from ...core.settings import settings
 
-# Celery task for sending emails asynchronously
-from ...celery.email_tasks import send_email_task as _send_email_task
+# Taskiq async task for sending emails
+from ...taskiq_tasks.email_tasks import send_email_task
 
 # Async Redis client for token storage and single-use verification
 from ...redis.client import redis_client
@@ -24,10 +18,6 @@ from ...auth.token_logic.jwt_service import jwt_service
 # Import centralized logger factory to create structured, module-specific loggers
 from ...logging.logging_config import get_logger
 
-# ---------------------------- Type Hint Celery Task ----------------------------
-# This tells the IDE that send_email_task has Celery Task methods like apply_async
-send_email_task: Task = _send_email_task
-
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
 logger = get_logger(__name__)
@@ -36,7 +26,7 @@ logger = get_logger(__name__)
 # Service for managing account verification emails and single-use tokens
 class AccountVerificationService:
     """
-    1. send_verification_email - Generate a token, store in Redis, and send email via Celery.
+    1. send_verification_email - Generate a token, store in Redis, and send email via Taskiq.
     2. create_verification_token - Generate JWT token via JWTService.
     3. verify_token - Validate verification token and enforce single-use.
     """
@@ -58,7 +48,7 @@ class AccountVerificationService:
             1. Generate verification token for user with expiration.
             2. Store token in Redis to enforce single-use.
             3. Build frontend verification URL with token.
-            4. Schedule asynchronous email task via Celery.
+            4. Schedule asynchronous email task via Taskiq.
             5. Return true if email scheduled successfully.
 
         Output:
@@ -80,13 +70,11 @@ class AccountVerificationService:
             # Step 3: Build frontend verification URL with token
             verify_url = f"{settings.FRONTEND_BASE_URL}/verify-account?token={verification_token}"
 
-            # Step 4: Schedule asynchronous email task via Celery
-            send_email_task.apply_async(
-                kwargs={
-                    "to_email": email,
-                    "subject": "Account Verification",
-                    "body": f"Click the link to verify your account: {verify_url}"
-                }
+            # Step 4: Schedule asynchronous email task via Taskiq
+            await send_email_task.kiq(
+                to_email=email,
+                subject="Account Verification",
+                body=f"Click the link to verify your account: {verify_url}"
             )
 
             # Log success
@@ -114,20 +102,17 @@ class AccountVerificationService:
             3. expires_minutes (int): Expiration time in minutes.
 
         Process:
-            1. Compute expiration datetime in UTC.
-            2. Generate JWT token using JWTService.
-            3. Return generated token.
+            1. Generate JWT token using JWTService.
+            2. Return generated token.
 
         Output:
             1. str: Encoded JWT verification token.
         """
-        # Step 1: Compute expiration datetime in UTC
-        expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
 
-        # Step 2: Generate JWT token using JWTService
+        # Step 1: Generate JWT token using JWTService
         token = await jwt_service.create_access_token(email=email, role=role)
 
-        # Step 3: Return generated token
+        # Step 2: Return generated token
         return token
 
     # ---------------------------- Verify Token ----------------------------

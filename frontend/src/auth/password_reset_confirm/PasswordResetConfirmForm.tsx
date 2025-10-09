@@ -12,7 +12,7 @@ import type { TypedUseSelectorHook } from "react-redux";
 // Import type-only RootState and AppDispatch from Redux store
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import actions from password reset confirm slice
+// Import async thunk and action to clear state from password reset confirm slice
 import { confirmPasswordReset, clearPasswordResetConfirmState } from "./password_reset_confirm_slice";
 
 // ---------------------------- Typed Selector Hook ----------------------------
@@ -37,13 +37,28 @@ const PasswordResetConfirmForm: React.FC = () => {
     );
 
     // ---------------------------- Event Handlers ----------------------------
-    // Handle form submission to confirm password reset
+    /**
+     * handleSubmit
+     * ----------------------------
+     * Input: Form event
+     * Process:
+     *   1. Prevent default form submission.
+     *   2. Dispatch confirmPasswordReset thunk with token and new password.
+     * Output: Triggers API call and updates Redux state.
+     */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         dispatch(confirmPasswordReset({ token, new_password: newPassword }));
     };
 
-    // Clear form state and messages
+    /**
+     * handleClear
+     * ----------------------------
+     * Input: None
+     * Process:
+     *   1. Dispatch clearPasswordResetConfirmState to reset Redux state.
+     * Output: Clears messages and resets loading state.
+     */
     const handleClear = () => {
         dispatch(clearPasswordResetConfirmState());
     };

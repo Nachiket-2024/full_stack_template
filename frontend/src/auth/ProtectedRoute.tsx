@@ -1,56 +1,71 @@
 // ---------------------------- External Imports ----------------------------
-// Import React and hooks for component state and lifecycle
-import React, { useEffect, useState } from "react";
+// Import React for component creation
+import React from "react";
 
-// Import Navigate for redirecting unauthenticated users
+// Import Navigate for conditional redirection
 import { Navigate } from "react-router-dom";
 
+// Import Redux hook for reading authentication state
+import { useSelector } from "react-redux";
+
 // ---------------------------- Internal Imports ----------------------------
-// Import app settings (e.g., API base URL)
-import settings from "../core/settings";
+// Import RootState type for typed useSelector
+import type { RootState } from "../store/store";
 
 // ---------------------------- ProtectedRoute Component ----------------------------
-// Define props for ProtectedRoute, expects children components
+// Component: Protects routes by verifying authentication via Redux
+// Methods:
+// 1. renderProtectedContent - Handles conditional rendering logic
 interface ProtectedRouteProps {
-    children: React.ReactNode;
+    children: React.ReactNode; // The component(s) to render if user is authenticated
 }
 
-// ProtectedRoute component ensures only authenticated users can access children
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    // State to track whether the user is authenticated
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-    // Check authentication status when component mounts
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                // Send request to API to verify user authentication
-                const res = await fetch(`${settings.apiBaseUrl}/auth/me`, {
-                    credentials: "include", // Send HTTP-only cookies for auth
-                });
+    // ---------------------------- Redux ----------------------------
+    /**
+     * Input: None
+     * Process:
+     *   1. Extract authentication state from Redux store
+     * Output:
+     *   1. isAuthenticated boolean
+     *   2. loading boolean
+     */
+    const { isAuthenticated, loading } = useSelector(
+        (state: RootState) => state.currentUser
+    );
 
-                // Set auth state based on response status
-                setIsAuthenticated(res.status === 200);
-            } catch {
-                // If request fails, mark as unauthenticated
-                setIsAuthenticated(false);
-            }
-        };
+    // ---------------------------- Method: renderProtectedContent ----------------------------
+    /**
+     * renderProtectedContent
+     * Input: None
+     * Process:
+     *   1. If authentication check is in progress, show loader
+     *   2. If user is not authenticated, redirect to login page
+     *   3. If authenticated, render protected children components
+     * Output: JSX element representing route protection result
+     */
+    const renderProtectedContent = () => {
+        // Step 1: Handle loading state — display temporary UI
+        if (loading) return <div>Loading...</div>;
 
-        // Trigger the auth check
-        checkAuth();
-    }, []);
+        // Step 2: Redirect unauthenticated users to login
+        if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-    // While auth is being verified, render nothing
-    if (isAuthenticated === null) return null;
+        // Step 3: Render protected children
+        return <>{children}</>;
+    };
 
-    // Redirect to login page if user is not authenticated
-    if (!isAuthenticated) return <Navigate to="/login" replace />;
-
-    // Render children components if authenticated
-    return <>{children}</>;
+    // ---------------------------- Render ----------------------------
+    /**
+     * Input: None
+     * Process:
+     *   1. Call renderProtectedContent to determine what to render
+     * Output: JSX.Element of loader, redirect, or protected content
+     */
+    return renderProtectedContent();
 };
 
 // ---------------------------- Export ----------------------------
-// Export ProtectedRoute component as default
+// Export ProtectedRoute component for use in route protection
 export default ProtectedRoute;

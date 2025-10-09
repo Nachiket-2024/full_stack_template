@@ -1,5 +1,5 @@
 // ---------------------------- External Imports ----------------------------
-// Import React and hooks for component state
+// Import React core and hooks for local state and side effects
 import React, { useState, useEffect } from "react";
 
 // Import Redux hooks for dispatching actions and selecting state
@@ -9,62 +9,93 @@ import { useDispatch, useSelector } from "react-redux";
 import type { TypedUseSelectorHook } from "react-redux";
 
 // ---------------------------- Internal Imports ----------------------------
-// Type-only imports for store types
+// Type-only imports for Redux store
 import type { RootState, AppDispatch } from "../../store/store";
 
 // Import login thunk and slice actions
 import { loginUser, clearLoginState } from "./login_slice";
 
 // ---------------------------- Props Interface ----------------------------
-// Props for LoginForm component
+// Props interface for LoginForm component
 interface LoginFormProps {
-    onSuccess?: () => void; // Callback after successful login
+    onSuccess?: () => void; // Optional callback after successful login
 }
 
 // ---------------------------- Typed Selector Hook ----------------------------
-// Create typed useSelector hook for TypeScript support
+// Create typed selector hook for TypeScript
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- LoginForm Component ----------------------------
-// Component for user login form
+/**
+ * LoginForm
+ * High-level component responsible for:
+ * 1. Rendering email/password inputs
+ * 2. Dispatching login thunk
+ * 3. Handling success/failure messages
+ * 4. Clearing form and Redux login state
+ */
 const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     // ---------------------------- Local State ----------------------------
-    const [email, setEmail] = useState("");       // Email input
-    const [password, setPassword] = useState(""); // Password input
+    const [email, setEmail] = useState("");      // Step 1: Email input
+    const [password, setPassword] = useState(""); // Step 2: Password input
 
     // ---------------------------- Redux ----------------------------
-    const dispatch = useDispatch<AppDispatch>();   // Typed dispatch function
-    const { loading, error, accessToken } = useAppSelector((state) => state.login); // Login state
+    const dispatch = useDispatch<AppDispatch>(); // Step 3: Typed dispatch
+    const { loading, error, isAuthenticated } = useAppSelector(
+        (state) => state.login // Step 4: Extract login slice
+    );
 
     // ---------------------------- Effect: redirect on success ----------------------------
-    // Only call the onSuccess callback if provided; do not navigate by default
+    /**
+     * Input: None
+     * Process:
+     *   1. Run effect when isAuthenticated changes
+     *   2. Call onSuccess callback if login succeeded
+     * Output: Redirects or triggers post-login action
+     */
     useEffect(() => {
-        if (accessToken && onSuccess) {
+        if (isAuthenticated && onSuccess) {
             onSuccess();
         }
-    }, [accessToken, onSuccess]);
+    }, [isAuthenticated, onSuccess]);
 
     // ---------------------------- Event Handlers ----------------------------
-    // Handle form submission for login
+    /**
+     * handleSubmit
+     * Input: Form submit event
+     * Process:
+     *   1. Prevent default form submission
+     *   2. Dispatch login thunk with email/password
+     * Output: Updates Redux state (loading, error, isAuthenticated)
+     */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         dispatch(loginUser({ email, password }));
     };
 
-    // Clear login state manually
+    /**
+     * handleClear
+     * Input: None
+     * Process:
+     *   1. Clear Redux login state
+     *   2. Clear local email and password inputs
+     * Output: Form and Redux slice reset
+     */
     const handleClear = () => {
         dispatch(clearLoginState());
+        setEmail("");
+        setPassword("");
     };
 
     // ---------------------------- Render ----------------------------
     return (
         <div>
-            {/* Form title */}
+            {/* Step 1: Form title */}
             <h2>Login</h2>
 
-            {/* Login form */}
+            {/* Step 2: Login form */}
             <form onSubmit={handleSubmit}>
-                {/* Email input */}
+                {/* Step 2a: Email input */}
                 <input
                     type="email"
                     value={email}
@@ -73,7 +104,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                     required
                 />
 
-                {/* Password input */}
+                {/* Step 2b: Password input */}
                 <input
                     type="password"
                     value={password}
@@ -82,24 +113,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                     required
                 />
 
-                {/* Submit button */}
+                {/* Step 2c: Submit button */}
                 <button type="submit" disabled={loading}>
                     {loading ? "Logging in..." : "Login"}
                 </button>
             </form>
 
-            {/* Display error message if login failed */}
+            {/* Step 3: Display error message */}
             {error && <p style={{ color: "red" }}>{error}</p>}
 
-            {/* Display success message if login succeeded */}
-            {accessToken && <p style={{ color: "green" }}>Login successful!</p>}
+            {/* Step 4: Display success message */}
+            {isAuthenticated && <p style={{ color: "green" }}>Login successful!</p>}
 
-            {/* Clear button to reset form and messages */}
+            {/* Step 5: Clear button */}
             <button onClick={handleClear}>Clear</button>
         </div>
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export LoginForm component as default
+// Export LoginForm component for reuse
 export default LoginForm;

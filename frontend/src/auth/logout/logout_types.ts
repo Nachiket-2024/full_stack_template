@@ -1,5 +1,6 @@
 // ---------------------------- Logout Response Type ----------------------------
-// Shape of the response from /auth/logout or /auth/logout/all
+// Interface representing the shape of the response from /auth/logout or /auth/logout/all
 export interface LogoutResponse {
-    message: string; // Success message
+    // Success message returned by the API
+    message: string;
 }

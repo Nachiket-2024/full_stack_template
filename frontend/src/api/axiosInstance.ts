@@ -1,14 +1,20 @@
 // ---------------------------- External Imports ----------------------------
+// Import Axios HTTP client for making API requests
 import axios from "axios";
 
 // ---------------------------- Internal Imports ----------------------------
-import settings from "../core/settings"; // centralized config file
+// Import centralized settings containing API base URL
+import settings from "../core/settings";
 
 // ---------------------------- Axios Instance ----------------------------
+// Create a reusable Axios instance with base configuration
 const api = axios.create({
-    baseURL: settings.apiBaseUrl,  // now loaded from settings file
-    withCredentials: true,         // Backend uses cookies
+    // Set the base URL dynamically from settings
+    baseURL: settings.apiBaseUrl,
+    // Include credentials such as cookies in cross-site requests
+    withCredentials: true,
 });
 
 // ---------------------------- Export ----------------------------
+// Export the configured Axios instance for use across the app
 export default api;

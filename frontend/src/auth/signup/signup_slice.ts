@@ -1,84 +1,120 @@
 // ---------------------------- External Imports ----------------------------
-// Redux Toolkit functions for slices and async thunks
+// Redux Toolkit functions for creating slices and async thunks
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-// Type-only import for PayloadAction (required with verbatimModuleSyntax)
+// Type-only import for PayloadAction (needed for typing actions)
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 // ---------------------------- Internal Imports ----------------------------
-// Use signupApi wrapper from auth_api.ts
+// API wrapper for performing signup requests
 import { signupApi } from "../../api/auth_api";
 
-// Import types for signup request/response
+// Type-only imports for request and response structures
 import type { SignupRequest, SignupResponse } from "./signup_types";
 
 // ---------------------------- State Type ----------------------------
-// Redux state for signup
+// Defines the shape of the signup slice state
 interface SignupState {
-    loading: boolean;              // Indicates request in progress
-    error: string | null;          // Error message if signup fails
-    successMessage: string | null; // Message on successful signup
+    loading: boolean;              // Step 1: True while signup request is in progress
+    error: string | null;          // Step 2: Stores backend or network error message
+    successMessage: string | null; // Step 3: Stores success message from backend
 }
 
 // ---------------------------- Initial State ----------------------------
+// Initial values for the signup slice
 const initialState: SignupState = {
-    loading: false,
-    error: null,
-    successMessage: null,
+    loading: false,       // Step 1: No request in progress initially
+    error: null,          // Step 2: No errors initially
+    successMessage: null, // Step 3: No success message initially
 };
 
 // ---------------------------- Async Thunk ----------------------------
-// Handles calling the backend signup endpoint via signupApi
+/**
+ * signupUser
+ * Input: SignupRequest payload containing name, email, password
+ * Process:
+ *   1. Call backend signup API with payload
+ *   2. Return API response data if successful
+ *   3. Catch errors and return meaningful reject value
+ * Output: SignupResponse on success, string error message on failure
+ */
 export const signupUser = createAsyncThunk<
-    SignupResponse,        // Success return type
-    SignupRequest,         // Input argument type
-    { rejectValue: string } // Error type
+    SignupResponse,        // Type of successful response
+    SignupRequest,         // Input type (signup payload)
+    { rejectValue: string } // Error type if request fails
 >(
     "auth/signup",
     async (payload: SignupRequest, thunkAPI) => {
         try {
+            // Step 1: Call backend signup API
             const response = await signupApi(payload);
+
+            // Step 2: Return API response data on success
             return response.data;
         } catch (error: any) {
-            // Extract backend error message or fallback
-            return thunkAPI.rejectWithValue(error.response?.data?.error || "Signup failed");
+            // Step 3: Return error message if request fails
+            return thunkAPI.rejectWithValue(
+                error.response?.data?.error || "Signup failed"
+            );
         }
     }
 );
 
 // ---------------------------- Slice ----------------------------
+/**
+ * signupSlice
+ * Manages signup state in Redux store
+ * Methods:
+ *   1. clearSignupState - Reset loading, error, and successMessage
+ */
 const signupSlice = createSlice({
-    name: "signup",
-    initialState,
+    name: "signup",        // Step 1: Slice name
+    initialState,          // Step 2: Initial state
     reducers: {
-        // Reset signup state manually
+        /**
+         * clearSignupState
+         * Input: None
+         * Process:
+         *   1. Reset loading flag
+         *   2. Clear error message
+         *   3. Clear success message
+         * Output: Resets slice state
+         */
         clearSignupState: (state) => {
-            state.loading = false;
-            state.error = null;
-            state.successMessage = null;
+            state.loading = false;        // Step 1
+            state.error = null;           // Step 2
+            state.successMessage = null;  // Step 3
         },
     },
     extraReducers: (builder) => {
         builder
+            // Step 1: Set loading state when request is pending
             .addCase(signupUser.pending, (state) => {
                 state.loading = true;
                 state.error = null;
                 state.successMessage = null;
             })
+
+            // Step 2: Handle fulfilled request
             .addCase(
                 signupUser.fulfilled,
                 (state, action: PayloadAction<SignupResponse>) => {
-                    state.loading = false;
-                    state.successMessage = action.payload.message;
+                    state.loading = false;                     // Step 2a: Stop loading
+                    state.successMessage = action.payload.message; // Step 2b: Save success message
                 }
             )
+
+            // Step 3: Handle rejected request
             .addCase(signupUser.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload || "Signup failed";
+                state.loading = false;                     // Step 3a: Stop loading
+                state.error = action.payload || "Signup failed"; // Step 3b: Save error message
             });
     },
 });
 
 // ---------------------------- Exports ----------------------------
+// Export Redux actions
 export const { clearSignupState } = signupSlice.actions;
+
+// Export reducer for store integration
 export default signupSlice.reducer;

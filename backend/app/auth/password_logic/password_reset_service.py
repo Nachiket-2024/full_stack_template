@@ -2,15 +2,12 @@
 # Traceback module to capture detailed exception stack traces
 import traceback
 
-# Celery Task class for type hinting asynchronous tasks
-from celery import Task
-
 # ---------------------------- Internal Imports ----------------------------
 # Password service for creating and verifying tokens, hashing passwords
 from .password_service import password_service
 
-# Celery task for sending emails asynchronously
-from ...celery.email_tasks import send_email_task as _send_email_task
+# Taskiq async task for sending emails
+from ...taskiq_tasks.email_tasks import send_email_task
 
 # Role tables for user management
 from ...access_control.role_tables import ROLE_TABLES
@@ -21,10 +18,6 @@ from ...core.settings import settings
 # Import centralized logger factory to create structured, module-specific loggers
 from ...logging.logging_config import get_logger
 
-# ---------------------------- Type Hint Celery Task ----------------------------
-# Assign the imported Celery task to a typed variable for IDE support
-send_email_task: Task = _send_email_task
-
 # ---------------------------- Logger Setup ----------------------------
 # Create a logger instance for this module
 logger = get_logger(__name__)
@@ -33,7 +26,7 @@ logger = get_logger(__name__)
 # Service class handling password reset requests and updates
 class PasswordResetService:
     """
-    1. send_reset_email - Generate reset token and schedule email via Celery.
+    1. send_reset_email - Generate reset token and schedule email via Taskiq.
     2. reset_password - Validate token, hash new password, and update user in DB.
     """
 
@@ -49,7 +42,7 @@ class PasswordResetService:
             1. Validate role exists in ROLE_TABLES.
             2. Generate password reset token via password_service.
             3. Construct frontend reset URL with the token.
-            4. Schedule email sending asynchronously via Celery.
+            4. Schedule email sending asynchronously via Taskiq.
 
         Output:
             1. bool: True if email scheduled successfully, False otherwise.
@@ -66,13 +59,11 @@ class PasswordResetService:
             # Step 3: Construct frontend reset URL with the token
             reset_url = f"{settings.FRONTEND_BASE_URL}/reset-password?token={reset_token}"
 
-            # Step 4: Schedule email sending asynchronously via Celery
-            send_email_task.apply_async(
-                kwargs={
-                    "to_email": email,
-                    "subject": "Password Reset Request",
-                    "body": f"Click the link to reset your password: {reset_url}"
-                }
+            # Step 4: Schedule email sending asynchronously via Taskiq
+            await send_email_task.kiq(
+                to_email=email,
+                subject="Password Reset Request",
+                body=f"Click the link to reset your password: {reset_url}"
             )
 
             # Log after successful scheduling
