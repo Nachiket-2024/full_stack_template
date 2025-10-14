@@ -23,6 +23,9 @@ import settings from "../../core/settings";
 interface OAuth2ButtonProps {
     // Optional callback after successful login
     onSuccess?: () => void;
+
+    // Optional callback when login attempt starts
+    onAttempt?: () => void;
 }
 
 // ---------------------------- Typed Selector Hook ----------------------------
@@ -36,7 +39,7 @@ const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 //   1. handleLogin()  → Redirect user to OAuth2 login endpoint
 //   2. handleClear()  → Clear current OAuth2 session from Redux
 // ---------------------------------------------------------------------------
-const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
+const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess, onAttempt }) => {
     // ---------------------------- Redux ----------------------------
     // Typed dispatch function
     const dispatch = useDispatch<AppDispatch>();
@@ -57,11 +60,15 @@ const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
      * ----------------------------
      * Input: None
      * Process:
-     *   1. Redirect user to backend OAuth2 login URL.
-     * Output: Redirects browser, does not return.
+     *   1. Notify parent of login attempt (if provided)
+     *   2. Redirect user to backend OAuth2 login URL
+     * Output: Redirects browser, does not return
      */
     const handleLogin = () => {
-        // Step 1: Redirect to backend for Google OAuth2 login
+        // Step 1: Notify parent that login attempt is starting
+        onAttempt?.();
+
+        // Step 2: Redirect to backend for Google OAuth2 login
         window.location.href = `${settings.apiBaseUrl}/auth/oauth2/login/google`;
     };
 
@@ -70,9 +77,9 @@ const OAuth2LoginButton: React.FC<OAuth2ButtonProps> = ({ onSuccess }) => {
      * ----------------------------
      * Input: None
      * Process:
-     *   1. Clear user session state from Redux.
-     *   2. Optionally trigger onSuccess callback.
-     * Output: Redux state reset, callback executed if provided.
+     *   1. Clear user session state from Redux
+     *   2. Optionally trigger onSuccess callback
+     * Output: Redux state reset, callback executed if provided
      */
     const handleClear = () => {
         // Step 1: Dispatch Redux action to clear local session

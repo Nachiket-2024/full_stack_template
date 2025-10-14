@@ -18,11 +18,8 @@ from ...auth.security.rate_limiter_service import rate_limiter_service
 # Import service that provides brute-force protection
 from ...auth.security.login_protection_service import login_protection_service
 
-# Import Pydantic schema representing the refresh token request payload
-from ..token_logic.token_schema import RefreshTokenSchema
-
-# Import Pydantic schema representing a pair of JWT tokens (access + refresh)
-from ..token_logic.token_schema import TokenPairResponseSchema
+# Import Pydantic schema representing the refresh token request payload and pair of JWT tokens (access + refresh)
+from ..token_logic.token_schema import RefreshTokenSchema, TokenPairResponseSchema
 
 # Import cookie handler to securely set tokens in HTTP-only cookies
 from ..token_logic.token_cookie_handler import token_cookie_handler

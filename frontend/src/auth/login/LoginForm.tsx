@@ -19,6 +19,7 @@ import { loginUser, clearLoginState } from "./login_slice";
 // Props interface for LoginForm component
 interface LoginFormProps {
     onSuccess?: () => void; // Optional callback after successful login
+    onAttempt?: () => void; // Optional callback triggered when a login attempt starts
 }
 
 // ---------------------------- Typed Selector Hook ----------------------------
@@ -34,9 +35,9 @@ const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
  * 3. Handling success/failure messages
  * 4. Clearing form and Redux login state
  */
-const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onAttempt }) => {
     // ---------------------------- Local State ----------------------------
-    const [email, setEmail] = useState("");      // Step 1: Email input
+    const [email, setEmail] = useState("");       // Step 1: Email input
     const [password, setPassword] = useState(""); // Step 2: Password input
 
     // ---------------------------- Redux ----------------------------
@@ -64,12 +65,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
      * handleSubmit
      * Input: Form submit event
      * Process:
+     *   0. Trigger onAttempt callback if provided
      *   1. Prevent default form submission
      *   2. Dispatch login thunk with email/password
      * Output: Updates Redux state (loading, error, isAuthenticated)
      */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        onAttempt?.(); // Step 0: notify parent about login attempt
         dispatch(loginUser({ email, password }));
     };
 

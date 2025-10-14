@@ -64,12 +64,12 @@ cp .env.example .env
 ```
 ---
 
-## 🚀 Run the App (Docker Recommended)
+## 🚀 Run the App
 > Instructions below assume that you are at the root of the repository while running the commands.
 
 > Configure your Google Cloud project and enable the Oauth API before use.
 
-### Path 1. **Docker** (Backend, Frontend, PostgreSQL, Redis, Taskiq worker, Alembic migrations)
+### Path 1. **Docker (Recommended Way)**
 ```bash
 docker compose up
 ```

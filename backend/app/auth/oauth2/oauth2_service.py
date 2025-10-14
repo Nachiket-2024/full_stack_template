@@ -49,7 +49,7 @@ class OAuth2Service:
         Process:
             1. Prepare POST payload with code and credentials.
             2. Send POST request to Google OAuth2 token endpoint asynchronously.
-            3. Parse and return JSON response containing tokens.
+            3. Return JSON response containing tokens.
 
         Output:
             1. dict | None - Token dictionary or None on failure
@@ -70,15 +70,8 @@ class OAuth2Service:
                 resp = await client.post(token_url, data=data)
                 resp.raise_for_status()  # Step 2a: Raise exception for non-success status codes
 
-                # Step 3: Parse and return JSON response containing tokens
-                token_data = resp.json()
-            
-                # REMOVE OR COMMENT THIS OUT AFTER FIRST RUN
-                #if "refresh_token" in token_data:
-                    #print("COPY THIS REFRESH TOKEN INTO YOUR .env")
-                    #print("Refresh Token:", token_data["refresh_token"])
-
-                return token_data
+                # Step 3: Return JSON response containing tokens
+                return resp.json()
 
         except Exception:
             logger.error("Error exchanging code for tokens:\n%s", traceback.format_exc())

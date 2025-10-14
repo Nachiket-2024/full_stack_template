@@ -1,31 +1,31 @@
 // ---------------------------- External Imports ----------------------------
-// Import React core and hooks
+// Import React core and hooks for component rendering and lifecycle management
 import React, { useEffect } from "react";
 
-// Import React Router components for routing
+// Import React Router components for routing and route handling
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// Import Redux hooks for state management
-import { useDispatch } from "react-redux";
+// Import Redux hooks for state selection and dispatching actions
+import { useDispatch, useSelector } from "react-redux";
 
 // ---------------------------- Internal Imports ----------------------------
-// Import authentication-related pages
+// Authentication-related pages
 import LoginPage from "./auth/login/LoginPage";
 import SignupPage from "./auth/signup/SignupPage";
 import VerifyAccountPage from "./auth/verify_account/VerifyAccountPage";
 import PasswordResetRequestPage from "./auth/password_reset_request/PasswordResetRequestPage";
 import PasswordResetConfirmPage from "./auth/password_reset_confirm/PasswordResetConfirmPage";
 
-// Import main application pages and route guard
+// Main dashboard page and protected route wrapper
 import DashboardPage from "./dashboard/DashboardPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 
-// Import thunk to fetch current user session and Redux types
+// Thunk action to fetch current user session and Redux type definitions
 import { fetchCurrentUser } from "./auth/current_user/current_user_slice";
-import type { AppDispatch } from "./store/store";
+import type { AppDispatch, RootState } from "./store/store";
 
 // ---------------------------- NotFoundPage Component ----------------------------
-// Simple 404 page for unmatched routes
+// Simple 404 page displayed when a route does not match any defined routes
 const NotFoundPage: React.FC = () => (
   <div className="flex items-center justify-center h-screen bg-gray-100">
     <h1 className="text-4xl text-red-600 font-semibold">404 - Page Not Found</h1>
@@ -35,71 +35,69 @@ const NotFoundPage: React.FC = () => (
 // ---------------------------- App Component ----------------------------
 /**
  * App
- * High-level component responsible for routing and initializing user session
+ * High-level component responsible for routing, initializing user session,
+ * and rendering protected/public pages.
+ * 
  * Methods:
- * 1. useEffect - Fetches current user session on mount
- * 2. Render - Defines routes, layout, and page components
+ *   1. useEffect - Fetches current user session on mount (only if needed)
+ *   2. Conditional Render - Shows loader while session check is in progress
+ *   3. Render - Defines all routes and layout
  */
 const App: React.FC = () => {
 
   // ---------------------------- Redux Setup ----------------------------
-  // Input: None
-  // Process: Setup typed dispatch for Redux
-  // Output: AppDispatch function for dispatching actions
-  const dispatch: AppDispatch = useDispatch();
+  const dispatch: AppDispatch = useDispatch(); // Step 1: Get Redux dispatch function
+  const { loading, isAuthenticated } = useSelector(
+    (state: RootState) => state.currentUser // Step 2: Get auth state from Redux
+  );
 
   // ---------------------------- Effect: Fetch Current User ----------------------------
   /**
-   * Input: None (runs automatically on component mount)
+   * Input: None (runs on component mount)
    * Process:
-   *   1. Run effect only once on initial mount
-   *   2. Dispatch thunk to fetch current user session from /auth/me
-   *   3. Prevent redundant calls by guarding execution
-   * Output: Updates Redux state with user info or guest status
+   *   1. Only fetch user if authentication has not been checked (isAuthenticated === null)
+   *   2. Prevent redundant API calls on re-render or hot-reload
+   * Output: Updates Redux state with current user info or guest status
    */
   useEffect(() => {
-    // Step 1: Define guard variable to ensure one-time execution
-    let initialized = false;
-
-    // Step 2: Execute fetch only once when component mounts
-    if (!initialized) {
-      initialized = true; // Step 2a: Mark initialized to block reruns
-      dispatch(fetchCurrentUser("AppUseEffect")); // Step 2b: Fetch current user session
+    if (isAuthenticated === null) {
+      // Step 1: Fetch current user only once per session
+      dispatch(fetchCurrentUser("AppUseEffect"));
     }
+  }, [dispatch, isAuthenticated]); // Step 2: Dependency array ensures effect runs only when necessary
 
-    // Step 3: Disable React warning about missing dependencies intentionally
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+  // ---------------------------- Conditional Render (Session Check) ----------------------------
+  /**
+   * Input: Redux loading and authentication state
+   * Process:
+   *   1. Show loading screen if session check is in progress
+   *   2. Once session check completes, render the full application
+   * Output: Either a loading screen or the main app content
+   */
+  if (loading && isAuthenticated === null) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <p className="text-lg text-gray-600">Checking session...</p>
+      </div>
+    );
+  }
 
   // ---------------------------- Render ----------------------------
-  /**
-   * Input: Redux state (current user), Router configuration
-   * Process:
-   *   1. Wrap app in BrowserRouter for routing
-   *   2. Render header with title
-   *   3. Define main content area with Routes
-   *       a. Protected dashboard route at "/" and "/dashboard"
-   *       b. Public authentication routes (login, signup, verify-account, password reset)
-   *       c. Catch-all fallback route to NotFoundPage
-   * Output: JSX.Element representing the entire application UI
-   */
   return (
     <Router>
-      {/* Step 1: App container */}
       <div className="min-h-screen bg-gray-50">
 
-        {/* Step 2: Header displayed on all pages */}
+        {/* Application Header */}
         <header className="bg-blue-600 text-white p-4 shadow-md">
           <h1 className="text-3xl font-bold text-center">
             Full Stack Template - Auth Test
           </h1>
         </header>
 
-        {/* Step 3: Main content area */}
+        {/* Main Content Area */}
         <main className="p-6">
           <Routes>
-
-            {/* Step 3a: Protected dashboard route (default path) */}
+            {/* Protected Routes */}
             <Route
               path="/"
               element={
@@ -108,15 +106,6 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-
-            {/* Step 3b: Authentication-related routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/verify-account" element={<VerifyAccountPage />} />
-            <Route path="/password-reset-request" element={<PasswordResetRequestPage />} />
-            <Route path="/password-reset-confirm/:token" element={<PasswordResetConfirmPage />} />
-
-            {/* Step 3c: Explicit dashboard route */}
             <Route
               path="/dashboard"
               element={
@@ -126,9 +115,15 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Step 3d: Catch-all fallback route */}
-            <Route path="*" element={<NotFoundPage />} />
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/verify-account" element={<VerifyAccountPage />} />
+            <Route path="/password-reset-request" element={<PasswordResetRequestPage />} />
+            <Route path="/password-reset-confirm/:token" element={<PasswordResetConfirmPage />} />
 
+            {/* 404 Fallback */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
       </div>
@@ -137,5 +132,5 @@ const App: React.FC = () => {
 };
 
 // ---------------------------- Export ----------------------------
-// Export App component as default entry point for the frontend
+// Export App as default for usage in main entry point
 export default App;
