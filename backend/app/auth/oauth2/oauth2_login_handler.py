@@ -105,7 +105,7 @@ class OAuth2LoginHandler:
             4. Fetch user info from Google.
             5. Validate user info.
             6. Authenticate existing user or create a new user, then generate JWT tokens.
-            7. Validate generated JWT tokens.
+            7. Convert JWT token dict to Pydantic model and validate access token.
             8. Create redirect response to dashboard.
             9. Set JWT tokens in secure HTTP-only cookies using TokenPairResponseSchema.
             10. Return redirect response.
@@ -140,9 +140,10 @@ class OAuth2LoginHandler:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
             # Step 6: Authenticate existing user or create a new user, then generate JWT tokens
-            jwt_tokens: TokenPairResponseSchema = await self.oauth2_service.login_or_create_user(db, user_info)
+            jwt_tokens_dict = await self.oauth2_service.login_or_create_user(db, user_info)
 
-            # Step 7: Validate generated JWT tokens
+            # Step 7: Convert JWT token dict to Pydantic model and validate access token
+            jwt_tokens = TokenPairResponseSchema(**jwt_tokens_dict)
             if not jwt_tokens or not jwt_tokens.access_token:
                 return RedirectResponse(url=f"{settings.FRONTEND_BASE_URL}/login")
 
