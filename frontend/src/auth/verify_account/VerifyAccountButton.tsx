@@ -1,116 +1,133 @@
 // ---------------------------- External Imports ----------------------------
-// Import React for JSX/TSX syntax
+// Import React for component logic and lifecycle management
 import React, { useEffect } from "react";
 
 // Import Redux hooks for dispatching actions and selecting state
 import { useDispatch, useSelector } from "react-redux";
 
-// Type-only import for typed useSelector hook
+// Type-only import to create a typed selector hook for TypeScript safety
 import type { TypedUseSelectorHook } from "react-redux";
 
+// Import Chakra UI components for consistent layout and design
+import { Stack, Button, Text, Spinner } from "@chakra-ui/react";
+
 // ---------------------------- Internal Imports ----------------------------
-// Type-only imports for store types
+// Import application-level types for Redux store and dispatch
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Import verify account thunk and slice actions
+// Import Redux slice thunks/actions for verification logic
 import { verifyAccount, clearVerifyAccountState } from "./verify_account_slice";
 
 // ---------------------------- Typed Selector Hook ----------------------------
-// Create typed useSelector hook for TypeScript support
+// Create a typed selector hook for strong state typing
 const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 // ---------------------------- VerifyAccountButton Component ----------------------------
-// Props for VerifyAccountButton component
+/**
+ * VerifyAccountButton
+ * Handles the account verification process and displays
+ * relevant UI feedback (loading, success, error).
+ *
+ * Methods:
+ * 1. handleVerify — dispatches verifyAccount thunk.
+ * 2. useEffect — triggers onSuccess callback on verification success.
+ * 3. useEffect (cleanup) — clears verification state when unmounted.
+ */
 interface VerifyAccountButtonProps {
-    token: string;          // Token for account verification
-    email: string;          // Email associated with account
-    onSuccess?: () => void; // Optional callback after successful verification
+  token: string;          // Verification token from URL
+  email: string;          // Associated email address
+  onSuccess?: () => void; // Optional callback after successful verification
 }
 
-// Functional component to handle account verification
-// Methods:
-// 1. handleVerify - Dispatches verifyAccount thunk
-// 2. handleClear - Resets verification state
-// 3. useEffect - Triggers onSuccess callback after successful verification
 const VerifyAccountButton: React.FC<VerifyAccountButtonProps> = ({ token, email, onSuccess }) => {
 
-    // ---------------------------- Redux ----------------------------
-    // Get typed dispatch function
-    const dispatch = useDispatch<AppDispatch>();
+  // ---------------------------- Redux ----------------------------
+  const dispatch = useDispatch<AppDispatch>();                           // Typed Redux dispatcher
+  const { loading, error, successMessage } = useAppSelector(
+    (state) => state.verifyAccount
+  );                                                                     // Extract verification slice state
 
-    // Get verify account state from Redux store
-    const { loading, error, successMessage } = useAppSelector((state) => state.verifyAccount);
+  // ---------------------------- Effects ----------------------------
+  /**
+   * onSuccess trigger:
+   * Input: successMessage and optional onSuccess callback
+   * Process:
+   *   1. Watch for changes in successMessage.
+   *   2. If verification succeeded and callback exists, invoke it.
+   * Output: Executes redirect or follow-up action after success.
+   */
+  useEffect(() => {
+    if (successMessage && onSuccess) onSuccess(); // Step 1
+  }, [successMessage, onSuccess]);
 
-    // ---------------------------- Effects ----------------------------
-    /**
-     * Input:
-     *   1. successMessage from Redux state
-     *   2. onSuccess callback function (optional)
-     * Process:
-     *   1. Watch for changes in successMessage
-     *   2. If successMessage exists and onSuccess provided, call onSuccess
-     * Output:
-     *   1. Trigger onSuccess callback after successful verification
-     */
-    useEffect(() => {
-        // Step 1: Check for success message and optional callback
-        if (successMessage && onSuccess) {
-            onSuccess(); // Step 1a: Trigger success callback
-        }
-    }, [successMessage, onSuccess]);
-
-    // ---------------------------- Event Handlers ----------------------------
-    /**
-     * handleVerify - Dispatch thunk to verify account
-     * Input: token and email from props
-     * Process:
-     *   1. Dispatch verifyAccount thunk with payload
-     * Output: Redux state updates (loading, successMessage, error)
-     */
-    const handleVerify = () => {
-        dispatch(verifyAccount({ token, email })); // Step 1
+  /**
+   * Cleanup effect:
+   * Clears Redux slice when component unmounts,
+   * ensuring old success/error messages don’t persist
+   * if the user revisits this page.
+   */
+  useEffect(() => {
+    return () => {
+      dispatch(clearVerifyAccountState()); // Step 1: Clean slice on unmount
     };
+  }, [dispatch]);
 
-    /**
-     * handleClear - Reset verification messages and state
-     * Input: None
-     * Process:
-     *   1. Dispatch clearVerifyAccountState action
-     * Output: Redux state reset (loading=false, error=null, successMessage=null)
-     */
-    const handleClear = () => {
-        dispatch(clearVerifyAccountState()); // Step 1
-    };
+  // ---------------------------- Event Handlers ----------------------------
+  /**
+   * handleVerify
+   * Input: none
+   * Process:
+   *   1. Dispatch verifyAccount thunk with provided token and email.
+   * Output: Updates loading/error/success state in Redux.
+   */
+  const handleVerify = () => {
+    dispatch(verifyAccount({ token, email })); // Step 1
+  };
 
-    // ---------------------------- Render ----------------------------
-    /**
-     * Input: Redux state (loading, error, successMessage)
-     * Process:
-     *   1. Render "Verify Account" button with loading state
-     *   2. Display error message if present
-     *   3. Display success message if present
-     *   4. Render "Clear" button to reset state
-     * Output: JSX for account verification UI
-     */
-    return (
-        <div>
-            {/* Step 1: Verify account button */}
-            <button onClick={handleVerify} disabled={loading}>
-                {loading ? "Verifying..." : "Verify Account"}
-            </button>
+  // ---------------------------- Render ----------------------------
+  /**
+   * Input: Redux state (loading, error, successMessage)
+   * Process:
+   *   1. Display primary "Verify Account" button with spinner while loading.
+   *   2. Show contextual messages for success or failure.
+   * Output: Chakra-styled interactive UI block.
+   */
+  return (
+    <Stack align="center" w="full">
+      {/* Verify Account Button */}
+      <Button
+        onClick={handleVerify}
+        bg="teal.600"
+        _hover={{ bg: "teal.700" }}
+        color="white"
+        w="60%"
+      >
+        {loading ? (
+          <>
+            <Spinner size="sm" mr={2} /> Verifying...
+          </>
+        ) : (
+          "Verify Account"
+        )}
+      </Button>
 
-            {/* Step 2: Display error message if verification failed */}
-            {error && <p style={{ color: "red" }}>{error}</p>}
+      {/* Error Message */}
+      {error && (
+        <Text fontSize="sm" color="red.500">
+          {error}
+        </Text>
+      )}
 
-            {/* Step 3: Display success message if verification succeeded */}
-            {successMessage && <p style={{ color: "green" }}>{successMessage}</p>}
-
-            {/* Step 4: Button to clear state/messages */}
-            <button onClick={handleClear}>Clear</button>
-        </div>
-    );
+      {/* Success Message */}
+      {successMessage && (
+        <Text fontSize="sm" color="green.500" fontWeight="medium">
+          {successMessage}
+        </Text>
+      )}
+    </Stack>
+  );
 };
 
 // ---------------------------- Export ----------------------------
-// Export VerifyAccountButton component as default
+// Export component for use within verification page or elsewhere
 export default VerifyAccountButton;

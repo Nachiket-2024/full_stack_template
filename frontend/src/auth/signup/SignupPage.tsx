@@ -1,38 +1,61 @@
 // ---------------------------- External Imports ----------------------------
-// Import React to create the functional component
+// Import React for JSX/TSX and functional components
 import React from "react";
 
+// Import Chakra UI components for layout and styling
+import { Flex, Stack, Heading } from "@chakra-ui/react";
+
 // ---------------------------- Internal Imports ----------------------------
-// Import the SignupForm component from the same folder
+// Import the SignupForm component
 import SignupForm from "./SignupForm";
 
-// ---------------------------- Signup Page Component ----------------------------
-// Functional component to render the signup page
-// Methods:
-// 1. render - Returns the JSX for the signup page including heading and form
+// ---------------------------- SignupPage Component ----------------------------
+/**
+ * SignupPage
+ * Chakra UI-based signup page:
+ * Methods:
+ * 1. render - Returns a centered responsive card with heading and SignupForm
+ */
 const SignupPage: React.FC = () => {
 
     // ---------------------------- Render Method ----------------------------
-    // Returns the JSX structure for the signup page
-    // Input: None (props could be added if needed in future)
-    // Process:
-    //     1. Wrap the page content in a container div for styling/layout.
-    //     2. Add a heading element for the page title.
-    //     3. Render the SignupForm component inside the page.
-    // Output: JSX.Element representing the signup page
+    /**
+     * Render the signup page with Chakra UI layout:
+     * Input: None
+     * Process:
+     *   1. Center the card using Flex
+     *   2. Use a Stack as a card container with padding, rounded corners, and shadow
+     *   3. Add a heading for "Sign Up"
+     *   4. Render the SignupForm inside the card
+     * Output: JSX.Element representing the styled signup page
+     */
     return (
-        // Step 1: Wrapper div for the page; can use CSS class for styling/layout
-        <div className="auth-page-container">
+        // Step 1: Flex container to center the card
+        <Flex
+            justify="center"     // Horizontal center
+        >
+            {/* Step 2: Card container */}
+            <Stack
+                w="1000px"
+                maxW="800px"
+                bg="white"           // Single card background
+                p={10}               // Inner padding
+                borderRadius="lg"    // Rounded corners
+                boxShadow="lg"       // Shadow for elevation
+                textAlign="center"   // Center content
+            >
+                {/* Step 3: Page heading */}
+                <Heading fontSize="25px" color="teal.600">
+                    Sign Up
+                </Heading>
 
-            {/* Step 2: Page heading */}
-            <h1>Sign Up</h1>
-
-            {/* Step 3: Render the SignupForm component */}
-            <SignupForm />
-        </div>
+                {/* Step 4: Signup form */}
+                <SignupForm />
+            </Stack>
+        </Flex>
     );
 };
 
 // ---------------------------- Component Export ----------------------------
-// Export the component as default to use in routing or higher-level layout
+// Export the component as default for routing or parent layout
 export default SignupPage;

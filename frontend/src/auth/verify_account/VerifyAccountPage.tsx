@@ -1,73 +1,107 @@
 // ---------------------------- External Imports ----------------------------
-// Import React for component and hooks
+// Import React for component rendering
 import React from "react";
 
-// Import hooks from React Router for URL params and navigation
+// Import React Router hooks for handling URL parameters and navigation
 import { useSearchParams, useNavigate } from "react-router-dom";
 
+// Import Chakra UI components for layout and visual design
+import { Box, Text, VStack, Container } from "@chakra-ui/react";
+
 // ---------------------------- Internal Imports ----------------------------
-// Import verification button component
+// Import the VerifyAccountButton component
 import VerifyAccountButton from "./VerifyAccountButton";
 
 // ---------------------------- VerifyAccountPage Component ----------------------------
-// Functional component to display account verification UI
-// Methods:
-// 1. handleSuccessRedirect - Navigates to login page after successful verification
+/**
+ * VerifyAccountPage
+ * Displays a Chakra-styled card layout containing the
+ * VerifyAccountButton component.
+ *
+ * Methods:
+ * 1. handleSuccessRedirect — navigates to login page after success.
+ */
 const VerifyAccountPage: React.FC = () => {
 
-    // ---------------------------- Hooks ----------------------------
-    /**
-     * Input: None (URL search params are automatically available)
-     * Process:
-     *   1. Get query parameters from the URL
-     *   2. Setup navigate function for programmatic routing
-     *   3. Extract token and email parameters with fallback values
-     * Output:
-     *   1. token and email strings from URL
-     *   2. navigate function for redirection
-     */
-    const [searchParams] = useSearchParams(); // Step 1: URL query parameters
-    const navigate = useNavigate();           // Step 2: Navigation function
-    const token = searchParams.get("token") || ""; // Step 3a: Extract token
-    const email = searchParams.get("email") || ""; // Step 3b: Extract email
+  // ---------------------------- Hooks ----------------------------
+  /**
+   * Input: none
+   * Process:
+   *   1. Extract token and email from URL query parameters.
+   *   2. Prepare navigation function for redirect.
+   * Output:
+   *   1. Token and email values.
+   *   2. Navigation method.
+   */
+  const [searchParams] = useSearchParams();  // Step 1: Read URL params
+  const navigate = useNavigate();            // Step 2: Setup router navigation
 
-    // ---------------------------- Handlers ----------------------------
-    /**
-     * handleSuccessRedirect - Callback to redirect user after successful verification
-     * Input: None
-     * Process:
-     *   1. Navigate to "/login" route
-     *   2. Replace current history entry to prevent back navigation
-     * Output: User redirected to login page
-     */
-    const handleSuccessRedirect = () => {
-        navigate("/login", { replace: true }); // Step 1 & 2
-    };
+  // Step 3: Extract token and email with fallbacks
+  const token = searchParams.get("token") || "";
+  const email = searchParams.get("email") || "";
 
-    // ---------------------------- JSX Return ----------------------------
-    /**
-     * Input: token, email, handleSuccessRedirect
-     * Process:
-     *   1. Render container div for page layout
-     *   2. Display heading "Verify Account"
-     *   3. Render VerifyAccountButton with token, email, and success callback
-     * Output: JSX.Element for the verification page
-     */
-    return (
-        <div className="auth-page-container">
-            {/* Step 2: Page heading */}
-            <h1>Verify Account</h1>
+  // ---------------------------- Handlers ----------------------------
+  /**
+   * handleSuccessRedirect
+   * Input: none
+   * Process:
+   *   1. Redirects user to "/login" upon successful verification.
+   *   2. Replaces current history entry to prevent back navigation.
+   * Output: User navigated to login screen.
+   */
+  const handleSuccessRedirect = () => {
+    navigate("/login", { replace: true });
+  };
 
-            {/* Step 3: Render verification button */}
-            <VerifyAccountButton
-                token={token}
-                email={email}
-                onSuccess={handleSuccessRedirect}
-            />
-        </div>
-    );
+  // ---------------------------- Render ----------------------------
+  /**
+   * Input: token, email, handleSuccessRedirect
+   * Process:
+   *   1. Render a centered card with teal heading and short description.
+   *   2. Embed VerifyAccountButton component for verification logic.
+   * Output: Fully responsive, teal-themed verification page.
+   */
+  return (
+    <Container
+      maxW="lg"
+    >
+      {/* Outer Card Container */}
+      <Box
+        w="full"
+        p={8}
+        borderWidth="1px"
+        borderRadius="lg"
+        boxShadow="lg"
+        textAlign="center"
+      >
+        {/* Page Heading */}
+        <Text
+          fontSize="2xl"
+          fontWeight="bold"
+          color="teal.600"
+          mb={6}
+        >
+          Verify Your Account
+        </Text>
+
+        {/* Instructional Text */}
+        <Text fontSize="md" color="gray.600" mb={6}>
+          Click the button below to verify your account and activate access.
+        </Text>
+
+        {/* Verification Button Block */}
+        <VStack>
+          <VerifyAccountButton
+            token={token}
+            email={email}
+            onSuccess={handleSuccessRedirect}
+          />
+        </VStack>
+      </Box>
+    </Container>
+  );
 };
 
 // ---------------------------- Export ----------------------------
-// Export VerifyAccountPage as default for routing
+// Export page component for routing integration
 export default VerifyAccountPage;

@@ -5,6 +5,9 @@ import React, { useEffect } from "react";
 // Import Redux hooks
 import { useDispatch } from "react-redux";
 
+// Import Chakra UI components for layout and styling
+import { Box, Heading, Stack, Container } from "@chakra-ui/react";
+
 // Import LogoutButton container components for single-device and all-device logout
 import LogoutButton from "../auth/logout/LogoutButton";
 import LogoutAllButton from "../auth/logout_all/LogoutAllButton";
@@ -14,9 +17,13 @@ import { clearLogoutState } from "../auth/logout/logout_slice";
 import { clearLogoutAllState } from "../auth/logout_all/logout_all_slice";
 
 // ---------------------------- DashboardPage Component ----------------------------
-// Functional component for user dashboard
-// Methods:
-// 1. render - Returns the dashboard UI including welcome message and logout buttons
+/**
+ * DashboardPage
+ * A Chakra UI-based user dashboard responsible for:
+ * 1. Rendering a responsive centered container
+ * 2. Displaying a welcome message
+ * 3. Providing logout buttons for current and all sessions
+ */
 const DashboardPage: React.FC = () => {
     const dispatch = useDispatch();
 
@@ -27,29 +34,43 @@ const DashboardPage: React.FC = () => {
         dispatch(clearLogoutAllState());
     }, [dispatch]);
 
+    // Background color
+    const cardBg = "white";
+    const textColor = "gray.700";
+
     // ---------------------------- Render ----------------------------
     /**
      * Input: None
      * Process:
-     *   1. Render container div with styling (white card, centered, padding, shadow)
-     *   2. Display heading with welcome message
-     *   3. Render LogoutButton for current device
-     *   4. Render LogoutAllButton for all devices
-     * Output: JSX.Element representing the dashboard page
+     *   1. Create a centered Chakra Container
+     *   2. Use a Box as a card with padding, rounded corners, and shadow
+     *   3. Display heading text
+     *   4. Render LogoutButton and LogoutAllButton components
+     * Output: Chakra-styled JSX.Element representing the dashboard
      */
     return (
-        // Step 1: Container div with styling
-        <div className="max-w-md mx-auto bg-white rounded-lg shadow p-6 space-y-4 text-center">
+        <Container maxW="md" py={10}>
+            {/* Step 1: Dashboard card */}
+            <Box
+                bg={cardBg}                          // Dynamic background
+                color={textColor}                    // Text color for readability
+                p={8}                                // Inner padding
+                rounded="xl"                         // Rounded corners
+                shadow="xl"                          // Elevation shadow
+                textAlign="center"                   // Center content alignment
+            >
+                {/* Step 2: Welcome message */}
+                <Heading as="h1" fontSize="22px" mb={6} color="teal.600" >
+                    Welcome to your Dashboard
+                </Heading>
 
-            {/* Step 2: Dashboard welcome message */}
-            <h1 className="text-2xl font-bold">Welcome to your Dashboard</h1>
-
-            {/* Step 3: Logout current device button */}
-            <LogoutButton />
-
-            {/* Step 4: Logout all devices button */}
-            <LogoutAllButton />
-        </div>
+                {/* Step 3: Stack for spacing between buttons */}
+                <Stack>
+                    <LogoutButton />       {/* Logout current device */}
+                    <LogoutAllButton />    {/* Logout all devices */}
+                </Stack>
+            </Box>
+        </Container>
     );
 };
 

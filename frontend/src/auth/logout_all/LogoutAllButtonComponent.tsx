@@ -1,52 +1,67 @@
 // ---------------------------- External Imports ----------------------------
-// Import React for JSX/TSX syntax
+// Import React core for JSX/TSX syntax
 import React from "react";
 
-// ---------------------------- Props Type ----------------------------
+// Import Chakra UI components for layout and styling
+import { Button, Text, Stack } from "@chakra-ui/react";
+
+// ---------------------------- Props Interface ----------------------------
 // Define props expected by LogoutAllButtonComponent
 interface LogoutAllButtonComponentProps {
-    // True if logout-all request is in progress
-    loading: boolean;
-
-    // Stores error message if logout-all fails
-    error: string | null;
-
-    // Stores success message after logout-all succeeds
-    successMessage: string | null;
-
-    // Function to trigger logout all devices action
-    onLogoutAll: () => void;
+    loading: boolean;              // True if logout-all request is in progress
+    error: string | null;          // Stores error message if logout-all fails
+    successMessage: string | null; // Stores success message after logout-all succeeds
+    onLogoutAll: () => void;       // Function to trigger logout-all action
 }
 
 // ---------------------------- LogoutAllButtonComponent ----------------------------
-// Presentational component for logout-all button UI
+/**
+ * LogoutAllButtonComponent
+ * High-level presentational component responsible for:
+ * 1. Rendering Chakra-styled "Logout All Devices" button
+ * 2. Handling loading state display
+ * 3. Displaying success or error messages
+ */
 const LogoutAllButtonComponent: React.FC<LogoutAllButtonComponentProps> = ({
-    loading,
     error,
     successMessage,
     onLogoutAll,
 }) => {
     // ---------------------------- Render ----------------------------
     return (
-        <div className="flex flex-col items-center space-y-2">
-            {/* Logout all devices button */}
-            <button
-                onClick={onLogoutAll}                                // Call logout-all handler on click
-                disabled={loading}                                   // Disable button while loading
-                className="px-4 py-2 bg-red-600 text-white font-semibold rounded hover:bg-red-700 disabled:opacity-50"
+        <Stack
+            align="center"      // Center-align button and messages
+        >
+            {/* Step 1: Logout all devices button styled with Chakra UI */}
+            <Button
+                onClick={onLogoutAll}                     // Trigger logout-all handler
+                loadingText="Logging out all..."          // Text while loading
+                bg="red.600"                              // Chakra danger color
+                _hover={{ bg: "red.700" }}                // Darker hover effect
+                color="white"                             // White text for contrast
+                size="lg"                                 // Large button for emphasis
+                w="180px"
             >
-                {loading ? "Logging out all..." : "Logout All Devices"}
-            </button>
+                Logout All Devices
+            </Button>
 
-            {/* Display error message if present */}
-            {error && <p className="text-red-500">{error}</p>}
+            {/* Step 2: Display error message if present */}
+            {error && (
+                <Text color="red.500" fontSize="md">
+                    {error}
+                </Text>
+            )}
 
-            {/* Display success message if present */}
-            {successMessage && <p className="text-green-500">{successMessage}</p>}
-        </div>
+            {/* Step 3: Display success message if present */}
+            {successMessage && (
+                <Text color="green.500" fontSize="md">
+                    {successMessage}
+                </Text>
+            )}
+        </Stack>
     );
 };
 
 // ---------------------------- Export ----------------------------
-// Export LogoutAllButtonComponent for use in container
+// Export LogoutAllButtonComponent for reuse
 export default LogoutAllButtonComponent;

@@ -4,7 +4,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green?logo=fastapi)
 ![React](https://img.shields.io/badge/React-18+-blue?logo=react)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-async-blue)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue?logo=postgresql)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue?logo=postgresql)
 ![Redis](https://img.shields.io/badge/Redis-7+-red?logo=redis)
 ![Taskiq](https://img.shields.io/badge/Taskiq-async-orange)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -19,9 +19,27 @@ A scalable full-stack template with FastAPI backend and React frontend, designed
 
 ## 🖼️ Demo / Screenshot
 
-Here’s what the login page looks like:
+Login page :
 
-![Login Page Screenshot](demo_assets/login_page/login_page.png)
+![Login Page Screenshot](demo_assets/login/login_page.png)
+
+---
+
+Signup Page :
+
+![Signup Page Screenshot](demo_assets/signup/signup_page.png)
+
+---
+
+Verify Account Page :
+
+![Verify Account Page Screenshot](demo_assets/verify_account/verify_account_page.png)
+
+---
+
+Dashboard Page : 
+
+![Dashboard Page Screenshot](demo_assets/dashboard/dashboard_page.png)
 
 ---
 

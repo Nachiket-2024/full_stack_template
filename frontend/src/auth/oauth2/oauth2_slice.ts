@@ -1,97 +1,142 @@
 // ---------------------------- External Imports ----------------------------
-// Import Redux Toolkit functions for creating slices
+// Import createSlice to define Redux slice and PayloadAction for typing actions
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-// Import fetchCurrentUser thunk to reuse existing authentication check
+// Import async thunk to fetch current user info
 import { fetchCurrentUser } from "../current_user/current_user_slice";
 
 // ---------------------------- State Type ----------------------------
-// Redux state structure for OAuth2 authentication
+/**
+ * OAuth2State
+ * Defines the Redux state shape for OAuth2 login/session:
+ * 1. loading: true if login or session verification is in progress
+ * 2. error: stores error message string or null
+ * 3. isAuthenticated: true if user is logged in
+ * 4. user: object containing id, email, and role of user, or null
+ */
 interface OAuth2State {
-    loading: boolean;                                         // Step 1: True if login/session verification in progress
-    error: string | null;                                     // Step 2: Stores error messages
-    isAuthenticated: boolean;                                 // Step 3: True if user is authenticated
-    user: { id: string; email: string; role: string } | null; // Step 4: Basic user info from backend
+    loading: boolean;                                         // Step 1: loading flag
+    error: string | null;                                     // Step 2: error message
+    isAuthenticated: boolean;                                 // Step 3: authentication status
+    user: { id: string; email: string; role: string } | null; // Step 4: user info
 }
 
 // ---------------------------- Initial State ----------------------------
+/**
+ * initialState
+ * Default OAuth2 slice state
+ */
 const initialState: OAuth2State = {
-    loading: false,
-    error: null,
-    isAuthenticated: false,
-    user: null,
+    loading: false,       // Not loading initially
+    error: null,          // No error initially
+    isAuthenticated: false, // Not authenticated initially
+    user: null,           // No user data initially
 };
 
 // ---------------------------- Slice ----------------------------
 /**
  * oauth2Slice
- * Manages OAuth2 authentication state
- * 
+ * Redux slice handling OAuth2 login/session state:
  * Methods:
- *   1. setUserSession - Store user info and mark authenticated
- *   2. clearUserSession - Clear user info and mark unauthenticated
- *   3. setOAuth2Error - Store error and mark unauthenticated
- *   4. setOAuth2Loading - Set loading state
+ * 1. setUserSession: store user info and mark authenticated
+ * 2. clearUserSession: reset state to unauthenticated
+ * 3. setOAuth2Error: store error on failed login attempt
+ * 4. setOAuth2Loading: set loading state during API calls
+ * Extra reducers handle async fetchCurrentUser thunk
  */
 const oauth2Slice = createSlice({
     name: "oauth2",
     initialState,
     reducers: {
-        // setUserSession: Store user info and mark authenticated
+        /**
+         * setUserSession
+         * Input: user object { id, email, role }
+         * Process:
+         *   1. Set loading to false
+         *   2. Clear error
+         *   3. Mark user as authenticated
+         *   4. Store user info in state
+         * Output: updated state
+         */
         setUserSession: (state, action: PayloadAction<{ id: string; email: string; role: string }>) => {
-            state.loading = false;
-            state.error = null;
-            state.isAuthenticated = true;
-            state.user = action.payload;
+            state.loading = false;            // Step 1: stop loading
+            state.error = null;               // Step 2: clear error
+            state.isAuthenticated = true;     // Step 3: authenticated
+            state.user = action.payload;      // Step 4: store user info
         },
 
-        // clearUserSession: Reset state to unauthenticated
+        /**
+         * clearUserSession
+         * Input: none
+         * Process:
+         *   1. Reset loading, error, authentication, and user data
+         * Output: updated state
+         */
         clearUserSession: (state) => {
-            state.loading = false;
-            state.error = null;
-            state.isAuthenticated = false;
-            state.user = null;
+            state.loading = false;           // Step 1: stop loading
+            state.error = null;              // Step 2: clear error
+            state.isAuthenticated = false;   // Step 3: reset auth
+            state.user = null;               // Step 4: clear user info
         },
 
-        // setOAuth2Error: Store error and mark unauthenticated
+        /**
+         * setOAuth2Error
+         * Input: error string
+         * Process:
+         *   1. Stop loading
+         *   2. Set error
+         *   3. Mark as unauthenticated
+         *   4. Clear user data
+         * Output: updated state
+         */
         setOAuth2Error: (state, action: PayloadAction<string>) => {
-            state.loading = false;
-            state.error = action.payload;
-            state.isAuthenticated = false;
-            state.user = null;
+            state.loading = false;           // Step 1: stop loading
+            state.error = action.payload;    // Step 2: store error
+            state.isAuthenticated = false;   // Step 3: reset auth
+            state.user = null;               // Step 4: clear user
         },
 
-        // setOAuth2Loading: Set loading state during API calls
+        /**
+         * setOAuth2Loading
+         * Input: none
+         * Process:
+         *   1. Set loading to true
+         *   2. Clear error
+         * Output: updated state
+         */
         setOAuth2Loading: (state) => {
-            state.loading = true;
-            state.error = null;
+            state.loading = true;            // Step 1: start loading
+            state.error = null;              // Step 2: clear error
         },
     },
     extraReducers: (builder) => {
-        // fetchCurrentUser pending: set loading
+        /**
+         * Handle fetchCurrentUser async thunk
+         * 1. pending: set loading true
+         * 2. fulfilled: update authentication state
+         * 3. rejected: set unauthenticated, but do not set error
+         */
         builder.addCase(fetchCurrentUser.pending, (state) => {
-            state.loading = true;
-            state.error = null;
+            state.loading = true;           // Step 1: set loading
+            state.error = null;             // Step 1: clear error
         });
 
-        // fetchCurrentUser fulfilled: update authentication state
         builder.addCase(fetchCurrentUser.fulfilled, (state, action: PayloadAction<boolean>) => {
-            state.loading = false;
-            state.isAuthenticated = action.payload;
+            state.loading = false;          // Step 2: stop loading
+            state.isAuthenticated = action.payload; // Step 2: set auth status
         });
 
-        // fetchCurrentUser rejected: mark unauthenticated and store error
         builder.addCase(fetchCurrentUser.rejected, (state) => {
-            state.loading = false;
-            state.isAuthenticated = false;
-            state.error = "Failed to fetch current user";
+            state.loading = false;          // Step 3: stop loading
+            state.isAuthenticated = false;  // Step 3: unauthenticated
+            // Step 3: do NOT set error
         });
     },
 });
 
 // ---------------------------- Exports ----------------------------
-// Export actions to manipulate OAuth2 state
+// Export slice actions for dispatch
 export const { setUserSession, clearUserSession, setOAuth2Error, setOAuth2Loading } = oauth2Slice.actions;
 
-// Export reducer for store integration
+// Export reducer as default
 export default oauth2Slice.reducer;

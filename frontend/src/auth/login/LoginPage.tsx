@@ -1,136 +1,139 @@
 // ---------------------------- External Imports ----------------------------
-// Import React to use JSX/TSX syntax and hooks
+// Import React for JSX, hooks (state and effect)
 import React, { useEffect, useState } from "react";
 
-// Import React Router hooks for navigation and links
+// Import React Router hooks/components for navigation and redirection
 import { useNavigate, Link, Navigate } from "react-router-dom";
 
-// Import Redux hooks to access state and dispatch actions
+// Import Redux hooks for selecting state and dispatching actions
 import { useSelector, useDispatch } from "react-redux";
 
-// Import Chakra UI components for layout, typography, buttons, stacking, and Flex container
-import { Stack, Heading, Text, StackSeparator, Button, Flex } from "@chakra-ui/react";
+// Import Chakra UI components for layout, text, stack, separators, and flexbox
+import { Stack, Heading, Text, StackSeparator, Flex } from "@chakra-ui/react";
 
 // ---------------------------- Internal Imports ----------------------------
-// Login form component handling username/password inputs
+// Import LoginForm component for standard username/password login
 import LoginForm from "./LoginForm";
 
-// OAuth2 login button component for external provider login
+// Import OAuth2Button component for Google OAuth2 login
 import OAuth2Button from "../oauth2/OAuth2LoginButton";
 
-// Type definitions for Redux state and dispatch
+// Import TypeScript types for Redux store state and dispatch
 import type { RootState, AppDispatch } from "../../store/store";
 
-// Redux action to clear any existing user session
+// Import action to clear stale OAuth2 user session
 import { clearUserSession } from "../oauth2/oauth2_slice";
 
 // ---------------------------- LoginPage Component ----------------------------
-// Functional component for rendering the login page
-// Methods:
-// 1. render - Returns login UI including login form, OAuth2 button, error messages, and signup link
+/**
+ * LoginPage
+ * Renders a user login page with:
+ * 1. Standard LoginForm for username/password
+ * 2. OAuth2 login button (Google)
+ * 3. Redirect logic for authenticated users
+ * 4. Error handling and login attempt tracking
+ */
 const LoginPage: React.FC = () => {
-    const navigate = useNavigate(); // Hook to navigate programmatically
-    const dispatch = useDispatch<AppDispatch>(); // Redux dispatch with typed actions
-    const { isAuthenticated, loading, error } = useSelector(
-        (state: RootState) => state.oauth2 // Pull authentication state from Redux
+    // ---------------------------- Hooks ----------------------------
+    const navigate = useNavigate();                               // Hook for navigation
+    const dispatch = useDispatch<AppDispatch>();                 // Typed dispatch hook
+    const { isAuthenticated, loading, error } = useSelector(     // Redux state selection
+        (state: RootState) => state.oauth2
     );
     const [loginAttempted, setLoginAttempted] = useState(false); // Track if login was attempted
 
     // ---------------------------- Effects ----------------------------
-    // Clear stale session and reset loginAttempted on component mount
+    // Effect to clear any previous OAuth2 session when page mounts
     useEffect(() => {
-        dispatch(clearUserSession()); // Step 1: Clear existing session
-        setLoginAttempted(false); // Step 2: Reset local login attempt tracker
+        dispatch(clearUserSession());  // Step 1: Clear stale session
+        setLoginAttempted(false);      // Step 2: Reset login attempt tracker
     }, [dispatch]);
 
     // ---------------------------- Redirect / Loading ----------------------------
-    // Show loading state or redirect authenticated users
-    if (loading) return <Text>Loading...</Text>; // Step 1: Show loading text
-    if (isAuthenticated) return <Navigate to="/dashboard" replace />; // Step 2: Redirect if authenticated
+    // Show loading text if login process is in progress
+    if (loading) return <Text>Loading...</Text>;
+
+    // Redirect to dashboard if already authenticated
+    if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
     // ---------------------------- Callbacks ----------------------------
+    /**
+     * handleLoginSuccess
+     * Input: None
+     * Process:
+     *   1. Reset loginAttempted state
+     *   2. Navigate to dashboard page
+     * Output: void
+     */
     const handleLoginSuccess = () => {
-        setLoginAttempted(false); // Step 1: Reset login attempt tracker
-        navigate("/dashboard", { replace: true }); // Step 2: Navigate to dashboard
+        setLoginAttempted(false);                       // Step 1: Reset tracker
+        navigate("/dashboard", { replace: true });      // Step 2: Redirect to dashboard
     };
-    const handleLoginAttempt = () => setLoginAttempted(true); // Mark login attempt
+
+    /**
+     * handleLoginAttempt
+     * Input: None
+     * Process:
+     *   1. Set loginAttempted state to true
+     * Output: void
+     */
+    const handleLoginAttempt = () => setLoginAttempted(true); // Step 1: Track login attempt
 
     // ---------------------------- Render ----------------------------
     /**
      * Input: None
      * Process:
-     *   1. Render Flex container to horizontally center the card
-     *   2. Render Stack (white card) with heading, instructional text, error message, login form, OAuth2 button, and signup link
-     *   3. Display heading "Welcome"
-     *   4. Display instructional text
-     *   5. Conditionally display error message if login failed
-     *   6. Render LoginForm with callbacks
-     *   7. OAuth2 login button with Google style
-     *   8. Render signup link
+     *   1. Wrap content in a centered Flex container
+     *   2. Use a Stack as the main card with padding, background, shadow, and separator
+     *   3. Display heading and description
+     *   4. Show error message if login failed and attempted
+     *   5. Render LoginForm with callbacks
+     *   6. Render OAuth2Button with callbacks
+     *   7. Show signup link for new users
      * Output: JSX.Element representing the login page
      */
     return (
-        // Step 1: Flex container to center card
-        <Flex w="full" justify="center">
-            {/* Step 2: White card Stack */}
+        <Flex justify="center">                                      {/* Step 1: Center container */}
             <Stack
-                w="full" // Full width
-                maxW="md" // Max card width
-                align="center" // Center children horizontally
-                bg="white" // Card background
-                p={10} // Padding
-                borderRadius="lg" // Rounded corners
-                boxShadow="lg" // Shadow for depth
-                textAlign="center" // Center text alignment
-                separator={<StackSeparator />} // Optional visual separator
+                w="450px"                                                      /* Width */
+                maxW="md"                                                      /* Max width medium */
+                align="center"                                                 /* Center align items */
+                bg="white"                                                     /* Card background color */
+                p={10}                                                         /* Padding */
+                borderRadius="lg"                                              /* Rounded corners */
+                boxShadow="lg"                                                 /* Card shadow */
+                textAlign="center"                                             /* Center text */
+                separator={<StackSeparator />}                                 /* Stack separator */
             >
-                {/* Step 3: Page title */}
+                {/* Step 3: Heading */}
                 <Heading size="2xl" color="teal.600">Welcome</Heading>
+                <Text fontSize="md" color="gray.600">
+                    Sign in to continue to your dashboard
+                </Text>
 
-                {/* Step 4: Instructional text */}
-                <Text fontSize="md" color="gray.600">Sign in to continue to your dashboard</Text>
-
-                {/* Step 5: Error message */}
+                {/* Step 4: Error message if login failed */}
                 {error && loginAttempted && (
                     <Text color="red.500" fontWeight="bold">{error}</Text>
                 )}
 
-                {/* Step 6: Login form */}
+                {/* Step 5: Standard login form */}
                 <LoginForm
                     onSuccess={handleLoginSuccess}
                     onAttempt={handleLoginAttempt}
                 />
 
-                {/* Step 7: OAuth2 login button with Google style */}
-                <Button
-                    w="full"
-                    mt={4}
-                    bg="white"                  // White background
-                    color="gray.800"            // Dark text
-                    border="1px solid #ddd"     // Subtle border
-                    _hover={{ bg: "#e0e0e0" }}  // Darker hover effect
-                    size="lg"
-                    onClick={() => {
-                        handleLoginAttempt(); // Mark login attempt
-                        OAuth2Button({ onSuccess: handleLoginSuccess, onAttempt: handleLoginAttempt }); // Trigger OAuth2 login
-                    }}
-                >
-                    <Flex align="center" justify="center" gap={2}>
-                        {/* Inline Google "G" SVG */}
-                        <svg width="20" height="20" viewBox="0 0 533.5 544.3">
-                            <path fill="#4285F4" d="M533.5 278.4c0-17.5-1.5-34.4-4.3-50.7H272v95.9h146.9c-6.3 33.9-25.5 62.7-54.5 82v68h87.8c51.4-47.4 80.3-116.9 80.3-195.2z"/>
-                            <path fill="#34A853" d="M272 544.3c73.7 0 135.5-24.3 180.7-66.2l-87.8-68c-24.4 16.4-55.7 26-92.9 26-71.5 0-132.2-48.1-153.9-112.7h-90.6v70.8c45.3 90 138.5 150.1 244.5 150.1z"/>
-                            <path fill="#FBBC05" d="M118.3 323.2c-10.7-32-10.7-66.6 0-98.6v-70.8h-90.6c-40.2 78.7-40.2 171.1 0 249.8l90.6-70.4z"/>
-                            <path fill="#EA4335" d="M272 107.7c39.8-.6 77.7 14 106.6 40.8l79.9-79.9C405.9 21 345.7-4.3 272 0 166 0 72.8 60.1 27.5 150.1l90.6 70.8C139.8 155.8 200.5 107.7 272 107.7z"/>
-                        </svg>
-                        <span>Sign in with Google</span>
-                    </Flex>
-                </Button>
+                {/* Step 6: OAuth2 login button */}
+                <OAuth2Button
+                    onSuccess={handleLoginSuccess}
+                    onAttempt={handleLoginAttempt}
+                />
 
-                {/* Step 8: Signup link */}
-                <Text fontSize="sm" color="gray.600">
+                {/* Step 7: Signup link for new users */}
+                <Text fontSize="16px" color="gray.600">
                     Don’t have an account?{" "}
-                    <Link to="/signup" style={{ color: "#319795", fontWeight: 600 }}>Sign Up</Link>
+                    <Link to="/signup" style={{ color: "#319795", fontWeight: 600 }}>
+                        Sign Up
+                    </Link>
                 </Text>
             </Stack>
         </Flex>
@@ -138,5 +141,5 @@ const LoginPage: React.FC = () => {
 };
 
 // ---------------------------- Export ----------------------------
-// Export LoginPage component as default for routing
+// Export LoginPage as default component for routing
 export default LoginPage;
