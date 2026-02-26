@@ -8,6 +8,9 @@ import { useDispatch, useSelector } from "react-redux";
 // Type-only import for typed useSelector hook
 import type { TypedUseSelectorHook } from "react-redux";
 
+// Import Chakra UI components for inputs and buttons
+import { Input, Button, Stack, Text } from "@chakra-ui/react";
+
 // ---------------------------- Internal Imports ----------------------------
 // Type-only imports for Redux store
 import type { RootState, AppDispatch } from "../../store/store";
@@ -42,18 +45,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onAttempt }) => {
 
     // ---------------------------- Redux ----------------------------
     const dispatch = useDispatch<AppDispatch>(); // Step 3: Typed dispatch
-    const { loading, error, isAuthenticated } = useAppSelector(
+    const { error, isAuthenticated } = useAppSelector(
         (state) => state.login // Step 4: Extract login slice
     );
 
     // ---------------------------- Effect: redirect on success ----------------------------
-    /**
-     * Input: None
-     * Process:
-     *   1. Run effect when isAuthenticated changes
-     *   2. Call onSuccess callback if login succeeded
-     * Output: Redirects or triggers post-login action
-     */
     useEffect(() => {
         if (isAuthenticated && onSuccess) {
             onSuccess();
@@ -61,29 +57,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onAttempt }) => {
     }, [isAuthenticated, onSuccess]);
 
     // ---------------------------- Event Handlers ----------------------------
-    /**
-     * handleSubmit
-     * Input: Form submit event
-     * Process:
-     *   0. Trigger onAttempt callback if provided
-     *   1. Prevent default form submission
-     *   2. Dispatch login thunk with email/password
-     * Output: Updates Redux state (loading, error, isAuthenticated)
-     */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onAttempt?.(); // Step 0: notify parent about login attempt
         dispatch(loginUser({ email, password }));
     };
 
-    /**
-     * handleClear
-     * Input: None
-     * Process:
-     *   1. Clear Redux login state
-     *   2. Clear local email and password inputs
-     * Output: Form and Redux slice reset
-     */
     const handleClear = () => {
         dispatch(clearLoginState());
         setEmail("");
@@ -92,45 +71,57 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onAttempt }) => {
 
     // ---------------------------- Render ----------------------------
     return (
-        <div>
-            {/* Step 1: Form title */}
-            <h2>Login</h2>
+        <Stack w="full">
+            {/* Step 1: Email input */}
+            <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                required
+            />
 
-            {/* Step 2: Login form */}
-            <form onSubmit={handleSubmit}>
-                {/* Step 2a: Email input */}
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    required
-                />
+            {/* Step 2: Password input */}
+            <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+            />
 
-                {/* Step 2b: Password input */}
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    required
-                />
+            {/* Step 3: Submit button styled with Chakra */}
+            <Button
+                type="submit"
+                bg="teal.600"
+                _hover={{ bg: "teal.700" }}
+                color="white"
+                size="lg"
+                w="full"
+                onClick={handleSubmit}
+            >
+                Login
+            </Button>
 
-                {/* Step 2c: Submit button */}
-                <button type="submit" disabled={loading}>
-                    {loading ? "Logging in..." : "Login"}
-                </button>
-            </form>
+            {/* Step 4: Clear button styled with Chakra */}
+            <Button
+                type="button"
+                bg="gray.300"
+                _hover={{ bg: "gray.400" }}
+                color="gray.700"
+                size="lg"
+                w="full"
+                onClick={handleClear}
+            >
+                Clear
+            </Button>
 
-            {/* Step 3: Display error message */}
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {/* Step 5: Display error message */}
+            {error && <Text color="red.500">{error}</Text>}
 
-            {/* Step 4: Display success message */}
-            {isAuthenticated && <p style={{ color: "green" }}>Login successful!</p>}
-
-            {/* Step 5: Clear button */}
-            <button onClick={handleClear}>Clear</button>
-        </div>
+            {/* Step 6: Display success message */}
+            {isAuthenticated && <Text color="green.500">Login successful!</Text>}
+        </Stack>
     );
 };
 

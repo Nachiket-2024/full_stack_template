@@ -17,11 +17,19 @@ A scalable full-stack template with FastAPI backend and React frontend, designed
 
 ---
 
+## 🖼️ Demo / Screenshot
+
+Here’s what the login page looks like:
+
+![Login Page Screenshot](demo_assets/login_page/login_page.png)
+
+---
+
 ## 🛠️ Stack
 
 - **Backend:** FastAPI, SQLAlchemy (async), Alembic migrations  
 - **Authentication:** Email + Password (with JWT access & refresh tokens), Google OAuth2 
-- **Frontend:** React + Vite, Tailwind CSS  
+- **Frontend:** React + Vite, Chakra UI
 - **State Management:** Redux (main app state) 
 - **Database:** PostgreSQL (async)  
 - **Caching & Tasks:** Redis + Taskiq (async task queue)
