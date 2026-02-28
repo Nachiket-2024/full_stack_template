@@ -40,7 +40,8 @@ const LogoutButtonComponent: React.FC<LogoutButtonComponentProps> = ({
                 _hover={{ bg: "red.700" }}
                 color="white"
                 size="lg"                                  // Large button for emphasis
-                w="180px"
+                w="160px"
+                h="40px"
             >
                 Logout
             </Button>

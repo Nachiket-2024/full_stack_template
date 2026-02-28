@@ -207,15 +207,46 @@ const SignupForm: React.FC = () => {
             {successMessage && <Text color="green.500" fontSize="17px">{successMessage}</Text>}
 
             {/* Action Buttons */}
-            <Stack direction="row">
-                <Button type="submit" bg="teal.600" _hover={{ bg: "teal.700" }} color="white">
-                    Signup
-                </Button>
-                <Button type="button" onClick={handleClear}
-                        bg="gray.300" _hover={{ bg: "gray.400" }} color="gray.700">
-                    Clear
-                </Button>
-            </Stack>
+            <Box display="flex" alignItems="center">
+                {/* Left side: Signup and Clear buttons */}
+                <Stack direction="row">
+                    <Button
+                        type="submit"
+                        bg="teal.600"
+                        _hover={{ bg: "teal.700" }}
+                        color="white"
+                    >
+                        Signup
+                    </Button>
+
+                    <Button
+                        type="button"
+                        onClick={handleClear}
+                        bg="gray.300"
+                        _hover={{ bg: "gray.400" }}
+                        color="gray.700"
+                    >
+                        Clear
+                    </Button>
+                </Stack>
+
+                {/* Right side: “Already have an account?” + Login button */}
+                <Box display="flex" alignItems="center" ml="auto">
+                    <Text mr={2} color="gray.700" fontSize="16px">
+                        Already have an account?
+                    </Text>
+                    <Button
+                        type="button"
+                        bg="blue.600"
+                        _hover={{ bg: "blue.700" }}
+                        color="white"
+                        size="sm"
+                        onClick={() => (window.location.href = "/login")}
+                    >
+                        Login
+                    </Button>
+                </Box>
+            </Box>
         </Stack>
     );
 };
